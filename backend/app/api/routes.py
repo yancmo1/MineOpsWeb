@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.core import CatalogSnapshot, MutationLog, PlayerManager
-from app.schemas.api import CatalogSnapshotOutput, CatalogUpload, ManagerInput, ManagerOutput, SyncRequest
+from app.schemas.api import CatalogSnapshotOutput, CatalogUpload, ManagerOutput, SyncRequest
 
 router = APIRouter(prefix="/api/v1")
 
@@ -56,7 +56,8 @@ def create_catalog_snapshot(upload: CatalogUpload, db: Session = Depends(get_db)
         return existing
     snapshot = CatalogSnapshot(source_type=upload.source_type, source_version=upload.source_version, source_hash=upload.source_hash, game_version=upload.game_version, record_counts={key: len(value) if isinstance(value, list) else 1 for key, value in upload.payload.items()}, payload=upload.payload)
     db.add(snapshot)
-    db.commit(); db.refresh(snapshot)
+    db.commit()
+    db.refresh(snapshot)
     return snapshot
 
 
@@ -68,6 +69,9 @@ def snapshots(db: Session = Depends(get_db)):
 @router.post("/catalog/snapshots/{snapshot_id}/activate", response_model=CatalogSnapshotOutput)
 def activate_snapshot(snapshot_id: str, db: Session = Depends(get_db)):
     snapshot = db.get(CatalogSnapshot, snapshot_id)
-    if not snapshot: raise HTTPException(404, "Snapshot not found")
-    snapshot.import_status = "active"; db.commit(); db.refresh(snapshot)
+    if not snapshot:
+        raise HTTPException(404, "Snapshot not found")
+    snapshot.import_status = "active"
+    db.commit()
+    db.refresh(snapshot)
     return snapshot

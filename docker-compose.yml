@@ -1,26 +1,24 @@
 services:
-  postgres:
-    image: postgres:16.4-alpine
+  pocketbase:
+    build: ./pocketbase
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-mineops}
-      POSTGRES_USER: ${POSTGRES_USER:-mineops}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
-    volumes: [postgres_data:/var/lib/postgresql/data]
-    healthcheck: { test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"], interval: 10s, timeout: 5s, retries: 5 }
-  backend:
-    build:
-      context: ./backend
-      target: production
-    environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-mineops}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-mineops}
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:8080}
-    depends_on: { postgres: { condition: service_healthy } }
-    ports: ["8000:8000"]
-    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"], interval: 15s, timeout: 5s, retries: 5 }
-  frontend:
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:?set PB_ADMIN_EMAIL}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:?set PB_ADMIN_PASSWORD}
+    volumes:
+      - pocketbase_data:/pb/pb_data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  web:
     build:
       context: ./frontend
       target: build
-    depends_on: { backend: { condition: service_healthy } }
+    restart: unless-stopped
+    depends_on:
+      pocketbase: { condition: service_healthy }
     ports: ["8080:80"]
-volumes: { postgres_data: {} }
+volumes:
+  pocketbase_data:

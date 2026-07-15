@@ -1,0 +1,897 @@
+[
+  {
+    "id": "chester",
+    "name": "Chester",
+    "department": "mineshaft",
+    "rarity": "common",
+    "elements": ["Wind"],
+    "aliases": ["Chester"],
+    "active": {
+      "name": "Mining & Walking Speed Boost",
+      "type": "mining_walking_speed",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 5.0,
+      "description": "5x Mining & Walking Speed Boost"
+    },
+    "passives": [
+      {"kind": "upgrade_cost", "value": -0.1, "level": 10, "description": "-Upgrade Cost"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "goodman_jr",
+    "name": "Goodman Jr.",
+    "department": "mineshaft",
+    "rarity": "common",
+    "elements": ["Frost"],
+    "aliases": ["Goodman Jr", "GoodmanJr", "Junior", "Goodman Junior"],
+    "active": {
+      "name": "Upgrade Cost Reduction",
+      "type": "upgrade_cost_reduction",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 0.1,
+      "description": "-90% Upgrade Cost"
+    },
+    "passives": [
+      {"kind": "barrier_unlock_cost", "value": -0.1, "level": 10, "description": "-Barrier Unlock Cost"},
+      {"kind": "barrier_unlock_cost", "value": 0.0971, "level": 30, "description": "Barrier unlock cost to 9.71%"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "mrs_goodman",
+    "name": "Mrs. Goodman",
+    "department": "elevator",
+    "rarity": "common",
+    "elements": ["Sand"],
+    "aliases": ["Mrs Goodman", "MrsGoodman", "Goodman Mrs"],
+    "active": {
+      "name": "Upgrade Cost Reduction",
+      "type": "upgrade_cost_reduction",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 0.1,
+      "description": "-90% Upgrade Cost"
+    },
+    "passives": [
+      {"kind": "barrier_unlock_cost", "value": -0.1, "level": 10, "description": "-Barrier Unlock Cost"},
+      {"kind": "barrier_unlock_cost", "value": 0.0971, "level": 30, "description": "Barrier unlock cost to 9.71%"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "mark",
+    "name": "Mark",
+    "department": "warehouse",
+    "rarity": "common",
+    "elements": ["Nature"],
+    "aliases": ["Mark"],
+    "active": {
+      "name": "Loading & Walking Speed Boost",
+      "type": "loading_walking_speed",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 5.0,
+      "description": "5x Loading & Walking Speed Boost"
+    },
+    "passives": [
+      {"kind": "walking_speed", "value": 1.2, "level": 10, "description": "+Walking Speed Boost"},
+      {"kind": "walking_speed", "value": 1.83, "level": 20, "description": "Walking speed boost to 1.83x"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "gordon",
+    "name": "Gordon",
+    "department": "mineshaft",
+    "rarity": "common",
+    "elements": ["Flame"],
+    "aliases": ["Gordon"],
+    "active": {
+      "name": "Mining & Walking Speed Boost",
+      "type": "mining_walking_speed",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 5.0,
+      "description": "5x Mining & Walking Speed Boost"
+    },
+    "passives": [
+      {"kind": "mine_shaft_unlock_cost", "value": -0.1, "level": 10, "description": "-Mine Shaft Unlock Cost"},
+      {"kind": "mine_shaft_unlock_cost", "value": 0.0971, "level": 30, "description": "Mine shaft unlock cost to 9.71%"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "mr_goodman",
+    "name": "Mr. Goodman",
+    "department": "warehouse",
+    "rarity": "common",
+    "elements": ["Nature"],
+    "aliases": ["Mr Goodman", "MrGoodman", "Goodman Mr"],
+    "active": {
+      "name": "Upgrade Cost Reduction",
+      "type": "upgrade_cost_reduction",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 0.1,
+      "description": "-90% Upgrade Cost"
+    },
+    "passives": [
+      {"kind": "barrier_unlock_cost", "value": -0.1, "level": 10, "description": "-Barrier Unlock Cost"},
+      {"kind": "barrier_unlock_cost", "value": 0.0971, "level": 30, "description": "Barrier unlock cost to 9.71%"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "lee_vatori",
+    "name": "Lee Vatori",
+    "department": "elevator",
+    "rarity": "common",
+    "elements": ["Water"],
+    "aliases": ["Lee", "LeeVatori", "Vatori"],
+    "active": {
+      "name": "Loading & Movement Speed Boost",
+      "type": "loading_movement_speed",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 5.0,
+      "description": "5x Loading & Movement Speed Boost"
+    },
+    "passives": [
+      {"kind": "movement_speed", "value": 1.2, "level": 10, "description": "+Movement Speed Boost"},
+      {"kind": "movement_speed", "value": 1.83, "level": 20, "description": "Movement speed boost to 1.83x"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "blingsley",
+    "name": "Blingsley",
+    "department": "mineshaft",
+    "rarity": "rare",
+    "elements": ["Light", "Frost"],
+    "aliases": ["Blingsley", "Bling"],
+    "active": {
+      "name": "Cash Gain",
+      "type": "cash_multiplier",
+      "durationSeconds": 60,
+      "cooldownSeconds": 1800,
+      "multiplier": 10.0,
+      "description": "Gain 10x Cash every 5 seconds"
+    },
+    "passives": [
+      {"kind": "upgrade_cost", "value": -0.1, "level": 10, "description": "-Upgrade Cost"},
+      {"kind": "upgrade_cost", "value": 0.2626, "level": 30, "description": "Upgrade cost to 26.26%, idle cash to 1.72x"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "sir_henry",
+    "name": "Sir Henry",
+    "department": "mineshaft",
+    "rarity": "rare",
+    "elements": ["Flame", "Light"],
+    "aliases": ["Sir Henry", "SirHenry", "Henry"],
+    "active": {
+      "name": "Magic Safe",
+      "type": "magic_safe",
+      "durationSeconds": 30,
+      "cooldownSeconds": 900,
+      "multiplier": 16.35,
+      "description": "Store mined resources in the Magic Safe. Unload 16.35x at the end of the Effect"
+    },
+    "passives": [
+      {"kind": "mining_walking_speed", "value": 2.17, "level": 10, "description": "+2.17x Mining & Walking Speed Boost"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "mr_turner",
+    "name": "Mr. Turner",
+    "department": "mineshaft",
+    "rarity": "rare",
+    "elements": ["Nature", "Water"],
+    "aliases": ["Mr Turner", "Turner", "MrTurner"],
+    "active": {
+      "name": "Piggy Bank",
+      "type": "piggy_bank",
+      "durationSeconds": 30,
+      "cooldownSeconds": 900,
+      "multiplier": 10.0,
+      "description": "Store mined resources in a Piggy Bank. Unload 10x at the end of the Effect"
+    },
+    "passives": [
+      {"kind": "mining_walking_speed", "value": 1.2, "level": 10, "description": "+Mining & Walking Speed Boost"},
+      {"kind": "mining_walking_speed", "value": 1.77, "level": 30, "description": "Mining and walking speed to 1.77x, mine income factor to 1.24x"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "ranger_sue",
+    "name": "Ranger Sue",
+    "department": "mineshaft",
+    "rarity": "rare",
+    "elements": ["Sand", "Dark"],
+    "aliases": ["Ranger Sue", "RangerSue", "Sue"],
+    "active": {
+      "name": "Mining Speed & Infinite Capacity",
+      "type": "mining_speed_infinite_capacity",
+      "durationSeconds": 60,
+      "cooldownSeconds": 900,
+      "multiplier": 6.0,
+      "description": "6x Mining Speed Boost & Infinite Worker Capacity"
+    },
+    "passives": [
+      {"kind": "barrier_unlock_cost", "value": -0.1, "level": 10, "description": "-Barrier Unlock Cost"},
+      {"kind": "barrier_unlock_cost", "value": 0.1119, "level": 30, "description": "Barrier unlock cost to 11.19%, mine income factor to 1.24x"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "damian_jones",
+    "name": "Damian Jones",
+    "department": "elevator",
+    "rarity": "rare",
+    "elements": ["Frost", "Light"],
+    "aliases": ["Damian", "DamianJones", "Jones", "Damian Jones"],
+    "active": {
+      "name": "Elevator Speed Boost",
+      "type": "elevator_speed",
+      "durationSeconds": 90,
+      "cooldownSeconds": 1200,
+      "multiplier": 6.0,
+      "description": "6x Elevator Speed Boost"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.2, "level": 10, "description": "+Loading & Movement Speed Boost"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "zi_galvani",
+    "name": "Zi Galvani",
+    "department": "mineshaft",
+    "rarity": "rare",
+    "elements": ["Flame", "Wind"],
+    "aliases": ["Zi Galvani", "ZiGalvani", "Zi", "Galvani", "Zi Glavani", "ZiGlavani"],
+    "active": {
+      "name": "Mining Speed Boost",
+      "type": "mining_speed",
+      "durationSeconds": 60,
+      "cooldownSeconds": 900,
+      "multiplier": 6.0,
+      "description": "6x Mining Speed Boost"
+    },
+    "passives": [
+      {"kind": "mining_speed", "value": 1.2, "level": 10, "description": "+Mining Speed Boost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "chris_capella",
+    "name": "Chris Capella",
+    "department": "warehouse",
+    "rarity": "rare",
+    "elements": ["Wind", "Water"],
+    "aliases": ["Chris", "Capella", "ChrisCapella", "Chris Cappella", "ChrisCappella"],
+    "active": {
+      "name": "Loading Speed Boost",
+      "type": "loading_speed",
+      "durationSeconds": 60,
+      "cooldownSeconds": 900,
+      "multiplier": 5.0,
+      "description": "5x Loading Speed Boost"
+    },
+    "passives": [
+      {"kind": "walking_loading_speed", "value": 1.2, "level": 10, "description": "+Walking & Loading Speed Boost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "sojo",
+    "name": "Sojo",
+    "department": "elevator",
+    "rarity": "rare",
+    "elements": ["Flame", "Wind"],
+    "aliases": ["Sojo"],
+    "active": {
+      "name": "Elevator Speed Boost",
+      "type": "elevator_speed",
+      "durationSeconds": 60,
+      "cooldownSeconds": 900,
+      "multiplier": 5.0,
+      "description": "5x Elevator Speed Boost"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.2, "level": 10, "description": "+Loading & Movement Speed Boost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "al_titude",
+    "name": "Al Titude",
+    "department": "warehouse",
+    "rarity": "rare",
+    "elements": ["Dark", "Flame"],
+    "aliases": ["AlTitude", "Al", "Altitude", "Al Titude"],
+    "active": {
+      "name": "Warehouse Multiplier",
+      "type": "warehouse_multiplier",
+      "durationSeconds": 60,
+      "cooldownSeconds": 900,
+      "multiplier": 6.0,
+      "description": "6x Warehouse Multiplier"
+    },
+    "passives": [
+      {"kind": "walking_loading_speed", "value": 1.2, "level": 10, "description": "+Walking & Loading Speed Boost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "Likely to be added to briefcases later"
+  },
+  {
+    "id": "dr_steiner",
+    "name": "Dr. Steiner",
+    "department": "mineshaft",
+    "rarity": "epic",
+    "elements": ["Wind", "Sand", "Dark"],
+    "aliases": ["Dr Steiner", "Steiner", "DrSteiner", "Dr. Steiner"],
+    "active": {
+      "name": "Beam Resources",
+      "type": "beam_warehouse",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 3.0,
+      "description": "Beam 3x of your mined resources to the Warehouse"
+    },
+    "passives": [
+      {"kind": "mining_walking_speed", "value": 1.4, "level": 10, "description": "+Mining & Walking Speed Boost (1.4x)"},
+      {"kind": "mining_walking_speed", "value": 1.9, "level": 20, "description": "Mining and walking speed boost to 1.9x"},
+      {"kind": "continent_income", "value": 1.2, "level": 30, "description": "+Continent Income"},
+      {"kind": "beam_warehouse", "value": 1.0, "level": 50, "description": "Beam resources to Warehouse"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "dr_lilly",
+    "name": "Dr. Lilly",
+    "department": "elevator",
+    "rarity": "epic",
+    "elements": ["Flame", "Nature", "Wind"],
+    "aliases": ["Dr Lilly", "Lilly", "DrLilly", "Dr. Lilly"],
+    "active": {
+      "name": "Beam Resources",
+      "type": "beam_warehouse",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 3.0,
+      "description": "Beam 3x of collected resources to the Warehouse"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.3, "level": 10, "description": "+Loading & Movement Speed Boost"},
+      {"kind": "loading_movement_speed", "value": 1.73, "level": 20, "description": "Loading and movement speed boost to 1.73x"},
+      {"kind": "continent_income", "value": 1.2, "level": 30, "description": "+Continent Income"},
+      {"kind": "beam_warehouse", "value": 1.0, "level": 50, "description": "Beam resources to Warehouse"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "santa_claus",
+    "name": "Santa Claus",
+    "department": "warehouse",
+    "rarity": "epic",
+    "elements": ["Frost", "Light", "Water"],
+    "aliases": ["Santa Claus", "SantaClaus", "Santa"],
+    "active": {
+      "name": "Present Transformation",
+      "type": "present_transformation",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 4.0,
+      "description": "Warehouse workers transform 4x of elevator resources into presents (CASH)"
+    },
+    "passives": [
+      {"kind": "walking_loading_speed", "value": 1.3, "level": 10, "description": "+Walking & Loading Speed (1.3x)"},
+      {"kind": "walking_loading_speed", "value": 1.73, "level": 20, "description": "Loading and walking speed to 1.73x"},
+      {"kind": "continent_income", "value": 1.2, "level": 30, "description": "+Continent Income"},
+      {"kind": "barrier_unlock_cost", "value": -0.1, "level": 50, "description": "-Barrier Unlock Cost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "From Santa's Holiday Draw 2019"
+  },
+  {
+    "id": "santa_2020",
+    "name": "Santa 2020",
+    "department": "warehouse",
+    "rarity": "epic",
+    "elements": ["Water", "Dark", "Frost"],
+    "aliases": ["Santa 2020", "Santa2020"],
+    "active": {
+      "name": "Present Transformation",
+      "type": "present_transformation",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 4.0,
+      "description": "Warehouse workers transform 4x of elevator resources into presents (CASH)"
+    },
+    "passives": [
+      {"kind": "walking_loading_speed", "value": 1.3, "level": 10, "description": "+Walking & Loading Speed (1.3x)"},
+      {"kind": "walking_loading_speed", "value": 1.73, "level": 20, "description": "Loading and walking speed to 1.73x"},
+      {"kind": "continent_income", "value": 1.2, "level": 30, "description": "+Continent Income"},
+      {"kind": "barrier_unlock_cost", "value": -0.1, "level": 50, "description": "-Barrier Unlock Cost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "From Santa's Holiday Draw 2020"
+  },
+  {
+    "id": "ezio_auditore",
+    "name": "Ezio Auditore",
+    "department": "elevator",
+    "rarity": "epic",
+    "elements": ["Light", "Nature", "Flame"],
+    "aliases": ["Ezio Auditore", "EzioAuditore", "Ezio"],
+    "active": {
+      "name": "Assassin Strike",
+      "type": "multiplier",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 6.0,
+      "description": "6x Elevator Multiplier"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.3, "level": 10, "description": "+Loading & Movement Speed Boost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true,
+    "notes": "From Assassin's Creed crossover event"
+  },
+  {
+    "id": "wolfgang_clawson",
+    "name": "Wolfgang Clawson",
+    "department": "mineshaft",
+    "rarity": "epic",
+    "elements": ["Dark", "Sand", "Wind"],
+    "aliases": ["Wolfgang Clawson", "WolfgangClawson", "Wolfgang", "Clawson"],
+    "active": {
+      "name": "Mining Multiplier",
+      "type": "mining_multiplier",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 6.0,
+      "description": "6x Mining Multiplier"
+    },
+    "passives": [
+      {"kind": "mining_walking_speed", "value": 1.4, "level": 10, "description": "+Mining & Walking Speed Boost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "queen_aurora",
+    "name": "Queen Aurora",
+    "department": "elevator",
+    "rarity": "epic",
+    "elements": ["Frost", "Nature", "Light"],
+    "aliases": ["Queen Aurora", "QueenAurora"],
+    "active": {
+      "name": "Elevator Multiplier",
+      "type": "elevator_multiplier",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 6.0,
+      "description": "6x Elevator Multiplier"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.3, "level": 10, "description": "+Loading & Movement Speed Boost"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "rabbid_blingsley",
+    "name": "Rabbid Blingsley",
+    "department": "mineshaft",
+    "rarity": "epic",
+    "elements": ["Light", "Frost", "Nature"],
+    "aliases": ["Rabbid Blingsley", "RabbidBlingsley", "Rabbid", "Rabbit Blingsley", "RabbitBlingsley", "Rabbit"],
+    "active": {
+      "name": "Cash Gain",
+      "type": "cash_multiplier",
+      "durationSeconds": 60,
+      "cooldownSeconds": 1800,
+      "multiplier": 12.0,
+      "description": "Gain 12x Cash every 5 seconds"
+    },
+    "passives": [
+      {"kind": "upgrade_cost", "value": -0.15, "level": 10, "description": "-Upgrade Cost"},
+      {"kind": "continent_income", "value": 1.2, "level": 30, "description": "+Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true,
+    "notes": "From Rabbids crossover event"
+  },
+  {
+    "id": "jade_kim",
+    "name": "Jade Kim",
+    "department": "warehouse",
+    "rarity": "epic",
+    "elements": ["Flame", "Sand", "Nature"],
+    "aliases": ["Jade Kim", "JadeKim", "Jade"],
+    "active": {
+      "name": "Warehouse Multiplier",
+      "type": "warehouse_multiplier",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 6.0,
+      "description": "6x Warehouse Multiplier"
+    },
+    "passives": [
+      {"kind": "walking_loading_speed", "value": 1.3, "level": 10, "description": "+Walking & Loading Speed Boost"},
+      {"kind": "continent_income", "value": 1.2, "level": 30, "description": "+Continent Income"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "violet_evergreen",
+    "name": "Violet Evergreen",
+    "department": "elevator",
+    "rarity": "epic",
+    "elements": ["Nature", "Water", "Sand"],
+    "aliases": ["Violet Evergreen", "VioletEvergreen", "Violet"],
+    "active": {
+      "name": "Elevator Multiplier",
+      "type": "elevator_multiplier",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 6.0,
+      "description": "6x Elevator Multiplier"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.3, "level": 10, "description": "+Loading & Movement Speed Boost"},
+      {"kind": "continent_income", "value": 1.2, "level": 30, "description": "+Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "sir_lorenzo",
+    "name": "Sir Lorenzo",
+    "department": "mineshaft",
+    "rarity": "legendary",
+    "elements": ["Flame", "Light", "Nature"],
+    "aliases": ["Sir Lorenzo", "SirLorenzo", "Lorenzo"],
+    "active": {
+      "name": "Transmit Resources",
+      "type": "transmit_warehouse",
+      "durationSeconds": 60,
+      "cooldownSeconds": 1800,
+      "multiplier": 10.19,
+      "description": "Transmit 10.19x of Mine Shaft production directly to the Warehouse"
+    },
+    "passives": [
+      {"kind": "mining_speed", "value": 4.17, "level": 10, "description": "+4.17x Mining Speed Boost"},
+      {"kind": "mining_speed", "value": 6.03, "level": 20, "description": "Mining speed boost to 6.03x"},
+      {"kind": "upgrade_cost", "value": -0.5, "level": 30, "description": "-50% Upgrade Cost"},
+      {"kind": "continent_income", "value": 1.41, "level": 50, "description": "+1.41x Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "From Impossible Island"
+  },
+  {
+    "id": "luna_stella",
+    "name": "Luna & Stella",
+    "department": "elevator",
+    "rarity": "legendary",
+    "elements": ["Light", "Frost", "Water"],
+    "aliases": ["Luna & Stella", "Luna and Stella", "LunaStella", "Luna", "Stella"],
+    "active": {
+      "name": "Additional Elevator",
+      "type": "additional_elevator",
+      "durationSeconds": 150,
+      "cooldownSeconds": 1800,
+      "multiplier": 3.4,
+      "description": "Collect 3.4x mined resources with an additional elevator"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.19, "level": 10, "description": "+1.19x Loading & Movement Speed Boost"},
+      {"kind": "elevator_upgrade_cost", "value": -0.5, "level": 30, "description": "-50% Elevator Upgrade Cost"},
+      {"kind": "beam_warehouse", "value": 0.17, "level": 50, "description": "Beam 0.17x Resources to Warehouse"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "From Impossible Island"
+  },
+  {
+    "id": "professor_impossible",
+    "name": "Professor Impossible",
+    "department": "warehouse",
+    "rarity": "legendary",
+    "elements": ["Dark", "Wind", "Sand"],
+    "aliases": ["Professor Impossible", "ProfessorImpossible", "Professor"],
+    "active": {
+      "name": "Conveyor Speed",
+      "type": "conveyor_speed",
+      "durationSeconds": 150,
+      "cooldownSeconds": 1800,
+      "multiplier": 5.95,
+      "description": "Conveyor speeds 5.95x resources to the warehouse"
+    },
+    "passives": [
+      {"kind": "walking_loading_speed", "value": 1.19, "level": 10, "description": "+1.19x Walking & Loading Speed"},
+      {"kind": "warehouse_upgrade_cost", "value": -0.5, "level": 30, "description": "-50% Warehouse Upgrade Cost"},
+      {"kind": "continent_income", "value": 1.41, "level": 50, "description": "+1.41x Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "From Impossible Island"
+  },
+  {
+    "id": "samantha_reiss",
+    "name": "Samantha Reiss",
+    "department": "mineshaft",
+    "rarity": "legendary",
+    "elements": ["Nature", "Water", "Light"],
+    "aliases": ["Samantha Reiss", "SamanthaReiss", "Samantha", "Reiss"],
+    "active": {
+      "name": "Triple Boost",
+      "type": "triple_boost",
+      "durationSeconds": 150,
+      "cooldownSeconds": 1800,
+      "multiplier": 3.0,
+      "description": "Elevator, Warehouse and assigned Mineshaft are boosted by 3x"
+    },
+    "passives": [
+      {"kind": "upgrade_cost", "value": -0.429, "level": 10, "description": "-42.9% Upgrade Cost"},
+      {"kind": "idle_cash", "value": 3.17, "level": 30, "description": "+3.17x Idle Cash"},
+      {"kind": "continent_income", "value": 1.41, "level": 50, "description": "+1.41x Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "Legendary Super Manager"
+  },
+  {
+    "id": "utux",
+    "name": "Ut'ux",
+    "department": "mineshaft",
+    "rarity": "legendary",
+    "elements": ["Dark", "Frost", "Sand"],
+    "aliases": ["Ut'ux", "Utux", "Ut ux"],
+    "active": {
+      "name": "Hive Storage",
+      "type": "hive_storage",
+      "durationSeconds": 90,
+      "cooldownSeconds": 1800,
+      "multiplier": 20.0,
+      "description": "Store Mined resources in the Hive. Unload 20x split between the Warehouse and the Crate at the end of the Effect"
+    },
+    "passives": [
+      {"kind": "mining_speed", "value": 4.17, "level": 10, "description": "+4.17x Mining Speed Boost"},
+      {"kind": "upgrade_cost", "value": -0.5, "level": 30, "description": "-50% Upgrade Cost"},
+      {"kind": "continent_income", "value": 1.41, "level": 50, "description": "+1.41x Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "From Frontier Mines"
+  },
+  {
+    "id": "thalia",
+    "name": "Thalia",
+    "department": "mineshaft",
+    "rarity": "legendary",
+    "elements": ["Nature", "Light", "Flame"],
+    "aliases": ["Thalia"],
+    "active": {
+      "name": "Beam to Elevator",
+      "type": "beam_elevator",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 12.0,
+      "description": "Beam 12x of mined resources to the Elevator"
+    },
+    "passives": [
+      {"kind": "mining_speed", "value": 4.0, "level": 10, "description": "+4x Mining Speed Boost"},
+      {"kind": "upgrade_cost", "value": -0.5, "level": 30, "description": "-50% Upgrade Cost"},
+      {"kind": "continent_income", "value": 1.5, "level": 50, "description": "+1.5x Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "Legendary Super Manager"
+  },
+  {
+    "id": "h4v0c",
+    "name": "H4V0C",
+    "department": "mineshaft",
+    "rarity": "legendary",
+    "elements": ["Dark", "Flame", "Wind"],
+    "aliases": ["HAVOC", "H4VOC", "Havoc", "havoc", "H4V0C"],
+    "active": {
+      "name": "Multiplier Burst",
+      "type": "multiplier",
+      "durationSeconds": 180,
+      "cooldownSeconds": 1200,
+      "multiplier": 7.0,
+      "description": "7x Mining Multiplier Burst"
+    },
+    "passives": [
+      {"kind": "mining_speed", "value": 3.0, "level": 10, "description": "+3x Mining Speed Boost"},
+      {"kind": "upgrade_cost", "value": -0.4, "level": 30, "description": "-40% Upgrade Cost"},
+      {"kind": "continent_income", "value": 1.3, "level": 50, "description": "+1.3x Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "Legendary Super Manager"
+  },
+  {
+    "id": "aurora",
+    "name": "Aurora",
+    "department": "elevator",
+    "rarity": "legendary",
+    "elements": ["Light", "Frost", "Nature"],
+    "aliases": ["Aurora"],
+    "active": {
+      "name": "Light Beam",
+      "type": "beam",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 10.0,
+      "description": "10x Elevator Beam"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 3.0, "level": 10, "description": "+3x Loading & Movement Speed"},
+      {"kind": "upgrade_cost", "value": -0.5, "level": 30, "description": "-50% Upgrade Cost"},
+      {"kind": "continent_income", "value": 1.5, "level": 50, "description": "+1.5x Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": false,
+    "notes": "Legendary Super Manager - different from Queen Aurora (Epic)"
+  },
+  {
+    "id": "freesia",
+    "name": "Freesia",
+    "department": "elevator",
+    "rarity": "epic",
+    "elements": ["Nature", "Water", "Light"],
+    "aliases": ["Freesia"],
+    "active": {
+      "name": "Elevator Multiplier",
+      "type": "elevator_multiplier",
+      "durationSeconds": 120,
+      "cooldownSeconds": 1200,
+      "multiplier": 6.0,
+      "description": "6x Elevator Multiplier"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.3, "level": 10, "description": "+Loading & Movement Speed Boost"},
+      {"kind": "continent_income", "value": 1.2, "level": 30, "description": "+Continent Income"}
+    ],
+    "availableByHiring": false,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "mr_edmund",
+    "name": "Mr. Edmund",
+    "department": "warehouse",
+    "rarity": "rare",
+    "elements": ["Water", "Sand"],
+    "aliases": ["Mr Edmund", "Edmund", "MrEdmund", "Mr. Edmund"],
+    "active": {
+      "name": "Warehouse Burst",
+      "type": "warehouse_multiplier",
+      "durationSeconds": 120,
+      "cooldownSeconds": 1500,
+      "multiplier": 5.0,
+      "description": "5x Warehouse Burst"
+    },
+    "passives": [
+      {"kind": "walking_loading_speed", "value": 1.2, "level": 10, "description": "+Walking & Loading Speed Boost"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "cliff_walker",
+    "name": "Cliff Walker",
+    "department": "mineshaft",
+    "rarity": "rare",
+    "elements": ["Sand", "Wind"],
+    "aliases": ["Cliff", "CliffWalker", "Cliff Walker"],
+    "active": {
+      "name": "Drill Power",
+      "type": "drill_power",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 5.0,
+      "description": "5x Drill Power"
+    },
+    "passives": [
+      {"kind": "mining_walking_speed", "value": 1.2, "level": 10, "description": "+Mining & Walking Speed Boost"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "lily",
+    "name": "Lily",
+    "department": "elevator",
+    "rarity": "common",
+    "elements": ["Nature"],
+    "aliases": ["Lily"],
+    "active": {
+      "name": "Elevator Speed",
+      "type": "elevator_speed",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 3.0,
+      "description": "3x Elevator Speed"
+    },
+    "passives": [
+      {"kind": "loading_movement_speed", "value": 1.1, "level": 10, "description": "+Loading & Movement Speed Boost"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "sue",
+    "name": "Sue",
+    "department": "elevator",
+    "rarity": "common",
+    "elements": ["Wind"],
+    "aliases": ["Sue"],
+    "active": {
+      "name": "Load Speed",
+      "type": "load_speed",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 3.0,
+      "description": "3x Load Speed"
+    },
+    "passives": [
+      {"kind": "loading_speed", "value": 1.1, "level": 10, "description": "+Loading Speed Boost"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  },
+  {
+    "id": "jade",
+    "name": "Jade",
+    "department": "warehouse",
+    "rarity": "common",
+    "elements": ["Flame"],
+    "aliases": ["Jade"],
+    "active": {
+      "name": "Warehouse Speed",
+      "type": "warehouse_speed",
+      "durationSeconds": 300,
+      "cooldownSeconds": 1800,
+      "multiplier": 3.0,
+      "description": "3x Warehouse Speed"
+    },
+    "passives": [
+      {"kind": "walking_loading_speed", "value": 1.1, "level": 10, "description": "+Walking & Loading Speed Boost"}
+    ],
+    "availableByHiring": true,
+    "availableInBriefcases": true
+  }
+]
