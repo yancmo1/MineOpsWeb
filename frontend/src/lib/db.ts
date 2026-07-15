@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 
-export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; elements: string[]; active?: { description?: string; multiplier?: number; duration?: string; cooldown?: string }; passives?: Array<{ unlockLevel?: number; description?: string; multiplier?: number }> };
+export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; duration?: string; cooldown?: string }; passives?: Array<{ unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number }> };
 export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; unlocked: boolean; updatedAt: string };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
 

@@ -1,5 +1,5 @@
-const CACHE = "mineops-shell-v2";
+const CACHE = "mineops-shell-v3";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/catalog/sm_complete_database.json", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
-self.addEventListener("fetch", event => { if (event.request.method !== "GET") return; event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => { const copy=response.clone(); caches.open(CACHE).then(cache=>cache.put(event.request,copy)); return response; }).catch(()=>caches.match("/index.html")))); });
+self.addEventListener("fetch", event => { if (event.request.method !== "GET") return; const path = new URL(event.request.url).pathname; if (path.startsWith("/src/") || path.startsWith("/@") || path.includes("node_modules")) return; event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => { const copy=response.clone(); caches.open(CACHE).then(cache=>cache.put(event.request,copy)); return response; }).catch(()=>caches.match("/index.html")))); });

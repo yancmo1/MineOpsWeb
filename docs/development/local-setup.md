@@ -9,7 +9,11 @@ Production defaults remain in `docker-compose.yml`; the development override is 
 For rapid frontend work, run `npm install && npm run dev` in `frontend`; point `VITE_API_BASE_URL` at the API only through an uncommitted local environment.
 ## Local PocketBase
 
-The development Compose file starts PocketBase at `http://localhost:8090`, applies the committed MineOps migrations, and bootstraps the first superuser from `PB_ADMIN_EMAIL` / `PB_ADMIN_PASSWORD` in the uncommitted root `.env`. The local dashboard is `http://localhost:8090/_/`.
+The development Compose file starts PocketBase at `http://localhost:8090`, applies the committed MineOps migrations, and bootstraps the first superuser from `PB_ADMIN_EMAIL` / `PB_ADMIN_PASSWORD` in the uncommitted root `.env`. The local dashboard is `http://localhost:8090/_/`. After changing `.env`, recreate the web container because `VITE_*` values are embedded when Vite starts:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build --force-recreate web
+```
 
 ## Local Kolibri sync
 
