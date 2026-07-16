@@ -1,5 +1,101 @@
 # Development journal
 
+## 2026-07-16 — Capture bridge: ubuntumac → PocketBase ingest pipeline
+
+**Dual-ended implementation:** Both the server-side ingest endpoint (PocketBase) and the client-side upload CLI (capture-bridge) were built and wired together.
+
+### Server side (MineOpsWeb PocketBase)
+
+1. **New migration:** `1700000001_capture_clients.js` — adds `capture_clients` collection with `name`, `tokenHash` (bcrypt), `active`, `lastUsedAt` fields. No public access rules; only superusers manage via Admin UI. The ingest hook reads records via DAO for auth.
+
+2. **New PB hook:** `pocketbase/pb_hooks/capture-ingest.pb.js` — custom route `POST /api/capture/ingest` that:
+   - Authenticates via Bearer token against `capture_clients` bcrypt hashes
+   - Validates payload against `release.schema.json` requirements (releaseId, versionCode, apkHashes, status, etc.)
+   - Returns HTTP 409 on duplicate releaseId (exit code 14 on CLI)
+   - Creates `raw_imports` record with capture client name as owner
+   - Creates/updates `catalog_versions` record with object count
+   - Updates `capture_clients.lastUsedAt` on each request
+
+3. **Dockerfile:** Added `COPY pb_hooks /pb/pb_hooks` so hooks are baked into the PB image.
+
+4. **Frontend:** Added "Capture Status" card to the More page showing:
+   - Online/Unavailable status indicator
+   - Catalog version count from PocketBase
+   - Latest release ID and ingest timestamp
+   - Refresh button (calls PB `catalog_versions` endpoint)
+   - New module: `frontend/src/lib/capture.ts`
+
+### Client side (capture-bridge CLI)
+
+5. **Rewrote `apps/capture-bridge/src/cli.mjs`** — from a 12-line prototype to a robust CLI with:
+   - `node src/cli.mjs <payload.json>` — single file upload
+   - `--dry-run` — validate without sending (prints release summary)
+   - `--inbox <dir>` — batch process all JSON files in a directory
+   - `--help` — full usage docs
+   - Payload validation against `release.schema.json` requirements
+   - Duplicate detection (exit code 14 on HTTP 409)
+   - Structured JSON output for scripting
+   - Env var checks: `MINEOPS_CAPTURE_URL`, `MINEOPS_CAPTURE_TOKEN`
+
+6. **Test fixture:** `apps/capture-bridge/fixtures/test-release.json` for dry-run testing.
+
+7. **Env docs:** `apps/capture-bridge/.env.example` and updated root `.env.example` with `MINEOPS_CAPTURE_URL`/`MINEOPS_CAPTURE_TOKEN` instead of the old placeholder.
+
+### Verification
+
+- Frontend: TypeScript compiles cleanly, Vite build passes, all 11 tests pass.
+- Docker: `docker compose build pocketbase` succeeds (pb_hooks copied into image).
+- CLI: `node src/cli.mjs fixtures/test-release.json --dry-run` works and produces structured output.
+- The ingest hook and CLI validate the same required fields on both ends (defense in depth).
+
+### End-to-end test results (2026-07-16)
+
+All verified against a running dev stack (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d`):
+
+| Test | Result |
+|---|---|
+| `POST /api/capture/ingest` with valid auth + payload | ✅ 200 — rawImportId + catalogVersionId returned |
+| Duplicate releaseId | ✅ 409 — "Release already ingested" |
+| Missing auth header | ✅ 401 — "Missing or malformed Authorization header" |
+| Invalid token | ✅ 401 — "Invalid or inactive capture token" |
+| Missing required fields | ✅ 400 — specific field name in error |
+| `node src/cli.mjs <payload.json>` | ✅ Uploads, returns structured JSON with IDs |
+| `node src/cli.mjs <payload.json> --dry-run` | ✅ Validates, prints release summary (no upload) |
+| Duplicate via CLI | ✅ Detects 409, exits with code 14 |
+| `--inbox <dir>` mode | ✅ Processes all JSON files in dir |
+| Public `catalog_versions` read | ✅ Returns records without auth |
+| `raw_imports` created | ✅ 4 records stored |
+| `catalog_versions` created | ✅ 4 records stored |
+
+### PB 0.39.x hooks API notes
+
+Key findings from debugging the custom route:
+
+| Concept | PB 0.36-0.38 API | PB 0.39.x API |
+|---|---|---|
+| Route registration | `routerAdd(method, path, handler)` | Same |
+| Request body | `c.body()` or `JSON.parse(c.body())` | `c.requestInfo().body` (parsed JSON object) |
+| Request headers | `c.request().header.get("name")` | `c.requestInfo().headers.name` (lowercase, underscored) |
+| DAO access | `$app.dao().method()` | `$app.method()` directly (no `.dao()`) |
+| Record save | `$app.dao().saveRecord(rec)` | `$app.save(rec)` |
+| Record ID | `record.getId()` | `record.id` |
+| Field access | `record.getString("name")` | `record.get("name")` |
+| Bcrypt | `$security.compareWithBcrypt()` | Not available — use `$security.sha256()` + `$security.equal()` |
+| Public rule | `null` = public | `""` (empty string) = public; `null` = deny all |
+
+### To use end-to-end
+
+1. Start dev stack: `make dev-up`
+2. Create superuser: `docker exec mineopsweb-pocketbase-1 /pb/pocketbase superuser upsert admin@example.com "password" --dir=/pb/pb_data`
+3. Create capture client via Admin UI or API (store SHA256 of your chosen token)
+4. Run: `MINEOPS_CAPTURE_URL=http://localhost:8090/api/capture/ingest MINEOPS_CAPTURE_TOKEN=my-token node apps/capture-bridge/src/cli.mjs apps/capture-bridge/fixtures/test-release.json`
+5. View capture status in frontend More → Capture Status → Refresh
+
+## 2026-07-16 — Docker production fix: nginx proxy, stage targeting, and port merging
+
+### Summary
+The production Docker setup had three distinct bugs that prevented the app from serving correctly after rebuild. Fixed all three and documented root causes for future prevention.
+
 ## 2026-07-14 — Initial replacement foundation
 
 - Added a Dockerized React PWA, FastAPI API, PostgreSQL service, and local emulator ingestion CLI.

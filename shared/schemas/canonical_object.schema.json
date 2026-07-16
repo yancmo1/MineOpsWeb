@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MineOps Canonical Object",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "objectType",
+    "displayName",
+    "releaseId",
+    "sourceFile",
+    "provenance",
+    "confidence",
+    "status"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 36, "maxLength": 36 },
+    "gameId": { "type": ["string", "null"], "minLength": 1 },
+    "objectType": { "type": "string", "minLength": 1 },
+    "displayName": { "type": "string", "minLength": 1 },
+    "releaseId": { "type": "string", "minLength": 1 },
+    "sourceFile": { "type": "string", "minLength": 1 },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "localizationKey": { "type": ["string", "null"] },
+    "spriteId": { "type": ["string", "null"] },
+    "rawPayload": { "type": "object" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["new", "resolved", "needs_review", "manual_override", "ignored", "deprecated"]
+    }
+  }
+}

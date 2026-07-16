@@ -5,6 +5,7 @@ import { type Tab, navigationItems, getTabLabel } from "./lib/navigation";
 import { restoreAuth, getAuthStatus, onAuthChange, getClient, getBaseUrl, type AuthStatus } from "./lib/pocketbase";
 import { pushStateToPB, pullNewerFromPB } from "./lib/sync";
 import { saveSnapshot } from "./lib/snapshot";
+import { fetchCaptureStatus, type CaptureStatus } from "./lib/capture";
 import { TodayPage } from "./pages/TodayPage";
 import { SnapshotHistory } from "./pages/SnapshotHistory";
 import { StrategyPage } from "./pages/StrategyPage";
@@ -89,6 +90,7 @@ export default function App() {
   const [navExpanded, setNavExpanded] = useState(true);
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ authenticated: false });
   const [showSnapshotHistory, setShowSnapshotHistory] = useState(false);
+  const [captureStatus, setCaptureStatus] = useState<CaptureStatus>({ healthy: false });
   const hasAutoSynced = useRef(false);
 
   // Close sort menu on click outside
@@ -157,6 +159,9 @@ export default function App() {
           await setSyncMetadata(pbSnapshot.metadata);
         }
       }
+
+      // Fetch capture status (non-blocking)
+      void refreshCaptureStatus();
 
       // Auto-sync once on initial load if enabled and no previous sync
       if (!hasAutoSynced.current && loadedSettings.autoSync && managers.length > 0 && credentials.kolibriId && credentials.authToken && !loadedMetadata.lastSuccessfulSyncAt) {
@@ -322,6 +327,11 @@ export default function App() {
   }
 
   async function updateManager(p: PlayerManager, patch: Partial<PlayerManager>) { const next = progress.map((item) => item.managerId === p.managerId ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item); setProgress(next); await saveProgress(next); }
+
+  async function refreshCaptureStatus() {
+    const status = await fetchCaptureStatus();
+    setCaptureStatus(status);
+  }
   const freshness = metadata.status === "never" ? "No player data imported" : metadata.error ? `Sync error · ${metadata.error}` : metadata.status === "offline" ? "Offline · showing cached data" : metadata.lastSuccessfulSyncAt ? `Synced ${new Date(metadata.lastSuccessfulSyncAt).toLocaleString()}` : "Sync pending";
 
   return (
@@ -486,6 +496,8 @@ export default function App() {
           authStatus={authStatus}
           onAuthChange={() => setAuthStatus(getAuthStatus())}
           onOpenSnapshotHistory={() => setShowSnapshotHistory(true)}
+          captureStatus={captureStatus}
+          onRefreshCaptureStatus={refreshCaptureStatus}
         />
       )}
 

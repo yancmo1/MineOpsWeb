@@ -7,6 +7,7 @@ import {
   getBaseUrl,
   type AuthStatus,
 } from "../lib/pocketbase";
+import { type CaptureStatus } from "../lib/capture";
 import { useState } from "react";
 
 interface MorePageProps {
@@ -22,6 +23,8 @@ interface MorePageProps {
   authStatus: AuthStatus;
   onAuthChange: () => void;
   onOpenSnapshotHistory: () => void;
+  captureStatus: CaptureStatus;
+  onRefreshCaptureStatus: () => void;
 }
 
 export function MorePage({
@@ -37,6 +40,8 @@ export function MorePage({
   authStatus,
   onAuthChange,
   onOpenSnapshotHistory,
+  captureStatus,
+  onRefreshCaptureStatus,
 }: MorePageProps) {
   const [pbEmail, setPbEmail] = useState("");
   const [pbPassword, setPbPassword] = useState("");
@@ -300,6 +305,65 @@ export function MorePage({
         </p>
         <button onClick={onOpenSnapshotHistory} style={{ width: "100%" }}>
           View Snapshots
+        </button>
+      </section>
+
+      {/* Capture Status */}
+      <section className="card-container">
+        <h2 className="card-title">Capture Status</h2>
+        <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
+          APK extraction pipeline from ubuntumac. Refresh to check for new releases.
+        </p>
+        <div
+          style={{
+            padding: "0.75rem",
+            backgroundColor: "var(--bg-secondary)",
+            borderRadius: "0.5rem",
+            marginBottom: "0.75rem",
+          }}
+        >
+          {captureStatus.healthy ? (
+            <>
+              <p className="muted" style={{ margin: 0, fontSize: "0.875rem" }}>
+                <strong>Status:</strong>{" "}
+                <span style={{ color: "var(--accent-green, #34c759)" }}>Online</span>
+              </p>
+              {captureStatus.catalogVersionCount !== undefined && (
+                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
+                  <strong>Catalog versions:</strong> {captureStatus.catalogVersionCount}
+                </p>
+              )}
+              {captureStatus.lastReleaseId && (
+                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
+                  <strong>Latest release:</strong> {captureStatus.lastReleaseId}
+                </p>
+              )}
+              {captureStatus.lastIngestedAt && (
+                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
+                  <strong>Last ingested:</strong>{" "}
+                  {new Date(captureStatus.lastIngestedAt).toLocaleString()}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="muted" style={{ margin: 0, fontSize: "0.875rem" }}>
+                <strong>Status:</strong>{" "}
+                <span style={{ color: "var(--accent-orange)" }}>Unavailable</span>
+              </p>
+              {captureStatus.error && (
+                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem", color: "var(--accent-orange)" }}>
+                  {captureStatus.error}
+                </p>
+              )}
+              <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
+                Sign into PocketBase and ensure the capture-ingest endpoint is reachable.
+              </p>
+            </>
+          )}
+        </div>
+        <button onClick={onRefreshCaptureStatus} style={{ width: "100%" }}>
+          Refresh
         </button>
       </section>
 
