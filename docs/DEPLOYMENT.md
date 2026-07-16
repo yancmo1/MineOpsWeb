@@ -1,5 +1,8 @@
 # Deployment
 
+For GitHub Actions and Oracle VM automation details, see `docs/deployment/oracle-cicd.md`.
+For live server state and manual configuration, see `docs/deployment/oracle-server-manifest.md`.
+
 Production uses Docker Compose with PocketBase and the static PWA. Copy `.env.example` to a server-only `.env`, set strong admin/capture values, then run:
 
 ```bash

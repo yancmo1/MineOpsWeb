@@ -25,6 +25,10 @@ export interface CaptureRawImportPreview {
   versionCode?: number;
   apkCount?: number;
   objectCount?: number;
+  /** Total assets discovered during extraction (from objectSummary) */
+  totalAssets?: number;
+  /** Object type names discovered (from objects array) */
+  objectTypes?: string[];
 }
 
 export interface CaptureStatus {
@@ -141,6 +145,14 @@ export async function fetchCaptureStatus(): Promise<CaptureStatus> {
               ? Object.keys(payload.apkHashes as Record<string, unknown>).length
               : undefined,
             objectCount: Array.isArray(payload.objects) ? payload.objects.length : undefined,
+            totalAssets: payload.objectSummary && typeof payload.objectSummary === "object"
+              ? (payload.objectSummary as Record<string, unknown>).totalAssets as number | undefined
+              : undefined,
+            objectTypes: Array.isArray(payload.objects)
+              ? payload.objects
+                  .map((o: unknown) => (o && typeof o === "object" ? (o as Record<string, unknown>).type as string : undefined))
+                  .filter((t: string | undefined): t is string => typeof t === "string")
+              : undefined,
           };
         } else {
           notes.push("No raw import records were found.");

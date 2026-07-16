@@ -19,6 +19,20 @@
         "cwd": "${workspaceFolder}"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Oracle: Verify capture ingest",
+      "type": "shell",
+      "command": "ssh",
+      "args": [
+        "-o", "BatchMode=yes",
+        "oracle-vm",
+        "echo '[health]' && curl -fsS http://127.0.0.1:8091/api/health && echo && echo '[ingest route]' && curl -sS -w '\\nhttp_code=%{http_code}\\n' -X POST http://127.0.0.1:8091/api/capture/ingest -H 'Content-Type: application/json' --data '{}' && echo && echo '[catalog versions]' && curl -sS 'http://127.0.0.1:8091/api/collections/catalog_versions/records?perPage=5' | python3 -m json.tool"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

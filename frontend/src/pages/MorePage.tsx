@@ -358,41 +358,36 @@ export function MorePage({
               {captureStatus.recentReleases && captureStatus.recentReleases.length > 0 && (
                 <div style={{ marginTop: "0.5rem" }}>
                   <p className="muted" style={{ margin: 0, fontSize: "0.8rem", fontWeight: 600 }}>
-                    Import history
+                    Import history ({captureStatus.recentReleases.length} release{captureStatus.recentReleases.length !== 1 ? "s" : ""})
                   </p>
                   <div style={{ display: "grid", gap: "0.25rem", marginTop: "0.25rem" }}>
-                    {captureStatus.recentReleases.slice(0, 3).map((release) => (
-                      <p key={`${release.releaseId}-${release.ingestedAt}`} className="muted" style={{ margin: 0, fontSize: "0.8rem" }}>
-                        {release.releaseId}
-                        {release.objectCount !== undefined ? ` · ${release.objectCount} objects` : ""}
-                        {release.ingestedAt ? ` · ${new Date(release.ingestedAt).toLocaleString()}` : ""}
-                      </p>
+                    {captureStatus.recentReleases.slice(0, 5).map((release, idx) => (
+                      <div key={`${release.releaseId}-${release.ingestedAt}`} style={{ 
+                        display: "flex", 
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        fontSize: "0.8rem",
+                        padding: "0.15rem 0",
+                      }}>
+                        <span style={{ 
+                          flex: 1, 
+                          overflow: "hidden", 
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          color: idx === 0 ? "var(--accent-cyan)" : "var(--text-secondary)",
+                        }}>
+                          {idx === 0 ? "● " : ""}{release.releaseId}
+                        </span>
+                        <span className="muted" style={{ flexShrink: 0 }}>
+                          {release.objectCount !== undefined ? `${release.objectCount} obj` : "—"}
+                        </span>
+                        <span className="muted" style={{ flexShrink: 0, fontSize: "0.75rem" }}>
+                          {release.ingestedAt ? new Date(release.ingestedAt).toLocaleDateString() : ""}
+                        </span>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {(captureStatus.previousReleaseId || captureStatus.objectCountDelta !== undefined) && (
-                <div style={{ marginTop: "0.75rem", borderTop: "1px solid var(--border-color, rgba(255,255,255,0.08))", paddingTop: "0.5rem" }}>
-                  <p className="muted" style={{ margin: 0, fontSize: "0.8rem", fontWeight: 600 }}>
-                    Latest vs previous
-                  </p>
-                  {captureStatus.lastReleaseId && captureStatus.previousReleaseId && (
-                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Release:</strong> {captureStatus.previousReleaseId} → {captureStatus.lastReleaseId}
-                    </p>
-                  )}
-                  {captureStatus.lastObjectCount !== undefined && captureStatus.previousObjectCount !== undefined && (
-                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Objects:</strong> {captureStatus.previousObjectCount} → {captureStatus.lastObjectCount}
-                      {captureStatus.objectCountDelta !== undefined ? ` (${captureStatus.objectCountDelta >= 0 ? "+" : ""}${captureStatus.objectCountDelta})` : ""}
-                    </p>
-                  )}
-                  {captureStatus.previousIngestedAt && captureStatus.lastIngestedAt && (
-                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Ingested:</strong> {new Date(captureStatus.previousIngestedAt).toLocaleString()} → {new Date(captureStatus.lastIngestedAt).toLocaleString()}
-                    </p>
-                  )}
                 </div>
               )}
 
@@ -403,23 +398,23 @@ export function MorePage({
                   </p>
                   {captureStatus.latestRawImport.versionName && (
                     <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Version:</strong> {captureStatus.latestRawImport.versionName}
-                      {captureStatus.latestRawImport.versionCode !== undefined ? ` (${captureStatus.latestRawImport.versionCode})` : ""}
+                      <strong>Game version:</strong> {captureStatus.latestRawImport.versionName}
+                      {captureStatus.latestRawImport.versionCode !== undefined ? ` (code ${captureStatus.latestRawImport.versionCode})` : ""}
                     </p>
                   )}
-                  {captureStatus.latestRawImport.status && (
+                  {captureStatus.latestRawImport.totalAssets !== undefined && (
                     <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Pipeline status:</strong> {captureStatus.latestRawImport.status}
+                      <strong>Total assets extracted:</strong> {captureStatus.latestRawImport.totalAssets.toLocaleString()}
                     </p>
                   )}
-                  {captureStatus.latestRawImport.apkCount !== undefined && (
+                  {captureStatus.latestRawImport.objectTypes && captureStatus.latestRawImport.objectTypes.length > 0 && (
                     <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>APK hash entries:</strong> {captureStatus.latestRawImport.apkCount}
+                      <strong>Asset types:</strong> {captureStatus.latestRawImport.objectTypes.join(", ")}
                     </p>
                   )}
-                  {captureStatus.latestRawImport.objectCount !== undefined && (
+                  {captureStatus.latestRawImport.apkCount !== undefined && captureStatus.latestRawImport.apkCount > 0 && (
                     <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Objects in payload:</strong> {captureStatus.latestRawImport.objectCount}
+                      <strong>APK files:</strong> {captureStatus.latestRawImport.apkCount}
                     </p>
                   )}
                 </div>
