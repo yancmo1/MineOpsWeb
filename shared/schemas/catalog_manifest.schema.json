@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mineops.io/schemas/catalog_manifest.schema.json",
+  "title": "MineOps Catalog Manifest",
+  "description": "Immutable bundle descriptor for a versioned catalog artifact. Fetched first by the app to locate the full catalog, diff, and validation report.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifestSchemaVersion",
+    "catalogVersion",
+    "releaseId",
+    "gameVersion",
+    "gameVersionCode",
+    "generatedAt",
+    "generator",
+    "catalogSchemaVersion",
+    "status",
+    "artifact",
+    "counts",
+    "previousCatalogVersion",
+    "diffPath",
+    "validationReportPath"
+  ],
+  "properties": {
+    "manifestSchemaVersion": {
+      "type": "string",
+      "description": "Version of this manifest schema.",
+      "const": "1.0.0"
+    },
+    "catalogVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deterministic bundle directory name: <game-version>-<version-code>-<release-suffix>."
+    },
+    "releaseId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source release identity from the capture envelope."
+    },
+    "gameVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable game version (e.g. 4.90.0)."
+    },
+    "gameVersionCode": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Numeric version code from the APK."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this manifest was generated."
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "catalogSchemaVersion": {
+      "type": "string",
+      "description": "Version of the normalized catalog schema this bundle conforms to.",
+      "const": "1.0.0"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["candidate", "review_required", "ready", "active", "superseded", "rejected"],
+      "description": "Lifecycle status. Only 'active' catalogs are consumed by the frontend."
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "bytes"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 of the exact UTF-8 bytes of catalog.json."
+        },
+        "bytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "counts": {
+      "$ref": "#/$defs/catalogCounts"
+    },
+    "previousCatalogVersion": {
+      "type": ["string", "null"],
+      "description": "Catalog version this bundle was diffed against, or null for the first version."
+    },
+    "diffPath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Relative path to the diff artifact within this bundle directory."
+    },
+    "validationReportPath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Relative path to the validation report within this bundle directory."
+    }
+  },
+  "$defs": {
+    "catalogCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "managers", "mines", "equipment", "research",
+        "collectibles", "artifacts", "relationships", "unresolvedObjects"
+      ],
+      "properties": {
+        "managers": { "type": "integer", "minimum": 0 },
+        "mines": { "type": "integer", "minimum": 0 },
+        "equipment": { "type": "integer", "minimum": 0 },
+        "research": { "type": "integer", "minimum": 0 },
+        "collectibles": { "type": "integer", "minimum": 0 },
+        "artifacts": { "type": "integer", "minimum": 0 },
+        "relationships": { "type": "integer", "minimum": 0 },
+        "unresolvedObjects": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

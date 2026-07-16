@@ -1,5 +1,10 @@
 # Development journal
 
+## 2026-07-16 — Documentation requirements strengthened
+
+- Updated `AGENTS.md` so documentation is mandatory for every implementation, configuration, schema, test, deployment, bug-fix, or workflow task—not only material architecture/data/auth/Docker decisions.
+- Agents must add a dated journal entry, review pertinent docs, and explicitly state when no document beyond the journal applies before handoff.
+
 ## 2026-07-16 — Oracle deploy: capture ingest route + full UbuntuMac→Oracle data wiring
 
 **Goal:** Get capture-ingest route live on Oracle PocketBase, complete end-to-end UbuntuMac→Oracle data pipeline, and make the data visible and meaningful in the app.

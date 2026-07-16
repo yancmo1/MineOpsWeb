@@ -1,0 +1,403 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mineops.io/schemas/normalized_catalog.schema.json",
+  "title": "MineOps Normalized Catalog",
+  "description": "Immutable, versioned normalized game-data catalog produced from a parsed APK capture. Contains managers, mines, equipment, research, collectibles, artifacts, relationships, identity mappings, aliases, and unresolved objects.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "catalogSchemaVersion",
+    "catalogVersion",
+    "releaseId",
+    "generatedAt",
+    "source",
+    "managers",
+    "mines",
+    "equipment",
+    "research",
+    "collectibles",
+    "artifacts",
+    "localization",
+    "idMappings",
+    "aliases",
+    "relationships",
+    "unresolvedObjects"
+  ],
+  "properties": {
+    "catalogSchemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "catalogVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Same deterministic version string used in the manifest."
+    },
+    "releaseId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source release identity."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "$ref": "#/$defs/catalogSource"
+    },
+    "managers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/managerRecord" }
+    },
+    "mines": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "equipment": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "research": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "collectibles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "localization": {
+      "type": "object",
+      "description": "Key-value localization lookup table. Keys are localization keys; values are localized strings.",
+      "additionalProperties": { "type": "string" }
+    },
+    "idMappings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/identityMapping" }
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/aliasRecord" }
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationshipRecord" }
+    },
+    "unresolvedObjects": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unresolvedObject" }
+    }
+  },
+  "$defs": {
+    "catalogSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "versionName", "versionCode", "parserVersion"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["apk_capture", "unity_export", "manual", "fixture"],
+          "description": "Origin of the source data."
+        },
+        "versionName": { "type": "string", "minLength": 1 },
+        "versionCode": { "type": "integer", "minimum": 1 },
+        "apkHashes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "parserVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "managerRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalId", "name", "nameSource", "source",
+        "firstSeenCatalogVersion", "lastSeenCatalogVersion"
+      ],
+      "properties": {
+        "canonicalId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable MineOps identifier. Required for a normalized manager."
+        },
+        "gameNumericId": {
+          "type": ["integer", "null"],
+          "description": "Optional numeric game ID from the source."
+        },
+        "internalObjectId": {
+          "type": ["string", "null"],
+          "description": "Optional internal Unity object ID."
+        },
+        "assetGuid": {
+          "type": ["string", "null"],
+          "description": "Optional Unity asset GUID."
+        },
+        "localizationKey": {
+          "type": ["string", "null"],
+          "description": "Key into the localization table for the display name."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Verified display name. Unresolved candidates belong in unresolvedObjects."
+        },
+        "nameSource": {
+          "type": "string",
+          "enum": ["fixture", "localization", "source_field", "manual", "unknown"],
+          "description": "Provenance of the name value."
+        },
+        "rarity": {
+          "type": ["string", "null"],
+          "enum": [null, "common", "rare", "epic", "legendary", "mythic"]
+        },
+        "area": {
+          "type": ["string", "null"],
+          "description": "Mine area this manager belongs to (e.g. 'Start', 'Ice', 'Fire')."
+        },
+        "elements": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Elemental affinities as strings."
+        },
+        "spriteAssetId": {
+          "type": ["string", "null"],
+          "description": "Asset identifier for the manager sprite."
+        },
+        "activeAbility": {
+          "oneOf": [
+            { "$ref": "#/$defs/abilityRecord" },
+            { "type": "null" }
+          ]
+        },
+        "passiveAbilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/abilityRecord" }
+        },
+        "availability": {
+          "type": ["string", "null"],
+          "description": "How the manager is obtained (e.g. 'starter', 'chest', 'event')."
+        },
+        "source": { "$ref": "#/$defs/entitySource" },
+        "firstSeenCatalogVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lastSeenCatalogVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Preserved source fields not yet modeled. Must be JSON data, not a stringified blob.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "abilityRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Ability type identifier or 'unknown'."
+        },
+        "name": {
+          "type": ["string", "null"]
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "multiplier": {
+          "type": ["number", "null"]
+        },
+        "durationSeconds": {
+          "type": ["number", "null"]
+        },
+        "cooldownSeconds": {
+          "type": ["number", "null"]
+        },
+        "unlockLevel": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "progression": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["level", "value"],
+            "properties": {
+              "level": { "type": "integer", "minimum": 0 },
+              "value": { "type": "number" }
+            }
+          }
+        },
+        "source": {
+          "type": "string",
+          "enum": ["source_field", "localization", "manual", "unknown"]
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "entitySource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "objectPath": {
+          "type": ["string", "null"],
+          "description": "Path to the source object in the APK dump."
+        },
+        "objectType": {
+          "type": ["string", "null"],
+          "description": "Unity object type name."
+        },
+        "sourceHash": {
+          "type": ["string", "null"],
+          "description": "Hash of the raw source object for change detection."
+        }
+      }
+    },
+    "entityRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId"],
+      "properties": {
+        "canonicalId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": { "$ref": "#/$defs/entitySource" },
+        "firstSeenCatalogVersion": { "type": "string" },
+        "lastSeenCatalogVersion": { "type": "string" },
+        "extensions": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "identityMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sourceValue", "canonicalId", "matchType", "confidence", "source"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["game_numeric_id", "internal_object_id", "asset_guid", "legacy_id", "localization_key"],
+          "description": "Type of source identifier being mapped."
+        },
+        "sourceValue": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Raw value from the source data."
+        },
+        "canonicalId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Target MineOps canonical identifier."
+        },
+        "matchType": {
+          "type": "string",
+          "enum": ["exact", "explicit_alias", "manual_review"],
+          "description": "How this mapping was established."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["verified", "review_required"],
+          "description": "Confidence level. Only 'verified' mappings auto-activate."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["fixture", "manual", "parser"]
+        },
+        "notes": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "aliasRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId", "alias", "source"],
+      "properties": {
+        "canonicalId": { "type": "string", "minLength": 1 },
+        "alias": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "enum": ["fixture", "manual", "parser"] },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "relationshipRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sourceCanonicalId", "targetCanonicalId"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Relationship type (e.g. 'manager_mine', 'manager_passive', 'equipment_manager')."
+        },
+        "sourceCanonicalId": { "type": "string", "minLength": 1 },
+        "targetCanonicalId": { "type": "string", "minLength": 1 },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Optional relationship metadata."
+        }
+      }
+    },
+    "unresolvedObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceObjectId", "objectType", "reason", "raw", "severity", "reviewStatus"],
+      "properties": {
+        "sourceObjectId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Raw source identifier or path."
+        },
+        "objectType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source object type or 'unknown'."
+        },
+        "objectPath": {
+          "type": ["string", "null"],
+          "description": "Path to the source object in the APK dump."
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "missing_identity",
+            "ambiguous_identity",
+            "unsupported_type",
+            "missing_required_field",
+            "possible_duplicate"
+          ]
+        },
+        "candidateCanonicalIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Possible matches for manual review."
+        },
+        "raw": {
+          "type": "object",
+          "description": "Preserved raw source data for future resolution.",
+          "additionalProperties": true
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "error"]
+        },
+        "reviewStatus": {
+          "type": "string",
+          "enum": ["open", "resolved", "ignored"]
+        }
+      }
+    }
+  }
+}

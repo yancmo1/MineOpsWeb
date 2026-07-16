@@ -49,12 +49,22 @@ The iOS project at `../mineops-companion` is the behavioral reference until the 
 
 ## ✅ Required pre-handoff checks
 
+### Documentation is part of every change
+
+For every implementation, configuration, schema, test, deployment, bug-fix, or workflow task, the agent must update documentation before handoff. This is mandatory even when the code change appears small or obvious.
+
+- Add a dated entry to `docs/development/journal.md` describing what changed, why, verification performed, and any remaining limitations.
+- Review and update every pertinent document affected by the work. Examples include `docs/PARITY_MATRIX.md` for parity changes, architecture documents for data/sync changes, validation docs for schema/check changes, capture/deployment/operations docs for infrastructure or workflow changes, and the relevant PRD/reconciliation document when implementation status changes.
+- If no pertinent document beyond the journal applies, state that explicitly in the handoff. Do not silently skip the documentation review.
+- A handoff is incomplete until the journal and pertinent documentation updates are included in the same change set as the implementation.
+- Do not rewrite historical journal entries. Add a new dated entry with links or file paths to the changed artifacts.
+
 - Never create or commit `.env` files or secrets; update `.env.example` and documentation only.
 - Keep migrations additive and document a backup/rollback path for destructive changes.
 - Preserve stable client UUIDs, IndexedDB-first behavior, queued mutations, idempotency, and explicit conflict resolution.
 - Maintain mobile-first, keyboard-accessible UI and PWA update safety.
 - Keep Docker development and production paths working; follow the server guide for deployment details.
 - Run relevant lint, type, unit, and integration checks before handing off.
-- Update documentation and `docs/development/journal.md` for every material architecture, data, auth, Docker, or workflow decision.
+- Update documentation and `docs/development/journal.md` for every work item; architecture, data, auth, Docker, and workflow decisions require especially explicit entries.
 - Update `docs/PARITY_MATRIX.md` when parity changes.
 - Do not declare completion based on infrastructure — a running Docker container or successful sync is not product completion (V3 PRD guardrail).

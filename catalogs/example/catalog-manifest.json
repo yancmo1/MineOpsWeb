@@ -1,0 +1,32 @@
+{
+  "manifestSchemaVersion": "1.0.0",
+  "catalogVersion": "4.90.0-123456-example",
+  "releaseId": "fixture-release-id",
+  "gameVersion": "4.90.0",
+  "gameVersionCode": 123456,
+  "generatedAt": "2026-07-16T12:00:00.000Z",
+  "generator": {
+    "name": "MineOpsDataEngine",
+    "version": "0.1.0"
+  },
+  "catalogSchemaVersion": "1.0.0",
+  "status": "candidate",
+  "artifact": {
+    "path": "catalog.json",
+    "sha256": "6f8a3c3f7e436812087b083d66cab70613b9fbdecdead0e8b90c1e80f3cf5e8d",
+    "bytes": 533
+  },
+  "counts": {
+    "managers": 0,
+    "mines": 0,
+    "equipment": 0,
+    "research": 0,
+    "collectibles": 0,
+    "artifacts": 0,
+    "relationships": 0,
+    "unresolvedObjects": 0
+  },
+  "previousCatalogVersion": null,
+  "diffPath": "diff.json",
+  "validationReportPath": "validation-report.json"
+}

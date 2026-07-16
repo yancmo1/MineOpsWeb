@@ -1,1 +1,17 @@
-{"name":"mineops-web","private":true,"workspaces":["frontend","apps/capture-bridge"],"scripts":{"build":"npm --prefix frontend run build","test":"npm --prefix frontend run test","dev":"docker compose -f docker-compose.dev.yml up --build"}}
+{
+  "name": "mineops-web",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "apps/capture-bridge"
+  ],
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend run test",
+    "dev": "docker compose -f docker-compose.dev.yml up --build",
+    "validate:catalog": "node tools/validation/validate-catalog.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1"
+  }
+}

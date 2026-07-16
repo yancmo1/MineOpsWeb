@@ -1,0 +1,92 @@
+{
+  "validationSchemaVersion": "1.0.0",
+  "catalogVersion": "4.90.0-123456-example",
+  "validatedAt": "2026-07-16T12:00:00.000Z",
+  "status": "passed",
+  "checks": [
+    {
+      "code": "SCHEMA_VALID",
+      "severity": "error",
+      "passed": true,
+      "message": "Catalog conforms to normalized catalog schema.",
+      "path": null
+    },
+    {
+      "code": "MANIFEST_CATALOG_CONSISTENCY",
+      "severity": "error",
+      "passed": true,
+      "message": "Manifest identity and counts match catalog.json.",
+      "path": null
+    },
+    {
+      "code": "DUPLICATE_CANONICAL_ID",
+      "severity": "error",
+      "passed": true,
+      "message": "No duplicate canonical IDs found.",
+      "path": null
+    },
+    {
+      "code": "DUPLICATE_SOURCE_IDENTIFIER",
+      "severity": "error",
+      "passed": true,
+      "message": "No duplicate source identifiers found.",
+      "path": null
+    },
+    {
+      "code": "MISSING_REQUIRED_FIELDS",
+      "severity": "error",
+      "passed": true,
+      "message": "All entities have required fields.",
+      "path": null
+    },
+    {
+      "code": "UNRESOLVED_OBJECTS",
+      "severity": "warning",
+      "passed": true,
+      "message": "No unresolved objects to review.",
+      "path": null
+    },
+    {
+      "code": "INVALID_REFERENCES",
+      "severity": "error",
+      "passed": true,
+      "message": "All relationship references resolve correctly.",
+      "path": null
+    },
+    {
+      "code": "ARTIFACT_HASH_CONSISTENCY",
+      "severity": "error",
+      "passed": true,
+      "message": "Manifest artifact hash matches catalog.json content.",
+      "path": null
+    },
+    {
+      "code": "MANIFEST_ARTIFACTS",
+      "severity": "error",
+      "passed": true,
+      "message": "Manifest paths and artifact byte count are valid.",
+      "path": null
+    },
+    {
+      "code": "DETERMINISTIC_SERIALIZATION",
+      "severity": "error",
+      "passed": true,
+      "message": "Catalog serialization is deterministic (stable key ordering, no unstable values).",
+      "path": null
+    },
+    {
+      "code": "SUSPICIOUS_CHANGE_DETECTION",
+      "severity": "warning",
+      "passed": true,
+      "message": "No suspiciously large additions or removals detected.",
+      "path": null
+    }
+  ],
+  "blockingIssues": [],
+  "warnings": [],
+  "counts": {
+    "errors": 0,
+    "warnings": 0,
+    "unresolved": 0
+  }
+}
