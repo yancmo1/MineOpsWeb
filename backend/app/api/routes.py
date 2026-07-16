@@ -258,6 +258,7 @@ def update_snapshot_status(
     current_status = normalized_snapshot_status(snapshot.import_status)
     next_status = normalized_snapshot_status(update.import_status)
     if next_status == current_status:
+        db.rollback()
         return snapshot
     if next_status not in SNAPSHOT_TRANSITIONS.get(current_status, set()):
         raise HTTPException(

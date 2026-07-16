@@ -91,7 +91,12 @@ class CatalogValidationRun(Base, ImmutableEvidenceMixin):
     summary: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
-def _raise_append_only_error(_: object, __: object, target: CatalogRawImport | CatalogValidationRun) -> None:
+def _raise_append_only_error(
+    mapper: object,
+    connection: object,
+    target: CatalogRawImport | CatalogValidationRun,
+) -> None:
+    del mapper, connection
     raise ValueError(f"{target.__class__.__name__} rows are append-only.")
 
 
