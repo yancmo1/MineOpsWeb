@@ -103,12 +103,10 @@ def build_validation_summary(
     artifact_manifest: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     summary = dict(upload.validation_summary)
-    summary["errors"] = list(summary.get("errors", []))
-    summary["warnings"] = list(summary.get("warnings", []))
+    summary["errors"] = summary.get("errors", [])
+    summary["warnings"] = summary.get("warnings", [])
     if artifact_manifest:
-        summary["warnings"] = summary["warnings"] + [
-            "Large capture artifacts were stored as manifest-only evidence."
-        ]
+        summary["warnings"].append("Large capture artifacts were stored as manifest-only evidence.")
     summary["accepted"] = not summary["errors"]
     summary["object_counts"] = object_counts
     summary["payload_size_bytes"] = payload_size_bytes
