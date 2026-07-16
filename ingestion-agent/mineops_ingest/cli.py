@@ -40,7 +40,12 @@ def payload_for(path: Path) -> dict:
     payload_size_bytes = len(_canonical_json_bytes(data))
     object_counts = _object_counts(data)
     config_hash = hashlib.sha256(
-        _canonical_json_bytes({"source_type": "emulator-capture", "schema_version": CAPTURE_SCHEMA_VERSION})
+        _canonical_json_bytes(
+            {
+                "source_type": "emulator-capture",
+                "capture_schema_version": CAPTURE_SCHEMA_VERSION,
+            }
+        )
     ).hexdigest()
     return {
         "source_type": "emulator-capture",

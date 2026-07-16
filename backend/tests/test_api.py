@@ -155,5 +155,5 @@ def test_snapshot_status_updates_do_not_mutate_raw_evidence():
         snapshot = db.get(CatalogSnapshot, body["id"])
 
         assert raw_import is not None
-        assert not hasattr(raw_import, "updated_at")
+        assert "updated_at" not in CatalogRawImport.__table__.columns.keys()
         assert snapshot.import_status == "published"

@@ -80,8 +80,11 @@ def backfill_catalog_evidence() -> None:
                 db.flush()
                 snapshot.raw_import_id = raw_import.id
             if not snapshot.validation_run_id:
+                raw_import_id = snapshot.raw_import_id
+                if not raw_import_id:
+                    continue
                 validation_run = CatalogValidationRun(
-                    raw_import_id=snapshot.raw_import_id or "",
+                    raw_import_id=raw_import_id,
                     snapshot_id=snapshot.id,
                     accepted=bool(validation_summary.get("accepted", True)),
                     summary=validation_summary,

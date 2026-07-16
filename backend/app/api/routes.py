@@ -76,12 +76,12 @@ def scrub_large_artifacts(value: Any, path: tuple[str, ...] = ()) -> tuple[Any, 
         return normalized, manifest
     if isinstance(value, list):
         normalized_list = []
-        manifest: dict[str, dict[str, Any]] = {}
+        list_manifest: dict[str, dict[str, Any]] = {}
         for index, item in enumerate(value):
             normalized_item, nested_manifest = scrub_large_artifacts(item, path + (str(index),))
             normalized_list.append(normalized_item)
-            manifest.update(nested_manifest)
-        return normalized_list, manifest
+            list_manifest.update(nested_manifest)
+        return normalized_list, list_manifest
     return value, {}
 
 
