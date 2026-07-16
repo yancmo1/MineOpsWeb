@@ -10,6 +10,7 @@
     "capturedAt",
     "engineVersion",
     "schemaVersion",
+    "validationVersion",
     "apkHashes",
     "status"
   ],
@@ -37,6 +38,11 @@
     "schemaVersion": {
       "type": "string",
       "minLength": 1
+    },
+    "validationVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of the validation rules used by the payload producer. Evolves independently of schemaVersion."
     },
     "status": {
       "type": "string",

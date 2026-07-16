@@ -1,0 +1,14 @@
+{
+  "releaseId": "4.90.0_123456_2026-07-16T12-00-00Z",
+  "versionName": "4.90.0",
+  "versionCode": 123456,
+  "capturedAt": "2026-07-16T12:00:00.000Z",
+  "engineVersion": "0.1.0",
+  "schemaVersion": "1.0.0",
+  "validationVersion": "1.0.0",
+  "apkHashes": {
+    "base.apk": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "split_config.arm64_v8a.apk": "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
+  },
+  "status": "acquired"
+}
