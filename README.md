@@ -13,12 +13,17 @@ Open `http://localhost:8080`. Build checks: `cd frontend && npm run build && npm
 
 ## Documentation
 
-- [Revised PRD](PRD/MineOpsWeb_Codex_PRD_REVISED.md)
+- [V3 PRD](PRD/MineOpsWeb_Codex_PRD_V3.md)
 - [Migration inventory](docs/MIGRATION_INVENTORY.md)
 - [Parity matrix](docs/PARITY_MATRIX.md)
 - [Data migration map](docs/DATA_MIGRATION_MAP.md)
 - [Calculation inventory](docs/CALCULATION_INVENTORY.md)
 - [Deployment](docs/DEPLOYMENT.md)
+- [Oracle CI/CD](docs/deployment/oracle-cicd.md)
+- [Oracle server manifest](docs/deployment/oracle-server-manifest.md)
+- [Capture workflow](docs/emulator-ingestion/capture-workflow.md)
 - [Security](docs/SECURITY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Development journal](docs/development/journal.md)
 
 Remaining integration work is tracked explicitly in the parity matrix: authenticated PocketBase SDK flows, Kolibri import activation/rollback UI, capture bridge upload route, and Playwright evidence.

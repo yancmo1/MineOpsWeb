@@ -16,7 +16,16 @@ The iOS project at `../mineops-companion` is the behavioral reference until the 
 - **Kolibri fragment field name unconfirmed** — the parser reads `Fragments` but the exact field name in the Kolibri save response hasn't been verified via a real sync. Check browser console for `[kolibri] First manager raw keys:` debug output.
 - **PocketBase `player_snapshots` collection** — the remote PB instance on `mineops-pb.shepswork.com` returns 400 for snapshot queries. The collection may not exist or the migration hasn't been applied on that instance.
 - **Strategy page is a placeholder** — only shows "strongest per area". Needs real lineup evaluation and recommendations (V3 PRD Step 8).
-- **More page** — needs import history, snapshot rollback, and full diagnostics (V3 PRD Step 9).
+- **Oracle PB: `sort=-created` returns 400 on `catalog_versions`** — frontend falls back to unsorted reads gracefully.
+- **Oracle compose is a shared `infra-new` project** — any MineOps service changes must use `-p infra-new` to avoid container name conflicts.
+
+### Recently resolved (2026-07-16)
+
+- ✅ **Capture ingest route** — live on Oracle PB at `https://mineops-pb.shepswork.com/api/capture/ingest`. Hook file mounted at `/opt/infra-new/apps/mineopsweb/pb_hooks/capture-ingest.pb.js`.
+- ✅ **UbuntuMac→Oracle data pipeline** — wired end-to-end with token auth, payload enrichment, and import history display.
+- ✅ **SSH alias `oracle-vm`** — configured in `~/.ssh/config` with RSA key. Agents should use this alias for all server operations.
+- ✅ **More page import history** — shows release lineage, latest-vs-previous diff, raw import preview, and asset type breakdown.
+- ✅ **VS Code tasks** — `UbuntuMac: Capture status`, `UbuntuMac: Check APK + upload latest release`, `Oracle: Verify capture ingest`.
 
 ## 🐳 Docker rules
 

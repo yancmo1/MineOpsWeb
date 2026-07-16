@@ -1,5 +1,144 @@
 # Development journal
 
+## 2026-07-16 — Oracle deploy: capture ingest route + full UbuntuMac→Oracle data wiring
+
+**Goal:** Get capture-ingest route live on Oracle PocketBase, complete end-to-end UbuntuMac→Oracle data pipeline, and make the data visible and meaningful in the app.
+
+### SSH alias setup
+
+- Added `oracle-vm` alias convention to `AGENTS.md`:
+  - `Host oracle-vm` → `HostName 100.81.231.58`, `User ubuntu`, `IdentityFile ~/.ssh/id_rsa`
+- Investigation showed the Oracle VM accepts `id_rsa` (not `id_ed25519`). Debug traces confirmed the server rejects the ED25519 key but accepts the RSA key authenticated via agent. Switched alias to `id_rsa` — alias now works reliably.
+
+### Oracle server-side deployment
+
+- **Live PB service:** `infra-new-mineops-pb-1` (image: `ghcr.io/shepswork/mineops-pocketbase:0.39.6`) on `127.0.0.1:8091→8090`, exposed publicly via Traefik at `mineops-pb.shepswork.com`.
+- **Hook deploy:** Copied `capture-ingest.pb.js` to `/opt/infra-new/apps/mineopsweb/pb_hooks/` and added bind mount to compose (`/opt/infra-new/apps/mineopsweb/pb_hooks:/pb/pb_hooks:ro`). Restarted under correct project name (`infra-new`).
+- **Verification:** ingest route went from `404` → `401` (auth error) after hook mount + restart, confirming route is live.
+- **capture_clients collection:** Created directly via PocketBase admin API (schema: `name`, `tokenHash`, `active`, `lastUsedAt`). Seeded `ubuntumac` client record with token hash.
+- **Found PB API quirk:** Initial collection creation payload used wrong property key — empty fields. Patched in-place with PATCH to add `name`/`tokenHash`/`active`/`lastUsedAt` fields. Created `scripts/oracle/setup-capture-client.sh` and `scripts/oracle/fix-capture-clients-collection.sh` for repeatability.
+
+### Token rotation
+
+- Generated new capture token on UbuntuMac, stored at `~/mineops-data/.capture.token`.
+- Old token backed up (`*.bak.*` timestamped), `.capture.env` updated.
+- Reseeded Oracle `capture_clients.tokenHash` with new SHA256 via setup script.
+- Verified upload still works with rotated token (409 duplicate = auth accepted).
+
+### VS Code tasks
+
+Added to `.vscode/tasks.json`:
+- `UbuntuMac: Capture status` — SSHes UbuntuMac, runs `check-and-upload.sh --status`
+- `UbuntuMac: Check APK + upload latest release` — SSHes UbuntuMac, runs full check+upload
+- `Oracle: Verify capture ingest` — SSHes `oracle-vm`, checks health + ingest route + catalog versions
+
+### Remote script deployment
+
+- `scripts/ubuntumac/run-remote-check.sh` — local launcher used by VS Code tasks
+- `scripts/ubuntumac/check-and-upload.remote.sh` — source-of-truth remote runner, deployed to `~/mineops-data/bin/check-and-upload.sh` on UbuntuMac
+- Edits deployed via `scp` + `chmod +x`
+
+### Payload enrichment
+
+- UbuntuMac extraction produces `exports/catalog.json` with 4,035 assets but `release.json` had `objects: []`.
+- Added `enrich_payload()` to remote runner: reads `exports/catalog.json`, computes asset type counts, writes lightweight objects + `objectSummary` into `release.json` before upload.
+- Lightweight approach avoids PB's 5000-char payload limit. Payload now carries type-count objects + total asset count.
+- Verified: enriched payload upload returns `200`, Oracle `catalog_versions` shows `recordCount: "7"`.
+
+### Frontend import history upgrade
+
+- **Import history table:** now shows up to 5 releases with per-row release ID, object count, and date. Latest release highlighted with cyan dot.
+- **Latest vs previous comparison:** side-by-side release ID, object count, ingest timestamp with delta.
+- **Raw import preview:** shows game version, total assets extracted, asset type list, APK file count.
+- Added `totalAssets` and `objectTypes` fields to `CaptureRawImportPreview`.
+- Cleaned up test records from Oracle after validation.
+
+### Documentation
+
+- Created `docs/deployment/oracle-server-manifest.md` — authoritative live state record with:
+  - Active service/container details
+  - PB hooks mount location and compose line
+  - `capture_clients` collection schema
+  - Re-apply steps after redeploy
+  - Verification commands (local + workstation)
+  - Rollback procedures (hook mount restore, token restore, collection re-seed)
+- Updated `docs/deployment/oracle-cicd.md` with server-side state cross-reference
+- Updated `docs/DEPLOYMENT.md` with server manifest link
+- Updated `docs/emulator-ingestion/capture-workflow.md` with VS Code task references and remote script deployment notes
+
+### Commits
+
+Two commits on `dev`:
+1. `087575a` — capture wiring, import history, VS Code tasks (13 files, +829/-21)
+2. `f864198` — payload enrichment, richer import history, rollback runbook (7 files, +298/-39)
+
+### Verification
+
+- TypeScript compiles cleanly, all 11 frontend tests pass
+- End-to-end: UbuntuMac task → Oracle PB ingest → `catalog_versions` record created → app More page shows import history
+- VS Code task `Oracle: Verify capture ingest` confirmed working
+- Payload enrichment confirmed: 4,035 total assets, 7 object types
+
+### Key architectural decisions
+
+- UbuntuMac is **not** a PocketBase host — it is an outbound data engine only (V3-consistent).
+- Capture payloads stay lightweight (type counts, not full asset lists) to respect PB field-size limits.
+- Oracle server state that isn't in CI/CD (hook mount, capture_clients, etc.) is documented in `oracle-server-manifest.md` with re-apply instructions.
+- SSH alias convention (`oracle-vm`) is codified in `AGENTS.md` for future agent consistency.
+
+## 2026-07-16 — Catalog metadata validation hardening
+
+- Tightened catalog schemas: SHA-256 format is enforced, normalized managers require verified names/provenance/version bounds, progression entries require level/value, and generic entity records route unknown data through `extensions`.
+- Hardened `tools/validation/validate-catalog.mjs` with manifest/catalog identity and count checks, safe artifact-path checks, byte-count verification, and canonical JSON serialization checks.
+- Aligned the catalog README and example manifest hash with the validator’s exact-byte hashing policy.
+
+## 2026-07-16 — JSON metadata scaffolding handoff
+
+- Added `docs/development/DEEPSEEK_JSON_METADATA_HANDOFF.md` as the implementation handoff for scaffolding immutable, versioned static catalog JSON metadata.
+- The handoff defines manifest, normalized catalog, diff, and validation-report contracts; deterministic serialization/hash rules; unresolved-object preservation; and strict non-goals preventing fabricated APK data or premature activation.
+- No frontend catalog source, PocketBase activation flow, or player-progress migration is changed by this documentation decision.
+
+## 2026-07-16 — Static JSON catalog metadata scaffolding implemented
+
+Implemented the versioned, static JSON metadata layer per `DEEPSEEK_JSON_METADATA_HANDOFF.md`.
+
+### Schemas (shared/schemas/)
+
+- **`catalog_manifest.schema.json`** — immutable bundle descriptor with lifecycle status, artifact pointer (path/sha256/bytes), entity counts, and generator metadata.
+- **`normalized_catalog.schema.json`** — full catalog contract with managers, mines, equipment, research, collectibles, artifacts, localization, idMappings, aliases, relationships, and unresolvedObjects. Manager identity rules require `canonicalId`; all source identifiers are nullable. `extensions` preserves unmodeled source fields as JSON data.
+- **`catalog_diff.schema.json`** — domain-level diff (added/removed/changed/unresolved) with per-field before/after and severity.
+- **`catalog_validation.schema.json`** — validation report contract with checks, blocking issues, warnings, and counts. Defines 9 standard check codes.
+
+All schemas use JSON Schema draft 2020-12 with `additionalProperties: false`, matching the existing convention in `shared/schemas/`.
+
+### Example bundle (catalogs/example/)
+
+- `catalog-manifest.json` — status `candidate` (not `active`), real SHA-256 hash of catalog.json.
+- `catalog.json` — empty arrays/maps; no fabricated game records. Source kind: `fixture`.
+- `diff.json` — null previous version, zero changes.
+- `validation-report.json` — all 9 checks pass.
+
+### Validation tooling (tools/validation/)
+
+- `validate-catalog.mjs` — runs all 9 checks: schema conformance (×4), duplicate canonical IDs, duplicate source identifiers, missing required fields, unresolved objects, relationship reference integrity, artifact hash consistency, deterministic serialization, and suspicious change detection.
+- Added `ajv` (^8.17.1) as root dev dependency.
+- Added `npm run validate:catalog` script.
+- All 12 checks pass on the example bundle. Existing 11 frontend tests pass.
+
+### Documentation
+
+- `catalogs/README.md` — bundle layout, lifecycle, identity rules, deterministic hashing spec, and future generation workflow.
+- `tools/validation/README.md` — validation usage and check descriptions.
+
+### Limitations & deferred work
+
+- No real APK data has been parsed; the example is fixture-safe with zero game records.
+- Manager nameSource `unknown` is the default for unverified data — real parser must set the actual source.
+- PocketBase manifest storage and activation flow are deferred.
+- Frontend catalog consumption is deferred (legacy files remain untouched).
+- Diff generation between real catalog versions is deferred.
+- `SUSPICIOUS_CHANGE_DETECTION` threshold (50) is provisional.
+
 ## 2026-07-16 — UbuntuMac outbound wiring clarification + capture diagnostics hardening
 
 - Confirmed V3 architecture guardrail: UbuntuMac should **not** host PocketBase. It remains the outbound capture/extraction engine, uploading to MineOps PocketBase over HTTPS.
