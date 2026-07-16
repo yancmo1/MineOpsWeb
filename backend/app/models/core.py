@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import DateTime, Integer, JSON, String, Text, func
+from sqlalchemy import DateTime, Integer, JSON, String, Text, event, func
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.session import Base
 
@@ -89,3 +89,12 @@ class CatalogValidationRun(Base, ImmutableEvidenceMixin):
     validation_engine_version: Mapped[str | None] = mapped_column(String(128))
     accepted: Mapped[bool] = mapped_column(default=True)
     summary: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+def _raise_append_only_error(_: object, __: object, target: CatalogRawImport | CatalogValidationRun) -> None:
+    raise ValueError(f"{target.__class__.__name__} rows are append-only.")
+
+
+for append_only_model in (CatalogRawImport, CatalogValidationRun):
+    event.listen(append_only_model, "before_update", _raise_append_only_error)
+    event.listen(append_only_model, "before_delete", _raise_append_only_error)

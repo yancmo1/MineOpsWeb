@@ -12,10 +12,11 @@ from app.schemas.api import CatalogSnapshotOutput, CatalogUpload, ManagerOutput,
 router = APIRouter(prefix="/api/v1")
 INLINE_ARTIFACT_LIMIT_BYTES = 256 * 1024
 ARTIFACT_FIELD_NAMES = {"apk", "apk_base64", "apk_bytes", "binary", "content_base64"}
+PUBLISHED_STATUS = "published"
 SNAPSHOT_TRANSITIONS = {
-    "staged": {"reviewed", "published"},
-    "reviewed": {"published"},
-    "published": set(),
+    "staged": {"reviewed", PUBLISHED_STATUS},
+    "reviewed": {PUBLISHED_STATUS},
+    PUBLISHED_STATUS: set(),
 }
 
 
@@ -43,6 +44,17 @@ def compute_object_counts(payload: dict[str, Any]) -> dict[str, int]:
 
 def canonical_json_bytes(value: Any) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def default_configuration_hash(source_type: str, capture_schema_version: str | None) -> str:
+    return hashlib.sha256(
+        canonical_json_bytes(
+            {
+                "source_type": source_type,
+                "capture_schema_version": capture_schema_version or "1",
+            }
+        )
+    ).hexdigest()
 
 
 def scrub_large_artifacts(value: Any, path: tuple[str, ...] = ()) -> tuple[Any, dict[str, dict[str, Any]]]:
@@ -107,7 +119,7 @@ def build_validation_summary(
 
 
 def normalized_snapshot_status(value: str) -> str:
-    return "published" if value == "active" else value
+    return PUBLISHED_STATUS if value == "active" else value
 
 
 @router.get("/version")
@@ -173,7 +185,8 @@ def create_catalog_snapshot(upload: CatalogUpload, db: Session = Depends(get_db)
         game_version=upload.game_version,
         capture_schema_version=upload.capture_schema_version,
         capture_engine_version=upload.capture_engine_version,
-        configuration_hash=upload.configuration_hash or upload.source_hash,
+        configuration_hash=upload.configuration_hash
+        or default_configuration_hash(upload.source_type, upload.capture_schema_version),
         input_hashes=upload.input_hashes or {"capture_payload": upload.source_hash},
         object_counts=object_counts,
         payload_size_bytes=payload_size_bytes,
@@ -230,7 +243,7 @@ def activate_snapshot(snapshot_id: str, db: Session = Depends(get_db)):
     snapshot = db.get(CatalogSnapshot, snapshot_id)
     if not snapshot:
         raise HTTPException(404, "Snapshot not found")
-    snapshot.import_status = "published"
+    snapshot.import_status = PUBLISHED_STATUS
     db.commit()
     db.refresh(snapshot)
     return snapshot

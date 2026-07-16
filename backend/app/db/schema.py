@@ -3,10 +3,10 @@ from sqlalchemy import inspect, or_, select
 from app.db.session import SessionLocal, engine
 from app.models.core import CatalogRawImport, CatalogSnapshot, CatalogValidationRun
 
-CATALOG_SNAPSHOT_COLUMNS = {
-    "release_id": "VARCHAR(128)",
-    "raw_import_id": "VARCHAR(36)",
-    "validation_run_id": "VARCHAR(36)",
+CATALOG_SNAPSHOT_ALTERS = {
+    "release_id": "ALTER TABLE catalog_snapshots ADD COLUMN release_id VARCHAR(128)",
+    "raw_import_id": "ALTER TABLE catalog_snapshots ADD COLUMN raw_import_id VARCHAR(36)",
+    "validation_run_id": "ALTER TABLE catalog_snapshots ADD COLUMN validation_run_id VARCHAR(36)",
 }
 
 CATALOG_SNAPSHOT_INDEXES = (
@@ -26,11 +26,9 @@ def ensure_additive_schema() -> None:
         return
     existing_columns = {column["name"] for column in inspector.get_columns("catalog_snapshots")}
     with engine.begin() as connection:
-        for column_name, definition in CATALOG_SNAPSHOT_COLUMNS.items():
+        for column_name, statement in CATALOG_SNAPSHOT_ALTERS.items():
             if column_name not in existing_columns:
-                connection.exec_driver_sql(
-                    f"ALTER TABLE catalog_snapshots ADD COLUMN {column_name} {definition}"
-                )
+                connection.exec_driver_sql(statement)
         for statement in CATALOG_SNAPSHOT_INDEXES:
             connection.exec_driver_sql(statement)
     backfill_catalog_evidence()

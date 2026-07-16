@@ -1,5 +1,6 @@
 import uuid
 from fastapi.testclient import TestClient
+import pytest
 from app.main import app
 from app.db.session import SessionLocal
 from app.models.core import CatalogRawImport, CatalogSnapshot, CatalogValidationRun
@@ -155,5 +156,8 @@ def test_snapshot_status_updates_do_not_mutate_raw_evidence():
         snapshot = db.get(CatalogSnapshot, body["id"])
 
         assert raw_import is not None
-        assert "updated_at" not in CatalogRawImport.__table__.columns.keys()
+        raw_import.raw_metadata = {"tampered": True}
+        with pytest.raises(ValueError):
+            db.commit()
+        db.rollback()
         assert snapshot.import_status == "published"
