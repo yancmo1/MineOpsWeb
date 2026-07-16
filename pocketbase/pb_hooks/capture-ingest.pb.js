@@ -9,23 +9,21 @@
  * release in catalog_versions.
  *
  * Stable error codes (mirrors shared/schemas/validate-release.mjs):
- *   VALIDATION_ERROR / MISSING_REQUIRED_FIELD     → 400
- *   VALIDATION_ERROR / INVALID_RELEASE_ID         → 400
- *   VALIDATION_ERROR / INVALID_VERSION_CODE       → 400
- *   VALIDATION_ERROR / INVALID_APK_HASHES         → 400
- *   VALIDATION_ERROR / INVALID_STATUS             → 400
- *   VALIDATION_ERROR / UNSUPPORTED_SCHEMA_VERSION  → 400
- *   VALIDATION_ERROR / UNSUPPORTED_VALIDATION_VERSION → 400
- *   DUPLICATE_RELEASE                              → 409
- *   UNAUTHORIZED                                   → 401
+ *   VALIDATION_ERROR / MISSING_REQUIRED_FIELD    → 400
+ *   VALIDATION_ERROR / INVALID_RELEASE_ID        → 400
+ *   VALIDATION_ERROR / INVALID_VERSION_CODE      → 400
+ *   VALIDATION_ERROR / INVALID_APK_HASHES        → 400
+ *   VALIDATION_ERROR / INVALID_STATUS            → 400
+ *   VALIDATION_ERROR / UNSUPPORTED_SCHEMA_VERSION → 400
+ *   DUPLICATE_RELEASE                             → 409
+ *   UNAUTHORIZED                                  → 401
  */
 
 routerAdd("POST", "/api/capture/ingest", (c) => {
   try {
-    var REQUIRED = ["releaseId","versionName","versionCode","capturedAt","engineVersion","schemaVersion","validationVersion","apkHashes","status"];
+    var REQUIRED = ["releaseId","versionName","versionCode","capturedAt","engineVersion","schemaVersion","apkHashes","status"];
     var VALID_STATUSES = { acquired: true, processed: true, published: true, failed: true };
     var SUPPORTED_SCHEMA_VERSION = "1.0.0";
-    var VALIDATION_VERSION = "1.0.0";
     var SHA256_PATTERN = /^[a-f0-9]{64}$/;
 
     var info = c.requestInfo();
@@ -68,14 +66,6 @@ routerAdd("POST", "/api/capture/ingest", (c) => {
     if (isNaN(payloadMajor) || payloadMajor > supportedMajor)
       return c.json(400, { success: false, error: "Unsupported schemaVersion: " + body.schemaVersion + " (supported: " + SUPPORTED_SCHEMA_VERSION + ")", code: "VALIDATION_ERROR / UNSUPPORTED_SCHEMA_VERSION" });
 
-    // 2b. Validation version check (independent of schema version)
-    if (typeof body.validationVersion !== "string" || body.validationVersion.length < 1)
-      return c.json(400, { success: false, error: "validationVersion must be a non-empty string", code: "VALIDATION_ERROR / MISSING_REQUIRED_FIELD" });
-    var valMajor = parseInt(body.validationVersion.split(".")[0]);
-    var supportedValMajor = parseInt(VALIDATION_VERSION.split(".")[0]);
-    if (isNaN(valMajor) || valMajor > supportedValMajor)
-      return c.json(400, { success: false, error: "Unsupported validationVersion: " + body.validationVersion + " (supported: " + VALIDATION_VERSION + ")", code: "VALIDATION_ERROR / UNSUPPORTED_VALIDATION_VERSION" });
-
     if (typeof body.releaseId !== "string" || body.releaseId.length < 1)
       return c.json(400, { success: false, error: "releaseId must be a non-empty string", code: "VALIDATION_ERROR / INVALID_RELEASE_ID" });
     if (typeof body.versionCode !== "number" || body.versionCode < 1)
@@ -107,14 +97,7 @@ routerAdd("POST", "/api/capture/ingest", (c) => {
       contentHash: body.releaseId,
       payload: JSON.stringify(body),
       parserVersion: body.engineVersion || "0.0.0",
-      validation: JSON.stringify({
-        validatedBy: "MineOpsDataEngine",
-        validationVersion: VALIDATION_VERSION,
-        timestamp: new Date().toISOString(),
-        gitCommit: null,
-        host: null,
-        status: "accepted",
-      }),
+      validation: JSON.stringify({ validatedAt: new Date().toISOString(), status: "accepted" }),
     });
     $app.save(rawRecord);
 

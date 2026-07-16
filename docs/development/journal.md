@@ -1,29 +1,5 @@
 # Development journal
 
-## 2026-07-16 — Validation versioning + provenance report (pre-M5 prep)
-
-**Goal:** Separate validation version from schema version so the validator can evolve independently. Add a provenance report to every validation result.
-
-### Changes
-
-- **`validationVersion` field** — added to `REQUIRED_FIELDS` (now 9), `release.schema.json`, and all 13 fixtures. Payloads must carry both `schemaVersion` (shape contract) and `validationVersion` (validator rules). These evolve independently.
-- **`VALIDATION_VERSION` constant** (1.0.0) — separate from `SUPPORTED_SCHEMA_VERSION`. Major version bump rejection applies to both.
-- **`buildValidationReport()` function** — produces `{ validatedBy: "MineOpsDataEngine", validationVersion, timestamp, gitCommit, host }`. Auto-detects git commit from `MINEOPS_GIT_COMMIT` or `GIT_COMMIT` env, host from `MINEOPS_HOST` or `HOSTNAME`.
-- **PB hook** — `validation` record now stores the full provenance report instead of `{ validatedAt, status }`. `validationVersion` checked alongside `schemaVersion`.
-- **Error code** — new `VALIDATION_ERROR / UNSUPPORTED_VALIDATION_VERSION` for future validation versions.
-- **New fixture** — `future-validation.json` (validationVersion 99.0.0 → rejected).
-
-### Future direction (M5+)
-
-- Promote validator into `validation/` package: `contracts/`, `schemas/`, `validators/`, `errors/`, `fixtures/`, `tests/`.
-- Pipeline: `validateRelease()` → `validateInventory()` → `validateCanonicalObjects()` → `validateRelationships()` → `validateMappings()` → `validateExport()` → `validatePublish()`.
-- Every CLI command imports the same validation system.
-
-### Verification
-
-- All 39 contract tests pass (up from 31): 15 shared validator, 7 CLI, 4 exit codes, 5 constants, 4 provenance report, 4 hook contract.
-- Existing `test-release.json` fixture still validates and dry-runs.
-
 ## 2026-07-16 — Contract-test the capture envelope (Issue #1)
 
 **Goal:** Make the capture-bridge CLI, PocketBase ingest hook, and release schema a single versioned contract with stable machine-readable error codes and fixture-based contract tests.
