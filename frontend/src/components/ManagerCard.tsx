@@ -1,4 +1,4 @@
-import { CatalogManager, PlayerManager, rankThreshold } from "../lib/db";
+import { CatalogManager, PlayerManager, isRankUpReady, rankThreshold } from "../lib/db";
 import { spriteURL } from "../lib/sprites";
 
 interface ManagerCardProps {
@@ -10,9 +10,15 @@ export function ManagerCard({ manager, onClick }: ManagerCardProps) {
   const rarity = manager.catalog.rarity.toLowerCase();
   const isLocked = !manager.unlocked;
   const sprite = spriteURL(manager.catalog);
-  const isRankUpReady =
-    manager.unlocked &&
-    manager.fragments >= (rankThreshold(manager.rank) ?? Infinity);
+  const ready = isRankUpReady({
+    managerId: manager.managerId,
+    level: manager.level,
+    rank: manager.rank,
+    promoted: manager.promoted,
+    fragments: manager.fragments,
+    unlocked: manager.unlocked,
+    updatedAt: manager.updatedAt,
+  });
 
   return (
     <button
@@ -58,13 +64,32 @@ export function ManagerCard({ manager, onClick }: ManagerCardProps) {
               <span>↑ Lv{manager.level}</span>
               <span>★ P{manager.promoted}</span>
               <span>⚡ R{manager.rank}</span>
-              {manager.fragments > 0 && (
-                <span style={{ color: "var(--accent-orange)" }}>
-                  ⬥{manager.fragments}
-                </span>
-              )}
             </div>
-            {isRankUpReady && <div className="ready-badge">Ready to Rank Up</div>}
+            {manager.fragments > 0 && (() => {
+              const nextThreshold = rankThreshold(manager.rank);
+              return nextThreshold != null ? (
+                <div className="fragment-progress" aria-label={`${manager.fragments}/${nextThreshold} fragments toward rank ${manager.rank + 1}`}>
+                  <div className="fragment-progress-bar">
+                    <div
+                      className="fragment-progress-fill"
+                      style={{
+                        width: `${Math.min(100, (manager.fragments / nextThreshold) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="fragment-progress-label">
+                    ⬥ {manager.fragments}/{nextThreshold}
+                  </span>
+                </div>
+              ) : (
+                <div className="fragment-progress">
+                  <span className="fragment-progress-label">
+                    ⬥ {manager.fragments}
+                  </span>
+                </div>
+              );
+            })()}
+            {ready && <div className="ready-badge">Ready to Rank Up</div>}
           </>
         ) : manager.fragments > 0 ? (
           <p style={{ color: "var(--accent-orange)", margin: "0.25rem 0 0" }}>

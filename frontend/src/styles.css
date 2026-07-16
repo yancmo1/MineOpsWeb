@@ -503,6 +503,37 @@ input::placeholder {
   margin-top: 0.25rem;
 }
 
+/* Fragment progress bar */
+.fragment-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  width: 100%;
+}
+
+.fragment-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 140, 50, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fragment-progress-fill {
+  height: 100%;
+  background: var(--accent-orange);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.fragment-progress-label {
+  font-size: 0.625rem;
+  color: var(--accent-orange);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Navigation */
 nav {
   position: fixed;
@@ -1139,6 +1170,119 @@ input[aria-label="Search managers"] {
   .toolbar {
     flex-direction: row;
   }
+}
+
+/* Rarity filter chips */
+.filter-chip-legendary.active {
+  background: rgba(255, 215, 0, 0.2) !important;
+  color: var(--rarity-legendary) !important;
+  border: 1px solid rgba(255, 215, 0, 0.5);
+}
+
+.filter-chip-epic.active {
+  background: rgba(157, 94, 255, 0.2) !important;
+  color: var(--rarity-epic) !important;
+  border: 1px solid rgba(157, 94, 255, 0.5);
+}
+
+.filter-chip-rare.active {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: var(--rarity-rare) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+.filter-chip-common.active {
+  background: rgba(156, 163, 175, 0.2) !important;
+  color: var(--rarity-common) !important;
+  border: 1px solid rgba(156, 163, 175, 0.5);
+}
+
+/* Manager controls row (ownership + sort) */
+.manager-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Sort Dropdown */
+.sort-dropdown {
+  position: relative;
+}
+
+.sort-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--mine-light);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.sort-trigger:hover {
+  background: var(--mine-card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: none;
+}
+
+.sort-trigger svg {
+  flex-shrink: 0;
+}
+
+.sort-trigger-label {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sort-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  padding: 0.375rem;
+  min-width: 200px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sort-option:hover {
+  background: var(--mine-light);
+  transform: none;
+}
+
+.sort-option.active {
+  background: rgba(0, 160, 185, 0.08);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.sort-option svg {
+  flex-shrink: 0;
 }
 
 /* Extra large screens */

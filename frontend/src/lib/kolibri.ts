@@ -53,7 +53,13 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     item.level = Math.max(1, Number(row.Level ?? 1));
     item.rank = Math.max(0, Number(row.Rank ?? 0));
     item.promoted = Math.max(0, Number(row.Promotion ?? 0));
+    item.fragments = Math.max(0, Number(row.Fragments ?? row.fragments ?? row.FragmentCount ?? 0));
     item.updatedAt = new Date().toISOString();
+  }
+  // Debug: log the first manager's raw keys to identify the fragments field name
+  if (managers.length > 0) {
+    console.debug("[kolibri] First manager raw keys:", Object.keys(managers[0]).join(", "));
+    console.debug("[kolibri] First manager raw values:", JSON.stringify(managers[0]));
   }
   return { progress, diagnostics: { statusCode: response.status, payloadFormat: decoded.format, rawBytes: raw.byteLength, decodedBytes: decoded.json.byteLength, managerCount: managers.length, unknownManagerCount: unknown } };
 }

@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 
-export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; duration?: string; cooldown?: string }; passives?: Array<{ unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number }> };
+export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: string; cooldown?: string }; passives?: Array<{ unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number }> };
 export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; unlocked: boolean; updatedAt: string };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
 export type AppSettings = { autoSync: boolean };
@@ -24,9 +24,77 @@ export async function setSyncMetadata(value: SyncMetadata): Promise<void> { awai
 export async function getSettings(): Promise<AppSettings> { return (await db.settings.get("app"))?.value ?? { autoSync: false }; }
 export async function saveSettings(value: AppSettings): Promise<void> { await db.settings.put({ id: "app", value }); }
 
-export function strengthScore(manager: CatalogManager, progress: PlayerManager): number {
-  const rarity = { legendary: 25, epic: 18, rare: 12, common: 6 }[manager.rarity.toLowerCase()] ?? 0;
-  const active = Math.max(manager.active?.multiplier ?? 1, 1);
-  return Math.log10(active) * 100 + progress.level * 1.5 + progress.rank * 20 + progress.promoted * 10 + rarity;
+// ---------------------------------------------------------------------------
+// Effective Active Value (linear interpolation fallback)
+// iOS equivalent: SMProgress.effectiveActiveValue(using:)
+// Web doesn't have the scaling table API yet, so uses linear interpolation
+// between activeL1 (level 1) and activeL100 (level 100).
+// ---------------------------------------------------------------------------
+
+export function effectiveActiveValue(manager: CatalogManager, progress: PlayerManager): number {
+  const activeL1 = manager.active?.multiplier ?? 1;
+  const activeL100 = manager.active?.multiplierAt100;
+
+  if (activeL100 != null && progress.level >= 1) {
+    const base = activeL1;
+    const maxVal = activeL100;
+    const ratio = Math.min(progress.level / 100.0, 1.0);
+    return base + (maxVal - base) * ratio;
+  }
+
+  // Fallback: use flat activeL1
+  return activeL1;
 }
-export function rankThreshold(rank: number): number | undefined { return ({ 0: 15, 1: 30, 2: 50, 3: 80 } as Record<number, number>)[rank]; }
+
+// ---------------------------------------------------------------------------
+// Strength Score (deterministic)
+// iOS equivalent: SMProgressService.strengthScore(for:)
+// ---------------------------------------------------------------------------
+
+export function strengthScore(manager: CatalogManager, progress: PlayerManager): number {
+  const activeValue = Math.max(effectiveActiveValue(manager, progress), 1);
+  return Math.log10(activeValue) * 100
+    + progress.level * 1.5
+    + progress.rank * 20
+    + progress.promoted * 10
+    + rarityWeight(manager.rarity);
+}
+
+// ---------------------------------------------------------------------------
+// Rarity helpers (iOS: SMProgressService.rarityWeight / raritySortWeight)
+// ---------------------------------------------------------------------------
+
+export function rarityWeight(rarity: string): number {
+  switch (rarity.toLowerCase()) {
+    case "legendary": return 25;
+    case "epic": return 18;
+    case "rare": return 12;
+    case "common": return 6;
+    default: return 0;
+  }
+}
+
+export function raritySortWeight(rarity: string): number {
+  switch (rarity.toLowerCase()) {
+    case "legendary": return 4;
+    case "epic": return 3;
+    case "rare": return 2;
+    case "common": return 1;
+    default: return 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fragment thresholds (iOS: SMProgressService.knownFragmentThreshold)
+// ---------------------------------------------------------------------------
+
+export function rankThreshold(rank: number): number | undefined {
+  return ({ 0: 15, 1: 30, 2: 50, 3: 80 } as Record<number, number>)[rank];
+}
+
+export function isRankUpReady(progress: PlayerManager): boolean {
+  if (!progress.unlocked) return false;
+  const threshold = rankThreshold(progress.rank);
+  if (threshold == null) return false;
+  return progress.fragments >= threshold;
+}

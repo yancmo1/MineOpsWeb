@@ -15,7 +15,7 @@ services:
   web:
     build:
       context: ./frontend
-      target: build
+      target: production
     restart: unless-stopped
     depends_on:
       pocketbase: { condition: service_healthy }

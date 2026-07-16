@@ -1,4 +1,4 @@
-import { CatalogManager, PlayerManager } from "../lib/db";
+import { CatalogManager, PlayerManager, effectiveActiveValue, isRankUpReady } from "../lib/db";
 import { spriteURL } from "../lib/sprites";
 import { interpolateAbilityDescription, formatTime } from "../lib/textNormalization";
 
@@ -6,14 +6,12 @@ interface ManagerDetailModalProps {
   manager: CatalogManager;
   progress?: PlayerManager;
   onClose: () => void;
-  onToggleOwnership: (p: PlayerManager) => void;
 }
 
 export function ManagerDetailModal({
   manager,
   progress,
   onClose,
-  onToggleOwnership,
 }: ManagerDetailModalProps) {
   const rarity = manager.rarity.toLowerCase();
   const sprite = spriteURL(manager);
@@ -77,6 +75,15 @@ export function ManagerDetailModal({
               <div className="detail-stat-value">{progress.rank}</div>
               <div className="detail-stat-label">Rank</div>
             </div>
+            <div className="detail-stat">
+              <div className="detail-stat-value">{effectiveActiveValue(manager, progress).toFixed(1)}x</div>
+              <div className="detail-stat-label">Active Value</div>
+            </div>
+            {isRankUpReady(progress) && (
+              <div className="detail-stat" style={{ gridColumn: "1 / -1", paddingTop: "0.25rem" }}>
+                <div className="detail-stat-value" style={{ color: "var(--accent-orange)", fontSize: "0.85rem" }}>★ Ready to rank up!</div>
+              </div>
+            )}
           </div>
         )}
 
@@ -150,16 +157,6 @@ export function ManagerDetailModal({
               ))}
             </div>
           </section>
-        )}
-
-        {/* Toggle Ownership Button */}
-        {progress && (
-          <button
-            className="detail-action-button"
-            onClick={() => onToggleOwnership(progress)}
-          >
-            {progress.unlocked ? "Mark as Locked" : "Mark as Unlocked"}
-          </button>
         )}
       </article>
     </div>

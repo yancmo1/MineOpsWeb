@@ -42,3 +42,18 @@
 - Updated `NavigationIcon.tsx` — removed mines/resources icon cases
 - Updated `App.tsx` — removed dead imports/routes, unified header title via `getTabLabel()`
 - All navigation items now visible on mobile (Strategy was previously hidden on mobile)
+
+## 2026-07-15 — Multi-device sync: manager calculations ported, PB cross-device sync wired
+
+- **Calculation parity:** Ported `effectiveActiveValue()` (linear interpolation between L1/L100) and `raritySortWeight()` from the iOS Swift codebase. Updated `strengthScore()` to use the new active value. Added `isRankUpReady()` as the canonical function.
+- **UI changes:** ManagerCard now shows "Ready to Rank Up" badge using the shared function. ManagerDetailModal shows computed effective active value and rank-up readiness.
+- **PocketBase auth:** Confirmed the app uses `pb.collection("users").authWithPassword()` — regular **user** accounts, not admin accounts. User created manually via Admin UI.
+- **Cross-device sync:** On app launch, if authenticated, pulls the latest PB snapshot and applies it (LWW by `capturedAt`). On sign-in, immediately pulls from PB and pushes local state. On tab close, fire-and-forget pushes to PB.
+- All tests pass (11/11) and TypeScript compiles cleanly.
+
+## 2026-07-15 — Fragment parsing fix and progress bar UI
+
+- **Bug fix:** Kolibri parser was hard-coding `fragments: 0` for every manager — the `Fragments` field from the save response was never read. Added `row.Fragments ?? row.fragments ?? 0` to the parser.
+- **UI improvement:** ManagerCard now shows a fragment progress bar with X/Y count (e.g., "⬥ 15/50") towards the next rank threshold, using `rankThreshold()`. Thresholds: R0=15, R1=30, R2=50, R3=80 fragments.
+- **CSS:** Added `.fragment-progress`, `.fragment-progress-bar`, `.fragment-progress-fill`, `.fragment-progress-label` styles with orange accent color and smooth width transition.
+- All 11 tests pass, TypeScript compiles cleanly.
