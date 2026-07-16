@@ -21,6 +21,7 @@ The iOS project at `../mineops-companion` is the behavioral reference until the 
 
 ### Recently resolved (2026-07-16)
 
+- ✅ **Issue #1 — Contract-test the capture envelope** — shared validation module (`shared/schemas/validate-release.mjs`) with stable error codes, 12 contract fixtures, 31 passing tests covering CLI and PB hook parity. See `apps/capture-bridge/tests/contract.test.mjs`.
 - ✅ **Capture ingest route** — live on Oracle PB at `https://mineops-pb.shepswork.com/api/capture/ingest`. Hook file mounted at `/opt/infra-new/apps/mineopsweb/pb_hooks/capture-ingest.pb.js`.
 - ✅ **UbuntuMac→Oracle data pipeline** — wired end-to-end with token auth, payload enrichment, and import history display.
 - ✅ **SSH alias `oracle-vm`** — configured in `~/.ssh/config` with RSA key. Agents should use this alias for all server operations.

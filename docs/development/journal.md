@@ -1,5 +1,94 @@
 # Development journal
 
+## 2026-07-16 — Validation versioning + provenance report (pre-M5 prep)
+
+**Goal:** Separate validation version from schema version so the validator can evolve independently. Add a provenance report to every validation result.
+
+### Changes
+
+- **`validationVersion` field** — added to `REQUIRED_FIELDS` (now 9), `release.schema.json`, and all 13 fixtures. Payloads must carry both `schemaVersion` (shape contract) and `validationVersion` (validator rules). These evolve independently.
+- **`VALIDATION_VERSION` constant** (1.0.0) — separate from `SUPPORTED_SCHEMA_VERSION`. Major version bump rejection applies to both.
+- **`buildValidationReport()` function** — produces `{ validatedBy: "MineOpsDataEngine", validationVersion, timestamp, gitCommit, host }`. Auto-detects git commit from `MINEOPS_GIT_COMMIT` or `GIT_COMMIT` env, host from `MINEOPS_HOST` or `HOSTNAME`.
+- **PB hook** — `validation` record now stores the full provenance report instead of `{ validatedAt, status }`. `validationVersion` checked alongside `schemaVersion`.
+- **Error code** — new `VALIDATION_ERROR / UNSUPPORTED_VALIDATION_VERSION` for future validation versions.
+- **New fixture** — `future-validation.json` (validationVersion 99.0.0 → rejected).
+
+### Future direction (M5+)
+
+- Promote validator into `validation/` package: `contracts/`, `schemas/`, `validators/`, `errors/`, `fixtures/`, `tests/`.
+- Pipeline: `validateRelease()` → `validateInventory()` → `validateCanonicalObjects()` → `validateRelationships()` → `validateMappings()` → `validateExport()` → `validatePublish()`.
+- Every CLI command imports the same validation system.
+
+### Verification
+
+- All 39 contract tests pass (up from 31): 15 shared validator, 7 CLI, 4 exit codes, 5 constants, 4 provenance report, 4 hook contract.
+- Existing `test-release.json` fixture still validates and dry-runs.
+
+## 2026-07-16 — Contract-test the capture envelope (Issue #1)
+
+**Goal:** Make the capture-bridge CLI, PocketBase ingest hook, and release schema a single versioned contract with stable machine-readable error codes and fixture-based contract tests.
+
+### Shared validation module (`shared/schemas/validate-release.mjs`)
+
+- Created single source of truth for capture envelope validation used by both CLI and PB hook.
+- Exports: `validateReleasePayload()`, `ERROR_CODES`, `exitCodeForError()`, `REQUIRED_FIELDS`, `VALID_STATUSES`, `SUPPORTED_SCHEMA_VERSION`.
+- Stable error codes follow `CATEGORY / REASON` format (e.g., `VALIDATION_ERROR / MISSING_REQUIRED_FIELD`).
+- Schema version check: rejects major versions > current (1.x), accepts legacy (0.x) for backward compatibility.
+- Added null/undefined/array guard on input.
+- New validations not previously enforced: SHA-256 format check on individual apkHash values, schema version unsupported check.
+
+### CLI updates (`apps/capture-bridge/src/cli.mjs`)
+
+- Replaced inline `validatePayload()` with `validateReleasePayload()` from shared module.
+- Removed duplicate `REQUIRED_FIELDS` constant.
+- Exit codes now driven by `exitCodeForError()` mapping: DUPLICATE_RELEASE→14, UNAUTHORIZED→2, all VALIDATION_ERROR→1.
+- Error code printed to stderr alongside human-readable message.
+
+### PocketBase hook updates (`pocketbase/pb_hooks/capture-ingest.pb.js`)
+
+- All error responses now include `"code"` field matching shared ERROR_CODES.
+- Added SHA-256 format validation on individual apkHash values.
+- Added schema version check (rejects future major versions).
+- Documented stable error codes in header comment.
+
+### Contract test fixtures (`shared/fixtures/`)
+
+Created 12 fixtures covering all validation scenarios:
+- `valid-release.json` — minimal valid payload
+- `valid-release-with-extras.json` — with objects + manifest
+- `missing-releaseId.json` — required field absent
+- `empty-releaseId.json` — empty string releaseId
+- `invalid-versionCode-zero.json` / `invalid-versionCode-negative.json`
+- `empty-apkHashes.json` / `invalid-apkHash-bad-format.json`
+- `invalid-status.json` — unknown status value
+- `future-schema.json` — schemaVersion 99.0.0
+- `legacy-schema.json` — schemaVersion 0.9.0 (accepted)
+- `invalid-schemaVersion-format.json` — non-numeric version
+
+### Contract test suite (`apps/capture-bridge/tests/contract.test.mjs`)
+
+- 31 tests in 5 suites, all passing.
+- **Shared validator tests (14):** Unit tests for every fixture + null/undefined input.
+- **CLI contract tests (6):** Runs CLI as child process, verifies exit codes match expected error codes.
+- **Exit code mapping tests (4):** DUPLICATE_RELEASE→14, UNAUTHORIZED→2, validation→1, unknown→1.
+- **Constants consistency (3):** Required fields count, status enum, semver format.
+- **Server hook mirror (4):** Required fields array match, fixture outcome agreement, error code format validation.
+
+### Verification
+
+- All 31 contract tests pass: `node --test tests/contract.test.mjs`
+- Existing `test-release.json` fixture still validates and dry-runs correctly.
+- CLI correctly rejects malformed/missing payloads with exit code 1 and prints error code to stderr.
+- CLI accepts legacy schema (0.9.0) for backward compatibility.
+- No secrets, APK binaries, or raw extracted assets in fixtures.
+
+### Acceptance criteria status
+
+- ✅ Shared fixture suite passes for client and server validation.
+- ✅ A payload cannot be accepted by one side and rejected by the other without an explicit schema-version error.
+- ✅ Tests cover release ID, integer version code, APK hashes, status, object count, and provenance metadata.
+- ✅ No secrets, APK binaries, or raw extracted assets in this repository.
+
 ## 2026-07-16 — Documentation requirements strengthened
 
 - Updated `AGENTS.md` so documentation is mandatory for every implementation, configuration, schema, test, deployment, bug-fix, or workflow task—not only material architecture/data/auth/Docker decisions.

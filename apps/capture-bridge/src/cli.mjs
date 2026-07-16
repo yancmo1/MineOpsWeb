@@ -29,6 +29,11 @@ import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { existsSync } from "node:fs";
+import {
+  validateReleasePayload,
+  ERROR_CODES,
+  exitCodeForError,
+} from "../../../shared/schemas/validate-release.mjs";
 
 // ─── Help text ─────────────────────────────────────────────────────────────
 
@@ -207,30 +212,6 @@ async function checkStatus() {
   }
 }
 
-// ─── Validation ────────────────────────────────────────────────────────────
-
-const REQUIRED_FIELDS = [
-  "releaseId", "versionName", "versionCode", "capturedAt",
-  "engineVersion", "schemaVersion", "apkHashes", "status",
-];
-
-function validatePayload(obj) {
-  const missing = REQUIRED_FIELDS.filter(
-    (f) => obj[f] === undefined || obj[f] === null,
-  );
-  if (missing.length > 0) return `Missing required fields: ${missing.join(", ")}`;
-  if (typeof obj.releaseId !== "string" || obj.releaseId.length < 1)
-    return "releaseId must be a non-empty string";
-  if (typeof obj.versionCode !== "number" || obj.versionCode < 1)
-    return "versionCode must be a positive integer";
-  if (typeof obj.apkHashes !== "object" || Object.keys(obj.apkHashes).length === 0)
-    return "apkHashes must be a non-empty object";
-  const validStatuses = ["acquired", "processed", "published", "failed"];
-  if (!validStatuses.includes(obj.status))
-    return `status must be one of: ${validStatuses.join(", ")}`;
-  return null;
-}
-
 // ─── Upload ────────────────────────────────────────────────────────────────
 
 async function uploadPayload(filePath, dryRun) {
@@ -239,12 +220,12 @@ async function uploadPayload(filePath, dryRun) {
 
   let payload;
   try { payload = JSON.parse(bytes.toString()); } catch (err) {
-    return { ok: false, error: `Invalid JSON: ${err.message}`, file: filePath };
+    return { ok: false, error: `Invalid JSON: ${err.message}`, file: filePath, code: null };
   }
 
-  const validationError = validatePayload(payload);
-  if (validationError) {
-    return { ok: false, error: validationError, file: filePath };
+  const validation = validateReleasePayload(payload);
+  if (!validation.ok) {
+    return { ok: false, error: validation.error, code: validation.code, file: filePath };
   }
 
   const sizeKb = (bytes.byteLength / 1024).toFixed(1);
@@ -358,7 +339,10 @@ async function main() {
     const result = await uploadPayload(config.file, config.dryRun);
     if (!result.ok) {
       console.error(`[capture-bridge] ERROR: ${result.error}`);
-      process.exit(result.status ?? 1);
+      if (result.code) {
+        console.error(`[capture-bridge] Error code: ${result.code}`);
+      }
+      process.exit(result.code ? exitCodeForError(result.code) : 1);
     }
     if (result.duplicate) process.exit(14);
   }
