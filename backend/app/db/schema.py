@@ -10,7 +10,7 @@ CATALOG_SNAPSHOT_ALTERS = {
 }
 
 CATALOG_SNAPSHOT_INDEXES = (
-    "CREATE UNIQUE INDEX IF NOT EXISTS ix_catalog_snapshots_release_id ON catalog_snapshots (release_id)",
+    "CREATE INDEX IF NOT EXISTS ix_catalog_snapshots_release_id ON catalog_snapshots (release_id)",
     "CREATE INDEX IF NOT EXISTS ix_catalog_snapshots_raw_import_id ON catalog_snapshots (raw_import_id)",
     "CREATE INDEX IF NOT EXISTS ix_catalog_snapshots_validation_run_id ON catalog_snapshots (validation_run_id)",
 )

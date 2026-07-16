@@ -50,7 +50,7 @@ class CatalogSnapshot(Base, RevisionedMixin):
     source_type: Mapped[str] = mapped_column(String(64))
     source_version: Mapped[str | None] = mapped_column(String(128))
     source_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
-    release_id: Mapped[str | None] = mapped_column(String(128), unique=True, index=True, nullable=True)
+    release_id: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
     raw_import_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     validation_run_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     game_version: Mapped[str | None] = mapped_column(String(128))
@@ -64,7 +64,7 @@ class CatalogSnapshot(Base, RevisionedMixin):
 
 class CatalogRawImport(Base, ImmutableEvidenceMixin):
     __tablename__ = "catalog_raw_imports"
-    release_id: Mapped[str | None] = mapped_column(String(128), unique=True, index=True, nullable=True)
+    release_id: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
     source_type: Mapped[str] = mapped_column(String(64))
     source_version: Mapped[str | None] = mapped_column(String(128))
     source_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)

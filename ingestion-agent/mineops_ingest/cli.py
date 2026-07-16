@@ -39,7 +39,7 @@ def payload_for(path: Path) -> dict:
     source_hash = hashlib.sha256(raw).hexdigest()
     payload_size_bytes = len(_canonical_json_bytes(data))
     object_counts = _object_counts(data)
-    release_id = data.get("release_id") or f"{data.get('game_version', 'unknown')}:{source_hash}"
+    release_id = data.get("release_id") or data.get("game_version") or source_hash
     config_hash = hashlib.sha256(
         _canonical_json_bytes(
             {
