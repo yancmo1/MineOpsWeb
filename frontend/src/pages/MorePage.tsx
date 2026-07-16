@@ -338,11 +338,101 @@ export function MorePage({
                   <strong>Latest release:</strong> {captureStatus.lastReleaseId}
                 </p>
               )}
+              {captureStatus.lastSource && (
+                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
+                  <strong>Source:</strong> {captureStatus.lastSource}
+                </p>
+              )}
+              {captureStatus.lastObjectCount !== undefined && (
+                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
+                  <strong>Objects captured:</strong> {captureStatus.lastObjectCount}
+                </p>
+              )}
               {captureStatus.lastIngestedAt && (
                 <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
                   <strong>Last ingested:</strong>{" "}
                   {new Date(captureStatus.lastIngestedAt).toLocaleString()}
                 </p>
+              )}
+
+              {captureStatus.recentReleases && captureStatus.recentReleases.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <p className="muted" style={{ margin: 0, fontSize: "0.8rem", fontWeight: 600 }}>
+                    Import history
+                  </p>
+                  <div style={{ display: "grid", gap: "0.25rem", marginTop: "0.25rem" }}>
+                    {captureStatus.recentReleases.slice(0, 3).map((release) => (
+                      <p key={`${release.releaseId}-${release.ingestedAt}`} className="muted" style={{ margin: 0, fontSize: "0.8rem" }}>
+                        {release.releaseId}
+                        {release.objectCount !== undefined ? ` · ${release.objectCount} objects` : ""}
+                        {release.ingestedAt ? ` · ${new Date(release.ingestedAt).toLocaleString()}` : ""}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(captureStatus.previousReleaseId || captureStatus.objectCountDelta !== undefined) && (
+                <div style={{ marginTop: "0.75rem", borderTop: "1px solid var(--border-color, rgba(255,255,255,0.08))", paddingTop: "0.5rem" }}>
+                  <p className="muted" style={{ margin: 0, fontSize: "0.8rem", fontWeight: 600 }}>
+                    Latest vs previous
+                  </p>
+                  {captureStatus.lastReleaseId && captureStatus.previousReleaseId && (
+                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
+                      <strong>Release:</strong> {captureStatus.previousReleaseId} → {captureStatus.lastReleaseId}
+                    </p>
+                  )}
+                  {captureStatus.lastObjectCount !== undefined && captureStatus.previousObjectCount !== undefined && (
+                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
+                      <strong>Objects:</strong> {captureStatus.previousObjectCount} → {captureStatus.lastObjectCount}
+                      {captureStatus.objectCountDelta !== undefined ? ` (${captureStatus.objectCountDelta >= 0 ? "+" : ""}${captureStatus.objectCountDelta})` : ""}
+                    </p>
+                  )}
+                  {captureStatus.previousIngestedAt && captureStatus.lastIngestedAt && (
+                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
+                      <strong>Ingested:</strong> {new Date(captureStatus.previousIngestedAt).toLocaleString()} → {new Date(captureStatus.lastIngestedAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {captureStatus.latestRawImport && (
+                <div style={{ marginTop: "0.75rem", borderTop: "1px solid var(--border-color, rgba(255,255,255,0.08))", paddingTop: "0.5rem" }}>
+                  <p className="muted" style={{ margin: 0, fontSize: "0.8rem", fontWeight: 600 }}>
+                    Latest raw import (UbuntuMac payload)
+                  </p>
+                  {captureStatus.latestRawImport.versionName && (
+                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
+                      <strong>Version:</strong> {captureStatus.latestRawImport.versionName}
+                      {captureStatus.latestRawImport.versionCode !== undefined ? ` (${captureStatus.latestRawImport.versionCode})` : ""}
+                    </p>
+                  )}
+                  {captureStatus.latestRawImport.status && (
+                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
+                      <strong>Pipeline status:</strong> {captureStatus.latestRawImport.status}
+                    </p>
+                  )}
+                  {captureStatus.latestRawImport.apkCount !== undefined && (
+                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
+                      <strong>APK hash entries:</strong> {captureStatus.latestRawImport.apkCount}
+                    </p>
+                  )}
+                  {captureStatus.latestRawImport.objectCount !== undefined && (
+                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
+                      <strong>Objects in payload:</strong> {captureStatus.latestRawImport.objectCount}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {captureStatus.notes && captureStatus.notes.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  {captureStatus.notes.map((note) => (
+                    <p key={note} className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
+                      • {note}
+                    </p>
+                  ))}
+                </div>
               )}
             </>
           ) : (

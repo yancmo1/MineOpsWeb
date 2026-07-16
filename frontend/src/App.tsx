@@ -114,6 +114,7 @@ export default function App() {
     let progressRef: PlayerManager[] = [];
     const unsub = onAuthChange((status) => {
       setAuthStatus(status);
+      void refreshCaptureStatus();
       // When a user signs in on this device, pull latest from PB immediately
       if (status.authenticated && progressRef.length > 0) {
         void (async () => {

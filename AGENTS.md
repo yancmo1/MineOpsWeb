@@ -20,6 +20,17 @@ The iOS project at `../mineops-companion` is the behavioral reference until the 
 
 ## 🐳 Docker rules
 
+## 🖥️ Oracle server access convention
+
+- Use SSH host alias `oracle-vm` for server operations.
+- Expected alias shape in `~/.ssh/config`:
+	- `Host oracle-vm`
+	- `HostName <oracle-vm-ip-or-dns>`
+	- `User <oracle-user>`
+	- `IdentityFile ~/.ssh/<oracle-key>`
+	- `IdentitiesOnly yes`
+- If alias auth fails, verify the key path and permissions (`chmod 600 ~/.ssh/<oracle-key>`) before changing deploy scripts.
+
 - **Production compose** (`docker-compose.yml`): `docker compose up --build -d` after every source change. Code is bundled at build time — source edits on the host are **not** reflected until rebuild.
 - **Dev compose** (`docker-compose.dev.yml`): `docker compose -f docker-compose.dev.yml up --build -d` for Vite hot-reload with volume mounts.
 - **`!override` on ports** in `docker-compose.dev.yml` is intentional — Compose merges port arrays from multiple files. Without `!override`, both `8080:80` (production) and `8080:5173` (dev) get published, causing port conflicts.

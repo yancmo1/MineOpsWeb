@@ -1,19 +1,34 @@
 # Development journal
 
+## 2026-07-16 — UbuntuMac outbound wiring clarification + capture diagnostics hardening
+
+- Confirmed V3 architecture guardrail: UbuntuMac should **not** host PocketBase. It remains the outbound capture/extraction engine, uploading to MineOps PocketBase over HTTPS.
+- Added `capture-bridge` wiring diagnostics command:
+   - `apps/capture-bridge/src/cli.mjs` now supports `--status`
+   - Checks PocketBase health (`/api/health`), ingest auth behavior (401 vs non-401), and recent `catalog_versions` readability.
+   - Added npm script: `apps/capture-bridge/package.json` → `npm run status`
+- Updated capture workflow docs with explicit UbuntuMac→PocketBase runbook:
+   - `docs/emulator-ingestion/capture-workflow.md`
+   - Includes setup expectations, verification steps, upload commands, and troubleshooting notes.
+- Hardened frontend capture status fetch against dev PocketBase query quirks:
+   - Some dev setups reject `sort=-created` on `catalog_versions` with HTTP 400.
+   - `frontend/src/lib/capture.ts` now falls back to unsorted reads and keeps status online with a diagnostic note instead of reporting unavailable.
+- Clarified operator confusion around “zero” values: record/object counts can be `0` when payload `objects` is empty (fixture behavior), even though ingest and connectivity are healthy.
+
 ## 2026-07-16 — Capture bridge: ubuntumac → PocketBase ingest pipeline
 
 **Dual-ended implementation:** Both the server-side ingest endpoint (PocketBase) and the client-side upload CLI (capture-bridge) were built and wired together.
 
 ### Server side (MineOpsWeb PocketBase)
 
-1. **New migration:** `1700000001_capture_clients.js` — adds `capture_clients` collection with `name`, `tokenHash` (bcrypt), `active`, `lastUsedAt` fields. No public access rules; only superusers manage via Admin UI. The ingest hook reads records via DAO for auth.
+1. **New migration:** `1700000001_capture_clients.js` — adds `capture_clients` collection with `name`, `tokenHash` (stored SHA256 token hash), `active`, `lastUsedAt` fields. No public access rules; only superusers manage via Admin UI.
 
 2. **New PB hook:** `pocketbase/pb_hooks/capture-ingest.pb.js` — custom route `POST /api/capture/ingest` that:
-   - Authenticates via Bearer token against `capture_clients` bcrypt hashes
+   - Authenticates via Bearer token using PB 0.39-compatible `$security.sha256()` + `$security.equal()` against `capture_clients.tokenHash`
    - Validates payload against `release.schema.json` requirements (releaseId, versionCode, apkHashes, status, etc.)
    - Returns HTTP 409 on duplicate releaseId (exit code 14 on CLI)
    - Creates `raw_imports` record with capture client name as owner
-   - Creates/updates `catalog_versions` record with object count
+   - Creates `catalog_versions` record with object count
    - Updates `capture_clients.lastUsedAt` on each request
 
 3. **Dockerfile:** Added `COPY pb_hooks /pb/pb_hooks` so hooks are baked into the PB image.

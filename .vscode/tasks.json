@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "UbuntuMac: Capture status",
+      "type": "shell",
+      "command": "./scripts/ubuntumac/run-remote-check.sh",
+      "args": ["--status"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "UbuntuMac: Check APK + upload latest release",
+      "type": "shell",
+      "command": "./scripts/ubuntumac/run-remote-check.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

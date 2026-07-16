@@ -11,6 +11,7 @@
  *   node src/cli.mjs <payload.json> --dry-run    # validate without sending
  *   node src/cli.mjs --inbox <dir>               # process inbox directory
  *   node src/cli.mjs --inbox <dir> --dry-run     # validate inbox files
+ *   node src/cli.mjs --status                    # verify API wiring
  *   node src/cli.mjs --help                      # show help
  *
  * Environment:
@@ -39,6 +40,7 @@ Usage:
   node src/cli.mjs <payload.json> --dry-run    Validate only (no upload)
   node src/cli.mjs --inbox <directory>         Upload all payloads in a dir
   node src/cli.mjs --inbox <directory> --dry-run
+  node src/cli.mjs --status                    Validate endpoint + show latest ingests
   node src/cli.mjs --help                      Show this help
 
 Environment:
@@ -69,7 +71,12 @@ function parseArgs() {
   }
 
   const dryRun = args.includes("--dry-run");
+  const status = args.includes("--status");
   const inboxIndex = args.indexOf("--inbox");
+
+  if (status) {
+    return { mode: "status" };
+  }
 
   if (inboxIndex !== -1) {
     const dir = args[inboxIndex + 1];
@@ -87,6 +94,117 @@ function parseArgs() {
     process.exit(2);
   }
   return { mode: "file", file: resolve(file), dryRun };
+}
+
+function inferPocketBaseBaseUrl(ingestUrl) {
+  if (!ingestUrl) return null;
+  try {
+    const parsed = new URL(ingestUrl);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return null;
+  }
+}
+
+async function checkStatus() {
+  const endpoint = process.env.MINEOPS_CAPTURE_URL;
+  const token = process.env.MINEOPS_CAPTURE_TOKEN;
+
+  if (!endpoint) {
+    console.error("[capture-bridge] ERROR: MINEOPS_CAPTURE_URL is not set");
+    process.exit(2);
+  }
+  if (!token) {
+    console.error("[capture-bridge] ERROR: MINEOPS_CAPTURE_TOKEN is not set");
+    process.exit(2);
+  }
+
+  const base = inferPocketBaseBaseUrl(endpoint);
+  if (!base) {
+    console.error("[capture-bridge] ERROR: MINEOPS_CAPTURE_URL is not a valid URL");
+    process.exit(2);
+  }
+
+  const output = {
+    endpoint,
+    pocketBaseBaseUrl: base,
+    checks: {
+      health: { ok: false },
+      ingestAuth: { ok: false },
+      catalogRead: { ok: false },
+    },
+  };
+
+  try {
+    const healthResp = await fetch(`${base}/api/health`);
+    output.checks.health = {
+      ok: healthResp.ok,
+      status: healthResp.status,
+    };
+  } catch (err) {
+    output.checks.health = {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  try {
+    const ingestProbe = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ releaseId: "status_probe" }),
+    });
+
+    // For a probe payload missing required fields, auth success should return 400,
+    // while bad auth should return 401.
+    output.checks.ingestAuth = {
+      ok: ingestProbe.status !== 401,
+      status: ingestProbe.status,
+    };
+  } catch (err) {
+    output.checks.ingestAuth = {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  try {
+    const catalogResp = await fetch(`${base}/api/collections/catalog_versions/records?perPage=5`);
+    if (catalogResp.ok) {
+      const data = await catalogResp.json();
+      output.checks.catalogRead = {
+        ok: true,
+        status: catalogResp.status,
+        totalItems: data.totalItems ?? null,
+        latest: Array.isArray(data.items)
+          ? data.items.slice(0, 3).map((item) => ({
+              version: item.version,
+              source: item.source,
+              recordCount: item.recordCount,
+            }))
+          : [],
+      };
+    } else {
+      output.checks.catalogRead = {
+        ok: false,
+        status: catalogResp.status,
+      };
+    }
+  } catch (err) {
+    output.checks.catalogRead = {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  console.log(JSON.stringify(output, null, 2));
+
+  if (!output.checks.health.ok || !output.checks.ingestAuth.ok) {
+    process.exit(1);
+  }
 }
 
 // ─── Validation ────────────────────────────────────────────────────────────
@@ -228,6 +346,11 @@ async function processInbox(dir, dryRun) {
 
 async function main() {
   const config = parseArgs();
+
+  if (config.mode === "status") {
+    await checkStatus();
+    return;
+  }
 
   if (config.mode === "inbox") {
     await processInbox(config.dir, config.dryRun);

@@ -1,1 +1,1 @@
-{"name":"mineops-capture-bridge","private":true,"type":"module","scripts":{"capture":"node src/cli.mjs","inbox":"node src/cli.mjs --inbox"}}
+{"name":"mineops-capture-bridge","private":true,"type":"module","scripts":{"capture":"node src/cli.mjs","inbox":"node src/cli.mjs --inbox","status":"node src/cli.mjs --status"}}

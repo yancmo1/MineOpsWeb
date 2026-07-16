@@ -5,6 +5,28 @@
  * MineOps PocketBase capture-ingest endpoint (/api/capture/ingest).
  */
 
+import { getClient } from "./pocketbase";
+
+export interface CaptureReleaseSummary {
+  releaseId: string;
+  ingestedAt: string;
+  source?: string;
+  objectCount?: number;
+}
+
+export interface CaptureRawImportPreview {
+  receivedAt: string;
+  source?: string;
+  owner?: string;
+  parserVersion?: string;
+  status?: string;
+  capturedAt?: string;
+  versionName?: string;
+  versionCode?: number;
+  apkCount?: number;
+  objectCount?: number;
+}
+
 export interface CaptureStatus {
   /** Most recent release ID that was successfully ingested */
   lastReleaseId?: string;
@@ -12,38 +34,138 @@ export interface CaptureStatus {
   lastIngestedAt?: string;
   /** Number of catalog versions stored in PocketBase */
   catalogVersionCount?: number;
+  /** Source marker from catalog_versions (for example ubuntumac/1.4.2) */
+  lastSource?: string;
+  /** Record count captured in the latest catalog_versions row */
+  lastObjectCount?: number;
+  /** Recent catalog releases, newest first */
+  recentReleases?: CaptureReleaseSummary[];
+  /** Previous release details for quick comparison against latest */
+  previousReleaseId?: string;
+  previousIngestedAt?: string;
+  previousObjectCount?: number;
+  /** Delta between latest and previous object counts (latest - previous) */
+  objectCountDelta?: number;
+  /** Most recent raw_imports preview when readable by current user */
+  latestRawImport?: CaptureRawImportPreview;
+  /** Non-blocking notes about access/visibility for diagnostics */
+  notes?: string[];
   /** Connection health to the capture ingest endpoint */
   healthy: boolean;
   /** Error message if unhealthy */
   error?: string;
 }
 
-const PB_URL = import.meta.env.VITE_POCKETBASE_URL ?? "http://localhost:8090";
-
 /**
- * Fetch capture status from PocketBase (superuser-only endpoint).
- * Returns null if the user is not authenticated or the fetch fails.
+ * Fetch capture status from PocketBase.
  */
 export async function fetchCaptureStatus(): Promise<CaptureStatus> {
-  try {
-    // Try to read the catalog_versions list as a proxy for ingest health.
-    // A 401 here just means the user isn't signed in to PB — not an error.
-    const resp = await fetch(`${PB_URL}/api/collections/catalog_versions/records?perPage=1&sort=-created`, {
-      credentials: "include",
-    });
+  const notes: string[] = [];
 
-    if (!resp.ok) {
-      return { healthy: false, error: `PB returned ${resp.status}` };
+  try {
+    const pb = getClient();
+
+    let catalog;
+    try {
+      catalog = await pb.collection("catalog_versions").getList(1, 5, {
+        sort: "-created",
+        fields: "version,source,recordCount,created",
+      });
+    } catch {
+      // Some dev PB setups/migrations reject sort by system fields.
+      // Fallback keeps capture status available instead of showing false offline.
+      notes.push("Server does not support sorting capture records by created; using default order.");
+      catalog = await pb.collection("catalog_versions").getList(1, 5, {
+        fields: "version,source,recordCount",
+      });
     }
 
-    const data = await resp.json() as { totalItems?: number; items?: Array<{ version?: string; created?: string }> };
+    const recentReleases: CaptureReleaseSummary[] = catalog.items.map((item) => ({
+      releaseId: String(item.version ?? ""),
+      ingestedAt: String(item.created ?? ""),
+      source: item.source ? String(item.source) : undefined,
+      objectCount: typeof item.recordCount === "number"
+        ? item.recordCount
+        : (typeof item.recordCount === "string" ? Number(item.recordCount) : undefined),
+    })).filter((item) => item.releaseId.length > 0);
 
-    const latest = data.items?.[0];
+    const latest = recentReleases[0];
+    const previous = recentReleases[1];
+
+    let objectCountDelta: number | undefined;
+    if (
+      latest &&
+      previous &&
+      typeof latest.objectCount === "number" &&
+      typeof previous.objectCount === "number"
+    ) {
+      objectCountDelta = latest.objectCount - previous.objectCount;
+    }
+
+    let latestRawImport: CaptureRawImportPreview | undefined;
+    if (pb.authStore.isValid) {
+      try {
+        const rawResult = await pb.collection("raw_imports").getList(1, 1, {
+          fields: "owner,source,parserVersion,payload,created",
+        });
+
+        let rawItems = rawResult.items;
+        if (!rawItems?.length) {
+          const fallback = await pb.collection("raw_imports").getList(1, 1, {
+            fields: "owner,source,parserVersion,payload",
+          });
+          rawItems = fallback.items;
+        }
+
+        const raw = rawItems[0];
+        if (raw) {
+          let payload: Record<string, unknown> = {};
+          if (typeof raw.payload === "string") {
+            try {
+              payload = JSON.parse(raw.payload) as Record<string, unknown>;
+            } catch {
+              notes.push("Latest raw import payload is not valid JSON.");
+            }
+          }
+
+          latestRawImport = {
+            receivedAt: String(raw.created ?? ""),
+            source: raw.source ? String(raw.source) : undefined,
+            owner: raw.owner ? String(raw.owner) : undefined,
+            parserVersion: raw.parserVersion ? String(raw.parserVersion) : undefined,
+            status: typeof payload.status === "string" ? payload.status : undefined,
+            capturedAt: typeof payload.capturedAt === "string" ? payload.capturedAt : undefined,
+            versionName: typeof payload.versionName === "string" ? payload.versionName : undefined,
+            versionCode: typeof payload.versionCode === "number" ? payload.versionCode : undefined,
+            apkCount: payload.apkHashes && typeof payload.apkHashes === "object"
+              ? Object.keys(payload.apkHashes as Record<string, unknown>).length
+              : undefined,
+            objectCount: Array.isArray(payload.objects) ? payload.objects.length : undefined,
+          };
+        } else {
+          notes.push("No raw import records were found.");
+        }
+      } catch {
+        notes.push("Raw import details are not visible for the current account.");
+      }
+    } else {
+      notes.push("Sign in to view protected raw import details.");
+    }
+
     return {
       healthy: true,
-      catalogVersionCount: data.totalItems ?? 0,
-      lastReleaseId: latest?.version,
-      lastIngestedAt: latest?.created,
+      catalogVersionCount: catalog.totalItems ?? recentReleases.length,
+      lastReleaseId: latest?.releaseId,
+      lastIngestedAt: latest?.ingestedAt,
+      lastSource: latest?.source,
+      lastObjectCount: latest?.objectCount,
+      recentReleases,
+      previousReleaseId: previous?.releaseId,
+      previousIngestedAt: previous?.ingestedAt,
+      previousObjectCount: previous?.objectCount,
+      objectCountDelta,
+      latestRawImport,
+      notes,
     };
   } catch (err) {
     return { healthy: false, error: err instanceof Error ? err.message : "Failed to fetch capture status" };
