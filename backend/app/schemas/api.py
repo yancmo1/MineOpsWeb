@@ -61,4 +61,4 @@ class CatalogSnapshotOutput(BaseModel):
 
 
 class SnapshotStatusUpdate(BaseModel):
-    import_status: str = Field(pattern="^(reviewed|published|active)$")
+    import_status: str = Field(pattern="^(reviewed|superseded)$")

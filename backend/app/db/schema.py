@@ -84,7 +84,7 @@ def backfill_missing_provenance_records() -> None:
                 validation_run = CatalogValidationRun(
                     raw_import_id=raw_import_id,
                     snapshot_id=snapshot.id,
-                    accepted=bool(validation_summary.get("accepted", True)),
+                    accepted=not bool(validation_summary.get("errors", [])),
                     summary=validation_summary,
                 )
                 db.add(validation_run)

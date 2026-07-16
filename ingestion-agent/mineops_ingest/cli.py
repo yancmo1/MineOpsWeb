@@ -32,7 +32,7 @@ def _payload_manifest(source_hash: str, payload_size_bytes: int) -> dict:
 
 
 def _resolve_release_id(data: dict, source_hash: str) -> str:
-    return data.get("release_id") or data.get("game_version") or source_hash
+    return data.get("release_id") or source_hash
 
 
 def payload_for(path: Path) -> dict:

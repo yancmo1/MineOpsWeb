@@ -13,11 +13,12 @@ router = APIRouter(prefix="/api/v1")
 INLINE_ARTIFACT_LIMIT_BYTES = 256 * 1024
 ARTIFACT_FIELD_NAMES = {"apk", "apk_base64", "apk_bytes", "binary", "content_base64"}
 PUBLISHED_STATUS = "published"
-# Snapshots are staged first, may be explicitly reviewed, and become terminal once published.
+# Snapshots are staged first, may be explicitly reviewed, then published and later superseded.
 SNAPSHOT_TRANSITIONS = {
-    "staged": {"reviewed", PUBLISHED_STATUS},
+    "staged": {"reviewed"},
     "reviewed": {PUBLISHED_STATUS},
-    PUBLISHED_STATUS: set(),
+    PUBLISHED_STATUS: {"superseded"},
+    "superseded": set(),
 }
 
 
@@ -102,13 +103,13 @@ def build_validation_summary(
     artifact_manifest: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     summary = dict(upload.validation_summary)
-    summary.setdefault("accepted", True)
-    summary.setdefault("errors", [])
-    summary.setdefault("warnings", [])
+    summary["errors"] = list(summary.get("errors", []))
+    summary["warnings"] = list(summary.get("warnings", []))
     if artifact_manifest:
-        summary["warnings"] = list(summary["warnings"]) + [
+        summary["warnings"] = summary["warnings"] + [
             "Large capture artifacts were stored as manifest-only evidence."
         ]
+    summary["accepted"] = not summary["errors"]
     summary["object_counts"] = object_counts
     summary["payload_size_bytes"] = payload_size_bytes
     summary["inline_artifact_limit_bytes"] = INLINE_ARTIFACT_LIMIT_BYTES
@@ -158,13 +159,24 @@ def pull_managers(cursor: datetime | None = None, db: Session = Depends(get_db))
 
 @router.post("/ingestion/uploads", response_model=CatalogSnapshotOutput)
 def create_catalog_snapshot(upload: CatalogUpload, db: Session = Depends(get_db)):
-    existing = None
     if upload.release_id:
-        existing = db.scalar(select(CatalogSnapshot).where(CatalogSnapshot.release_id == upload.release_id))
-    if not existing:
-        existing = db.scalar(select(CatalogSnapshot).where(CatalogSnapshot.source_hash == upload.source_hash))
-    if existing:
-        return existing
+        existing_release = db.scalar(select(CatalogSnapshot).where(CatalogSnapshot.release_id == upload.release_id))
+        if existing_release:
+            if existing_release.source_hash != upload.source_hash:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "code": "RELEASE_ID_HASH_CONFLICT",
+                        "message": "release_id already exists for different source content",
+                        "release_id": upload.release_id,
+                        "existing_source_hash": existing_release.source_hash,
+                        "incoming_source_hash": upload.source_hash,
+                    },
+                )
+            return existing_release
+    existing_source = db.scalar(select(CatalogSnapshot).where(CatalogSnapshot.source_hash == upload.source_hash))
+    if existing_source:
+        return existing_source
     normalized_payload, auto_artifact_manifest = scrub_large_artifacts(upload.payload)
     artifact_manifest = {**upload.artifact_manifest, **auto_artifact_manifest}
     object_counts = upload.object_counts or compute_object_counts(normalized_payload)
@@ -241,6 +253,14 @@ def activate_snapshot(snapshot_id: str, db: Session = Depends(get_db)):
     snapshot = db.get(CatalogSnapshot, snapshot_id)
     if not snapshot:
         raise HTTPException(404, "Snapshot not found")
+    current_status = normalized_snapshot_status(snapshot.import_status)
+    if current_status == PUBLISHED_STATUS:
+        return snapshot
+    if PUBLISHED_STATUS not in SNAPSHOT_TRANSITIONS.get(current_status, set()):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot change snapshot status from {current_status} to {PUBLISHED_STATUS}",
+        )
     snapshot.import_status = PUBLISHED_STATUS
     db.commit()
     db.refresh(snapshot)

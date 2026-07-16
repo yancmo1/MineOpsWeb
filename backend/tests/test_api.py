@@ -65,12 +65,22 @@ def test_catalog_upload_persists_linked_provenance_and_validation():
             "/api/v1/ingestion/uploads",
             json={
                 **upload,
-                "source_hash": f"hash-capture-b-{suffix}",
                 "payload": {"managers": [{"id": "alt"}]},
             },
         )
         assert duplicate.status_code == 200
         assert duplicate.json()["id"] == body["id"]
+
+        conflict = client.post(
+            "/api/v1/ingestion/uploads",
+            json={
+                **upload,
+                "source_hash": f"hash-capture-b-{suffix}",
+                "payload": {"managers": [{"id": "alt"}]},
+            },
+        )
+        assert conflict.status_code == 409
+        assert conflict.json()["detail"]["code"] == "RELEASE_ID_HASH_CONFLICT"
 
     with SessionLocal() as db:
         snapshot = db.get(CatalogSnapshot, body["id"])
@@ -134,6 +144,9 @@ def test_snapshot_status_updates_do_not_mutate_raw_evidence():
         assert create_response.status_code == 200
         body = create_response.json()
 
+        premature_activate = client.post(f"/api/v1/catalog/snapshots/{body['id']}/activate")
+        assert premature_activate.status_code == 409
+
         reviewed = client.post(
             f"/api/v1/catalog/snapshots/{body['id']}/status",
             json={"import_status": "reviewed"},
@@ -141,7 +154,9 @@ def test_snapshot_status_updates_do_not_mutate_raw_evidence():
         assert reviewed.status_code == 200
         assert reviewed.json()["import_status"] == "reviewed"
 
-        published = client.post(f"/api/v1/catalog/snapshots/{body['id']}/activate")
+        published = client.post(
+            f"/api/v1/catalog/snapshots/{body['id']}/activate"
+        )
         assert published.status_code == 200
         assert published.json()["import_status"] == "published"
 
@@ -150,6 +165,37 @@ def test_snapshot_status_updates_do_not_mutate_raw_evidence():
             json={"import_status": "reviewed"},
         )
         assert invalid.status_code == 409
+
+        direct_status_publish = client.post(
+            f"/api/v1/catalog/snapshots/{body['id']}/status",
+            json={"import_status": "published"},
+        )
+        assert direct_status_publish.status_code == 422
+
+        superseded = client.post(
+            f"/api/v1/catalog/snapshots/{body['id']}/status",
+            json={"import_status": "superseded"},
+        )
+        assert superseded.status_code == 200
+        assert superseded.json()["import_status"] == "superseded"
+
+        republish = client.post(f"/api/v1/catalog/snapshots/{body['id']}/activate")
+        assert republish.status_code == 409
+
+        premature_publish = client.post(
+            "/api/v1/ingestion/uploads",
+            json={
+                "source_type": "emulator-capture",
+                "source_hash": f"hash-capture-direct-publish-{suffix}",
+                "release_id": f"release-direct-publish-{suffix}",
+                "validation_summary": {"accepted": True, "errors": ["boom"]},
+                "payload": {"managers": [{"id": "nova"}]},
+            },
+        )
+        assert premature_publish.status_code == 200
+        direct_body = premature_publish.json()
+        assert direct_body["import_status"] == "staged"
+        assert direct_body["validation_summary"]["accepted"] is False
 
     with SessionLocal() as db:
         raw_import = db.get(CatalogRawImport, body["raw_import_id"])
@@ -164,4 +210,4 @@ def test_snapshot_status_updates_do_not_mutate_raw_evidence():
         with pytest.raises(ValueError):
             db.commit()
         db.rollback()
-        assert snapshot.import_status == "published"
+        assert snapshot.import_status == "superseded"

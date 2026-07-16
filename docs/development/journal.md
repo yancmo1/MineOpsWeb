@@ -16,4 +16,5 @@
 
 - Added additive catalog-ingestion persistence for immutable `catalog_raw_imports` and `catalog_validation_runs`, plus stable `release_id`, `raw_import_id`, and `validation_run_id` links on `catalog_snapshots`.
 - Uploads now persist capture schema and engine versions, configuration hash, input hashes, object counts, payload size, validation summary, and manifest-only evidence for large artifact fields instead of inline APK blobs.
+- Follow-up review changes now reject `release_id` reuse when the incoming `source_hash` differs, derive validation acceptance server-side from the recorded error list, and constrain snapshot state changes to the reviewed/publish/superseded workflow.
 - The backend applies this as an additive startup migration for existing databases and backfills missing provenance links for older snapshots. Backup before rollout with `sqlite3 backend/mineops.db ".backup mineops-pre-provenance.db"` (or `pg_dump` in PostgreSQL); rollback by restoring that backup and removing the new `catalog_raw_imports`, `catalog_validation_runs`, and additive snapshot-link columns from the target environment.
