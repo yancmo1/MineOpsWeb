@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.core.config import get_settings
+from app.db.schema import ensure_additive_schema
 from app.db.session import Base, engine
 import app.models.core  # noqa: F401
 
@@ -10,6 +11,7 @@ import app.models.core  # noqa: F401
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_additive_schema()
     yield
 
 

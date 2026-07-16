@@ -1,0 +1,92 @@
+import json
+from sqlalchemy import inspect, or_, select
+from app.db.session import SessionLocal, engine
+from app.models.core import CatalogRawImport, CatalogSnapshot, CatalogValidationRun
+
+CATALOG_SNAPSHOT_COLUMNS = {
+    "release_id": "VARCHAR(128)",
+    "raw_import_id": "VARCHAR(36)",
+    "validation_run_id": "VARCHAR(36)",
+}
+
+CATALOG_SNAPSHOT_INDEXES = (
+    "CREATE UNIQUE INDEX IF NOT EXISTS ix_catalog_snapshots_release_id ON catalog_snapshots (release_id)",
+    "CREATE INDEX IF NOT EXISTS ix_catalog_snapshots_raw_import_id ON catalog_snapshots (raw_import_id)",
+    "CREATE INDEX IF NOT EXISTS ix_catalog_snapshots_validation_run_id ON catalog_snapshots (validation_run_id)",
+)
+
+
+def _json_size(value: dict) -> int:
+    return len(json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+
+
+def ensure_additive_schema() -> None:
+    inspector = inspect(engine)
+    if "catalog_snapshots" not in inspector.get_table_names():
+        return
+    existing_columns = {column["name"] for column in inspector.get_columns("catalog_snapshots")}
+    with engine.begin() as connection:
+        for column_name, definition in CATALOG_SNAPSHOT_COLUMNS.items():
+            if column_name not in existing_columns:
+                connection.exec_driver_sql(
+                    f"ALTER TABLE catalog_snapshots ADD COLUMN {column_name} {definition}"
+                )
+        for statement in CATALOG_SNAPSHOT_INDEXES:
+            connection.exec_driver_sql(statement)
+    backfill_catalog_evidence()
+
+
+def backfill_catalog_evidence() -> None:
+    with SessionLocal() as db:
+        snapshots = db.scalars(
+            select(CatalogSnapshot).where(
+                or_(
+                    CatalogSnapshot.raw_import_id.is_(None),
+                    CatalogSnapshot.validation_run_id.is_(None),
+                )
+            )
+        ).all()
+        if not snapshots:
+            return
+        for snapshot in snapshots:
+            payload = snapshot.payload or {}
+            record_counts = snapshot.record_counts or {}
+            validation_summary = snapshot.validation_summary or {
+                "accepted": True,
+                "object_counts": record_counts,
+            }
+            if not snapshot.raw_import_id:
+                raw_import = CatalogRawImport(
+                    release_id=snapshot.release_id,
+                    source_type=snapshot.source_type,
+                    source_version=snapshot.source_version,
+                    source_hash=snapshot.source_hash,
+                    game_version=snapshot.game_version,
+                    configuration_hash=snapshot.source_hash,
+                    input_hashes={"capture_payload": snapshot.source_hash},
+                    object_counts=record_counts,
+                    payload_size_bytes=_json_size(payload),
+                    payload_manifest={
+                        "inline_payload": {
+                            "bytes": _json_size(payload),
+                            "sha256": snapshot.source_hash,
+                            "storage": "inline",
+                        }
+                    },
+                    raw_metadata={"backfilled_from_snapshot_id": snapshot.id},
+                    captured_at=snapshot.created_at,
+                )
+                db.add(raw_import)
+                db.flush()
+                snapshot.raw_import_id = raw_import.id
+            if not snapshot.validation_run_id:
+                validation_run = CatalogValidationRun(
+                    raw_import_id=snapshot.raw_import_id or "",
+                    snapshot_id=snapshot.id,
+                    accepted=bool(validation_summary.get("accepted", True)),
+                    summary=validation_summary,
+                )
+                db.add(validation_run)
+                db.flush()
+                snapshot.validation_run_id = validation_run.id
+        db.commit()
