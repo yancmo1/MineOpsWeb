@@ -16,8 +16,6 @@ logs:
 build:
 	docker compose build
 test:
-	cd backend && python -m pytest
 	cd frontend && npm test
 lint:
-	cd backend && ruff check .
 	cd frontend && npm run lint

@@ -8,7 +8,7 @@ interface OverviewPageProps {
   syncStatus: "never" | "current" | "stale" | "offline";
 }
 
-export function OverviewPage({
+export function TodayPage({
   catalog,
   progress,
   lastSyncAt,
@@ -78,8 +78,8 @@ export function OverviewPage({
 
   return (
     <div className="overview-page">
-      {/* Best Next Move */}
-      <section className="card-container">
+      {/* Best Next Move - Full Width */}
+      <section className="card-container best-next-move-full">
         <h2 className="card-title">Best Next Move</h2>
         {opportunities.length > 0 ? (
           <div className="best-move-card">
@@ -130,54 +130,57 @@ export function OverviewPage({
         )}
       </section>
 
-      {/* Empire Snapshot */}
-      <section className="card-container">
-        <h2 className="card-title">Empire Snapshot</h2>
-        <div className="metrics">
-          <div className="metric-card">
-            <strong>{unlocked.length}</strong>
-            <span>Owned Managers</span>
-          </div>
-          <div className="metric-card">
-            <strong>{opportunities.length}</strong>
-            <span>Rank-ups Ready</span>
-          </div>
-          <div className="metric-card">
-            <strong>{areasCount}</strong>
-            <span>Areas Covered</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Roster Leaders */}
-      {hasCoverage && (
+      {/* Intelligence Hub - 2 Column Grid */}
+      <div className="intelligence-hub">
+        {/* Empire Snapshot */}
         <section className="card-container">
-          <h2 className="card-title">Roster Leaders</h2>
-          <div style={{ display: "grid", gap: "0.75rem" }}>
-            {strongest.map((item) =>
-              item ? (
-                <div key={item.managerId} style={{ marginBottom: "0.75rem" }}>
-                  <p style={{ margin: 0, fontSize: "0.875rem" }}>
-                    <strong style={{ color: "var(--accent-cyan)" }}>
-                      {item.catalog.type}
-                    </strong>
-                    {" · "}
-                    {item.catalog.name}
-                    <span className="muted">
-                      {" · "}
-                      Level {item.level}
-                      {" · "}
-                      Rank {item.rank}
-                    </span>
-                  </p>
-                </div>
-              ) : null,
-            )}
+          <h2 className="card-title">Empire Snapshot</h2>
+          <div className="metrics">
+            <div className="metric-card">
+              <strong>{unlocked.length}</strong>
+              <span>Owned Managers</span>
+            </div>
+            <div className="metric-card">
+              <strong>{opportunities.length}</strong>
+              <span>Rank-ups Ready</span>
+            </div>
+            <div className="metric-card">
+              <strong>{areasCount}</strong>
+              <span>Areas Covered</span>
+            </div>
           </div>
         </section>
-      )}
 
-      {/* Mine Intelligence */}
+        {/* Roster Leaders */}
+        {hasCoverage && (
+          <section className="card-container">
+            <h2 className="card-title">Roster Leaders</h2>
+            <div style={{ display: "grid", gap: "0.75rem" }}>
+              {strongest.map((item) =>
+                item ? (
+                  <div key={item.managerId} style={{ marginBottom: "0.75rem" }}>
+                    <p style={{ margin: 0, fontSize: "0.875rem" }}>
+                      <strong style={{ color: "var(--accent-cyan)" }}>
+                        {item.catalog.type}
+                      </strong>
+                      {" · "}
+                      {item.catalog.name}
+                      <span className="muted">
+                        {" · "}
+                        Level {item.level}
+                        {" · "}
+                        Rank {item.rank}
+                      </span>
+                    </p>
+                  </div>
+                ) : null,
+              )}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* Mine Intelligence - Full Width */}
       <section className="card-container">
         <h2 className="card-title">Mine Intelligence</h2>
         <p className="muted" style={{ marginBottom: 0 }}>
@@ -188,13 +191,6 @@ export function OverviewPage({
           Manager recommendations currently use deterministic imported player data.
         </p>
       </section>
-
-      {/* Sync Status Footer */}
-      <div style={{ paddingTop: "1rem", marginTop: "1rem", borderTop: "1px solid var(--border-color)" }}>
-        <p className="muted" style={{ fontSize: "0.85rem", margin: 0 }}>
-          {freshness}
-        </p>
-      </div>
     </div>
   );
 }

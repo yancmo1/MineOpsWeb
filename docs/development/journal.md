@@ -28,3 +28,17 @@
 - Added local-only Kolibri fields (ID/debug string, auth token, save-game key) under More → Kolibri sync, with `.env.example` support.
 - Added Vite proxies and browser decoding for the iOS-compatible Capsule request and `U58U`/base64/gzip response format.
 - Valid synced manager rows now replace cached player progress automatically in local development; diagnostics report payload format and unmatched catalog IDs.
+
+## 2026-07-15 — V3 PRD reconciliation: FastAPI removal, navigation consolidation
+
+- Tagged current prototype state `prototype-before-parity-reset`
+- Created `docs/V3_CURRENT_STATE_RECONCILIATION.md` — assesses current state against V3 PRD
+- Removed `backend/` (FastAPI/PostgreSQL) — PocketBase is the approved backend
+- Removed `frontend/src/api/` (FastAPI client), `MinesPage.tsx`, `ResourcesPage.tsx` (placeholder pages)
+- Consolidated navigation from 6 tabs → 4 tabs as per iOS parity: **Today**, **Managers**, **Strategy**, **More**
+- Renamed `OverviewPage` → `TodayPage` with `TodayPage` component
+- Updated Docker Compose (already PB-only, no changes needed)
+- Updated `Makefile` — removed `backend` test/lint targets
+- Updated `NavigationIcon.tsx` — removed mines/resources icon cases
+- Updated `App.tsx` — removed dead imports/routes, unified header title via `getTabLabel()`
+- All navigation items now visible on mobile (Strategy was previously hidden on mobile)

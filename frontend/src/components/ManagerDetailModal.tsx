@@ -1,6 +1,6 @@
 import { CatalogManager, PlayerManager } from "../lib/db";
 import { spriteURL } from "../lib/sprites";
-import { cleanDescription } from "../lib/textNormalization";
+import { interpolateAbilityDescription, formatTime } from "../lib/textNormalization";
 
 interface ManagerDetailModalProps {
   manager: CatalogManager;
@@ -84,7 +84,12 @@ export function ManagerDetailModal({
         <section className="detail-section">
           <h3 className="detail-section-title">Active Ability</h3>
           <p className="detail-ability-description">
-            {cleanDescription(manager.active?.description) || "No active ability description"}
+            {interpolateAbilityDescription(
+              manager.active?.description,
+              manager.active?.multiplier,
+              manager.active?.cooldown,
+              manager.active?.duration
+            )}
           </p>
           <div className="detail-ability-stats">
             <div className="detail-ability-stat">
@@ -95,13 +100,13 @@ export function ManagerDetailModal({
             </div>
             <div className="detail-ability-stat">
               <div className="detail-ability-stat-value">
-                {manager.active?.cooldown || "—"}
+                {formatTime(manager.active?.cooldown)}
               </div>
               <div className="detail-ability-stat-label">Cooldown</div>
             </div>
             <div className="detail-ability-stat">
               <div className="detail-ability-stat-value">
-                {manager.active?.duration || "—"}
+                {formatTime(manager.active?.duration)}
               </div>
               <div className="detail-ability-stat-label">Duration</div>
             </div>

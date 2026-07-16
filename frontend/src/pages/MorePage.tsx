@@ -1,6 +1,13 @@
-import { SyncMetadata } from "../lib/db";
-import { KolibriCredentials, KolibriDiagnostics } from "../lib/kolibri";
-import { cleanDescription } from "../lib/textNormalization";
+import { type SyncMetadata, type AppSettings, saveSettings } from "../lib/db";
+import { type KolibriCredentials, type KolibriDiagnostics } from "../lib/kolibri";
+import {
+  getAuthStatus,
+  signIn,
+  signOut,
+  getBaseUrl,
+  type AuthStatus,
+} from "../lib/pocketbase";
+import { useState } from "react";
 
 interface MorePageProps {
   credentials: KolibriCredentials;
@@ -10,6 +17,11 @@ interface MorePageProps {
   diagnostics: KolibriDiagnostics | null;
   metadata: SyncMetadata;
   catalogCount: number;
+  settings: AppSettings;
+  onSettingsChange: (s: AppSettings) => void;
+  authStatus: AuthStatus;
+  onAuthChange: () => void;
+  onOpenSnapshotHistory: () => void;
 }
 
 export function MorePage({
@@ -20,29 +32,197 @@ export function MorePage({
   diagnostics,
   metadata,
   catalogCount,
+  settings,
+  onSettingsChange,
+  authStatus,
+  onAuthChange,
+  onOpenSnapshotHistory,
 }: MorePageProps) {
+  const [pbEmail, setPbEmail] = useState("");
+  const [pbPassword, setPbPassword] = useState("");
+  const [pbError, setPbError] = useState<string | null>(null);
+  const [pbBusy, setPbBusy] = useState(false);
+
+  async function handlePbSignIn() {
+    setPbBusy(true);
+    setPbError(null);
+    try {
+      await signIn(pbEmail, pbPassword);
+      setPbEmail("");
+      setPbPassword("");
+      onAuthChange();
+    } catch (err) {
+      setPbError(err instanceof Error ? err.message : "Sign in failed");
+    } finally {
+      setPbBusy(false);
+    }
+  }
+
+  async function handlePbSignOut() {
+    signOut();
+    onAuthChange();
+  }
+
+  async function handleAutoSyncToggle() {
+    const newSettings = { ...settings, autoSync: !settings.autoSync };
+    onSettingsChange(newSettings);
+    await saveSettings(newSettings);
+  }
   return (
     <div className="more-page">
+      {/* PocketBase Account Section */}
+      <section className="card-container">
+        <h2 className="card-title">PocketBase Account</h2>
+        <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
+          Server: {getBaseUrl()}
+        </p>
+        {authStatus.authenticated ? (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.75rem",
+                background: "rgba(52, 199, 89, 0.1)",
+                borderRadius: "0.5rem",
+                marginBottom: "0.75rem",
+              }}
+            >
+              <span style={{ color: "#34c759", fontSize: "1.2rem" }}>✓</span>
+              <div>
+                <div style={{ fontWeight: 600 }}>{authStatus.email}</div>
+                <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                  Signed in
+                </div>
+              </div>
+            </div>
+            <button onClick={handlePbSignOut} style={{ width: "100%" }}>
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                marginBottom: "0.75rem",
+              }}
+            >
+              <span style={{ color: "var(--text-secondary)", fontSize: "1.2rem" }}>○</span>
+              <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+                Not signed in — data is stored locally only
+              </span>
+            </div>
+            <label style={{ display: "grid", gap: "0.25rem", marginBottom: "0.75rem" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Email</span>
+              <input
+                type="email"
+                value={pbEmail}
+                onChange={(e) => setPbEmail(e.target.value)}
+                placeholder="admin@mineops.yancmo.xyz"
+              />
+            </label>
+            <label style={{ display: "grid", gap: "0.25rem", marginBottom: "0.75rem" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Password</span>
+              <input
+                type="password"
+                value={pbPassword}
+                onChange={(e) => setPbPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </label>
+            {pbError && (
+              <p
+                style={{
+                  color: "var(--accent-orange)",
+                  fontSize: "0.8rem",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                {pbError}
+              </p>
+            )}
+            <button
+              onClick={handlePbSignIn}
+              disabled={pbBusy || !pbEmail || !pbPassword}
+              style={{ width: "100%" }}
+            >
+              {pbBusy ? "Signing in…" : "Sign In"}
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* Sync Settings Section */}
+      <section className="card-container">
+        <h2 className="card-title">Sync Settings</h2>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            cursor: "pointer",
+            padding: "0.5rem",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={settings.autoSync}
+            onChange={handleAutoSyncToggle}
+            style={{ width: "1.25rem", height: "1.25rem", cursor: "pointer" }}
+          />
+          <div>
+            <div style={{ fontWeight: 600 }}>Auto-sync on launch</div>
+            <div
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--text-secondary)",
+                marginTop: "0.25rem",
+              }}
+            >
+              Automatically sync with Kolibri when app loads (requires saved credentials)
+            </div>
+          </div>
+        </label>
+      </section>
+
       {/* Kolibri Sync Section */}
       <section className="card-container">
         <h2 className="card-title">Kolibri Sync</h2>
-        
+
         {/* Sync Status */}
-        <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "var(--bg-secondary)", borderRadius: "0.5rem" }}>
+        <div
+          style={{
+            marginBottom: "1rem",
+            padding: "0.75rem",
+            backgroundColor: "var(--bg-secondary)",
+            borderRadius: "0.5rem",
+          }}
+        >
           <p className="muted" style={{ margin: 0, fontSize: "0.875rem" }}>
             <strong>Last sync:</strong>{" "}
             {metadata.lastSuccessfulSyncAt
               ? new Date(metadata.lastSuccessfulSyncAt).toLocaleString()
               : "Never"}
           </p>
-          {metadata.lastAttemptAt && metadata.lastAttemptAt !== metadata.lastSuccessfulSyncAt && (
-            <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-              <strong>Last attempt:</strong>{" "}
-              {new Date(metadata.lastAttemptAt).toLocaleString()}
-            </p>
-          )}
+          {metadata.lastAttemptAt &&
+            metadata.lastAttemptAt !== metadata.lastSuccessfulSyncAt && (
+              <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
+                <strong>Last attempt:</strong>{" "}
+                {new Date(metadata.lastAttemptAt).toLocaleString()}
+              </p>
+            )}
           {metadata.error && (
-            <p style={{ margin: "0.25rem 0 0", fontSize: "0.875rem", color: "var(--accent-orange)" }}>
+            <p
+              style={{
+                margin: "0.25rem 0 0",
+                fontSize: "0.875rem",
+                color: "var(--accent-orange)",
+              }}
+            >
               <strong>Error:</strong> {metadata.error}
             </p>
           )}
@@ -102,11 +282,25 @@ export function MorePage({
 
         {/* Diagnostics */}
         {diagnostics && (
-          <p className="muted" style={{ marginTop: "1rem", marginBottom: 0, fontSize: "0.875rem" }}>
+          <p
+            className="muted"
+            style={{ marginTop: "1rem", marginBottom: 0, fontSize: "0.875rem" }}
+          >
             {diagnostics.managerCount} managers received · {diagnostics.payloadFormat} ·{" "}
             {diagnostics.unknownManagerCount} unmatched catalog IDs
           </p>
         )}
+      </section>
+
+      {/* Snapshot History */}
+      <section className="card-container">
+        <h2 className="card-title">Snapshot History</h2>
+        <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
+          Review changes between Kolibri syncs and restore previous game states.
+        </p>
+        <button onClick={onOpenSnapshotHistory} style={{ width: "100%" }}>
+          View Snapshots
+        </button>
       </section>
 
       {/* About Section */}

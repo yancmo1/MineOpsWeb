@@ -3,11 +3,13 @@ import Dexie, { type EntityTable } from "dexie";
 export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; duration?: string; cooldown?: string }; passives?: Array<{ unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number }> };
 export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; unlocked: boolean; updatedAt: string };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
+export type AppSettings = { autoSync: boolean };
 
 class MineOpsDb extends Dexie {
   progress!: EntityTable<PlayerManager, "managerId">;
   metadata!: EntityTable<{ id: "sync"; value: SyncMetadata }, "id">;
-  constructor() { super("mineops"); this.version(2).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id" }); }
+  settings!: EntityTable<{ id: "app"; value: AppSettings }, "id">;
+  constructor() { super("mineops"); this.version(3).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id", settings: "id" }); }
 }
 export const db = new MineOpsDb();
 
@@ -19,6 +21,8 @@ export async function loadProgress(catalog: CatalogManager[]): Promise<PlayerMan
 export async function saveProgress(progress: PlayerManager[]): Promise<void> { await db.progress.bulkPut(progress); }
 export async function getSyncMetadata(): Promise<SyncMetadata> { return (await db.metadata.get("sync"))?.value ?? { status: "never" }; }
 export async function setSyncMetadata(value: SyncMetadata): Promise<void> { await db.metadata.put({ id: "sync", value }); }
+export async function getSettings(): Promise<AppSettings> { return (await db.settings.get("app"))?.value ?? { autoSync: false }; }
+export async function saveSettings(value: AppSettings): Promise<void> { await db.settings.put({ id: "app", value }); }
 
 export function strengthScore(manager: CatalogManager, progress: PlayerManager): number {
   const rarity = { legendary: 25, epic: 18, rare: 12, common: 6 }[manager.rarity.toLowerCase()] ?? 0;

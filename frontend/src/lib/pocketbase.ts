@@ -1,0 +1,290 @@
+/**
+ * PocketBase client for MineOps.
+ *
+ * Supports environment-based switching:
+ *   VITE_POCKETBASE_URL  – base URL (defaults to localhost:8090)
+ *
+ * The client is a singleton that lazily initializes. Call `getClient()` to
+ * obtain the instance after first use.
+ *
+ * Auth flow:
+ *   1. On app launch, call `restoreAuth()` which checks for a stored token.
+ *   2. If no valid session exists, the app runs in local-only mode.
+ *   3. Sign-in/out is managed in More -> PocketBase Account.
+ *   4. Future: auto sign-in using stored credentials via pb.authStore.
+ */
+
+import PocketBase from "pocketbase";
+import type { RecordModel } from "pocketbase";
+
+const PB_URL = import.meta.env.VITE_POCKETBASE_URL ?? "http://localhost:8090";
+
+let _client: PocketBase | null = null;
+
+export function getClient(): PocketBase {
+  if (!_client) {
+    _client = new PocketBase(PB_URL);
+  }
+  return _client;
+}
+
+export function getBaseUrl(): string {
+  return PB_URL;
+}
+
+// ---------------------------------------------------------------------------
+// Auth helpers
+// ---------------------------------------------------------------------------
+
+export type AuthStatus =
+  | { authenticated: false }
+  | { authenticated: true; email: string; id: string };
+
+export function getAuthStatus(): AuthStatus {
+  const pb = getClient();
+  const store = pb.authStore;
+  if (store.isValid && store.record) {
+    return {
+      authenticated: true,
+      email: (store.record as RecordModel).email as string,
+      id: store.record.id,
+    };
+  }
+  return { authenticated: false };
+}
+
+export async function signIn(email: string, password: string): Promise<void> {
+  const pb = getClient();
+  await pb.collection("users").authWithPassword(email, password);
+}
+
+export function signOut(): void {
+  getClient().authStore.clear();
+}
+
+export function restoreAuth(): void {
+  const pb = getClient();
+  if (pb.authStore.isValid) {
+    pb.collection("users").authRefresh().catch(() => {
+      pb.authStore.clear();
+    });
+  }
+}
+
+/** Subscribe to auth store changes. Returns unsubscribe function. */
+export function onAuthChange(cb: (status: AuthStatus) => void): () => void {
+  const pb = getClient();
+  const handler = () => {
+    cb(getAuthStatus());
+  };
+  const unsubscribe = pb.authStore.onChange(handler);
+  // Fire once immediately
+  handler();
+  return unsubscribe;
+}
+
+// ---------------------------------------------------------------------------
+// Player Snapshot: full-state versioned snapshot after each Kolibri sync
+// ---------------------------------------------------------------------------
+
+export interface PlayerSnapshotPayload {
+  /** ISO timestamp of when this snapshot was captured locally */
+  capturedAt: string;
+  /** JSON-serialized PlayerManager[] */
+  progress: string;
+  /** SyncMetadata at time of capture */
+  metadata: string;
+  /** Catalog version hash or identifier */
+  catalogVersion?: string;
+}
+
+export interface PlayerSnapshotRecord extends RecordModel {
+  owner: string;
+  capturedAt: string;
+  progress: string;
+  metadata: string;
+  catalogVersion: string;
+  active: boolean;
+}
+
+/**
+ * Push a new player snapshot to PocketBase.
+ * Marks previous active snapshots as inactive.
+ */
+export async function pushPlayerSnapshot(
+  payload: PlayerSnapshotPayload,
+): Promise<PlayerSnapshotRecord> {
+  const pb = getClient();
+  if (!pb.authStore.isValid || !pb.authStore.record) {
+    throw new Error("Not authenticated");
+  }
+
+  // Mark all previous snapshots as inactive
+  const previous = await pb
+    .collection("player_snapshots")
+    .getFullList<PlayerSnapshotRecord>({
+      filter: `owner = "${pb.authStore.record.id}" && active = true`,
+    });
+  for (const snap of previous) {
+    await pb.collection("player_snapshots").update(snap.id, { active: false });
+  }
+
+  const record = await pb
+    .collection("player_snapshots")
+    .create<PlayerSnapshotRecord>({
+      owner: pb.authStore.record.id,
+      capturedAt: payload.capturedAt,
+      progress: payload.progress,
+      metadata: payload.metadata,
+      catalogVersion: payload.catalogVersion ?? "",
+      active: true,
+    });
+
+  return record;
+}
+
+/**
+ * Pull the latest active player snapshot from PocketBase.
+ * Returns null if no snapshot exists.
+ */
+export async function pullLatestSnapshot(): Promise<PlayerSnapshotRecord | null> {
+  const pb = getClient();
+  if (!pb.authStore.isValid || !pb.authStore.record) {
+    throw new Error("Not authenticated");
+  }
+
+  const results = await pb
+    .collection("player_snapshots")
+    .getList<PlayerSnapshotRecord>(1, 1, {
+      filter: `owner = "${pb.authStore.record.id}" && active = true`,
+      sort: "-created",
+    });
+
+  return results.items[0] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Workspace Records: per-manager progress records for granular sync
+// ---------------------------------------------------------------------------
+
+export interface WorkspaceRecordPayload {
+  recordType: string;
+  recordKey: string;
+  payload: string;
+  revision: number;
+  updatedAt: string;
+}
+
+export interface WorkspaceRecord extends RecordModel {
+  owner: string;
+  recordType: string;
+  recordKey: string;
+  payload: string;
+  revision: number;
+}
+
+/**
+ * Upsert a single workspace record (per-manager progress).
+ * Uses recordKey as unique identifier; updates if exists, creates if not.
+ */
+export async function upsertWorkspaceRecord(
+  data: WorkspaceRecordPayload,
+): Promise<WorkspaceRecord> {
+  const pb = getClient();
+  if (!pb.authStore.isValid || !pb.authStore.record) {
+    throw new Error("Not authenticated");
+  }
+
+  // Check if record already exists
+  const existing = await pb
+    .collection("workspace_records")
+    .getList<WorkspaceRecord>(1, 1, {
+      filter: `owner = "${pb.authStore.record.id}" && recordType = "${data.recordType}" && recordKey = "${data.recordKey}"`,
+    });
+
+  if (existing.items.length > 0) {
+    const record = existing.items[0];
+    // Only update if incoming revision is newer
+    if (data.revision <= record.revision) return record;
+    return await pb
+      .collection("workspace_records")
+      .update<WorkspaceRecord>(record.id, {
+        payload: data.payload,
+        revision: data.revision,
+      });
+  }
+
+  return await pb
+    .collection("workspace_records")
+    .create<WorkspaceRecord>({
+      owner: pb.authStore.record.id,
+      recordType: data.recordType,
+      recordKey: data.recordKey,
+      payload: data.payload,
+      revision: data.revision,
+    });
+}
+
+/**
+ * Pull all workspace records of a given type for the current user.
+ */
+export async function pullWorkspaceRecords(
+  recordType: string,
+): Promise<WorkspaceRecord[]> {
+  const pb = getClient();
+  if (!pb.authStore.isValid || !pb.authStore.record) {
+    throw new Error("Not authenticated");
+  }
+
+  return await pb
+    .collection("workspace_records")
+    .getFullList<WorkspaceRecord>({
+      filter: `owner = "${pb.authStore.record.id}" && recordType = "${recordType}"`,
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Sync helpers
+// ---------------------------------------------------------------------------
+
+export interface PendingSyncEvent {
+  status: "pending" | "syncing" | "completed" | "failed";
+  source: string;
+  summary?: string;
+  error?: string;
+}
+
+export async function recordSyncEvent(event: PendingSyncEvent): Promise<void> {
+  const pb = getClient();
+  if (!pb.authStore.isValid) return;
+  try {
+    await pb.collection("sync_events").create({
+      owner: pb.authStore.record!.id,
+      status: event.status,
+      source: event.source,
+      summary: event.summary,
+    });
+  } catch {
+    // Silently fail if PB is unreachable - local data remains usable
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Verification
+// ---------------------------------------------------------------------------
+
+export async function checkHealth(): Promise<{
+  ok: boolean;
+  message: string;
+}> {
+  try {
+    const pb = getClient();
+    const health = await pb.health.check();
+    return { ok: true, message: JSON.stringify(health) };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}

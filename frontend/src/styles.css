@@ -40,20 +40,23 @@ body {
 
 /* Main Layout */
 main {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   padding: 1rem;
   padding-bottom: calc(80px + env(safe-area-inset-bottom));
   min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Header */
 header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  padding: 0.5rem 0;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 0;
+  gap: 1rem;
 }
 
 header > div {
@@ -65,15 +68,59 @@ header > div {
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--accent-cyan);
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.1rem 0;
   text-transform: uppercase;
 }
 
 h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.header-sync-status {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin: 0.25rem 0 0 0;
+  display: none;
+}
+
+/* Compact Sync Button */
+.sync-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--mine-light);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.sync-button:hover {
+  background: var(--mine-card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.sync-button:disabled {
+  opacity: 0.6;
+}
+
+.sync-button svg {
+  flex-shrink: 0;
+}
+
+.sync-button-text {
+  display: none;
+}
+
+@media (min-width: 500px) {
+  .sync-button-text {
+    display: inline;
+  }
 }
 
 h2 {
@@ -88,13 +135,6 @@ h3 {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-/* Status */
-.status {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-bottom: 1rem;
 }
 
 .muted {
@@ -159,6 +199,14 @@ button.secondary {
   margin: 0 0 1rem 0;
 }
 
+/* Best Move Card */
+.best-move-card {
+  padding: 1rem;
+  background: rgba(0, 160, 185, 0.05);
+  border: 1px solid rgba(0, 160, 185, 0.15);
+  border-radius: 12px;
+}
+
 /* Metrics Grid */
 .metrics {
   display: grid;
@@ -172,6 +220,11 @@ button.secondary {
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  background: rgba(0, 160, 185, 0.08);
 }
 
 .metric-card strong {
@@ -287,96 +340,97 @@ input::placeholder {
 /* Manager Grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 0.875rem;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
 }
 
 /* iOS-Style Manager Card */
 .manager-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  border: 1px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 2px solid transparent;
   text-align: left;
   padding: 0;
   position: relative;
 }
 
 .manager-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .manager-card.legendary {
-  border-color: rgba(255, 215, 0, 0.3);
+  border-color: var(--rarity-legendary);
 }
 
 .manager-card.epic {
-  border-color: rgba(157, 94, 255, 0.3);
+  border-color: var(--rarity-epic);
 }
 
 .manager-card.rare {
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: var(--rarity-rare);
+}
+
+.manager-card.common {
+  border-color: rgba(156, 163, 175, 0.3);
 }
 
 .manager-sprite-area {
-  height: 110px;
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  background: var(--mine-light);
 }
 
 .manager-sprite-area.legendary {
-  background: rgba(255, 215, 0, 0.15);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.35), rgba(255, 215, 0, 0.08));
 }
 
 .manager-sprite-area.epic {
-  background: rgba(157, 94, 255, 0.15);
+  background: linear-gradient(135deg, rgba(157, 94, 255, 0.3), rgba(157, 94, 255, 0.06));
 }
 
 .manager-sprite-area.rare {
-  background: rgba(59, 130, 246, 0.15);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.05));
 }
 
 .manager-sprite-area.common {
-  background: rgba(156, 163, 175, 0.15);
+  background: linear-gradient(135deg, rgba(156, 163, 175, 0.2), rgba(156, 163, 175, 0.05));
 }
 
 .manager-sprite-area.locked {
-  background: var(--mine-light);
+  background: linear-gradient(135deg, rgba(200, 200, 205, 0.15), rgba(200, 200, 205, 0.05));
   opacity: 0.6;
 }
 
 .manager-sprite {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
 }
 
 .lock-icon {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 16px;
-  height: 16px;
+  top: 0.375rem;
+  right: 0.375rem;
+  width: 14px;
+  height: 14px;
   opacity: 0.5;
 }
 
 .manager-card-info {
-  padding: 0.75rem;
-  background: var(--mine-light);
-  background: rgba(228, 232, 238, 0.5);
+  padding: 0.5rem 0.625rem;
 }
 
 .manager-card h2 {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.125rem 0;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -387,21 +441,21 @@ input::placeholder {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.25rem;
 }
 
 .manager-card p {
-  font-size: 0.6875rem;
+  font-size: 0.65rem;
   margin: 0;
   color: var(--text-secondary);
 }
 
 .rarity {
   display: inline-block;
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: 0.6rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 .rarity.legendary {
@@ -421,29 +475,32 @@ input::placeholder {
 }
 
 .area-badge {
-  font-size: 0.6875rem;
+  font-size: 0.6rem;
   font-weight: 700;
   color: var(--accent-cyan);
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  background: rgba(0, 160, 185, 0.08);
 }
 
 .manager-card-stats {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.375rem;
   flex-wrap: wrap;
-  font-size: 0.6875rem;
-  color: var(--text-secondary);
-  margin-top: 0.375rem;
+  font-size: 0.625rem;
+  color: var(--text-tertiary);
+  margin-top: 0.25rem;
 }
 
 .ready-badge {
   display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.625rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 10px;
+  font-size: 0.575rem;
   font-weight: 700;
   background: rgba(52, 199, 89, 0.2);
   color: var(--status-success);
-  margin-top: 0.375rem;
+  margin-top: 0.25rem;
 }
 
 /* Navigation */
@@ -479,6 +536,15 @@ nav button {
   transition: color 0.2s ease;
 }
 
+nav button svg {
+  width: 22px;
+  height: 22px;
+}
+
+nav button span {
+  font-size: 0.625rem;
+}
+
 nav button[aria-current="page"] {
   color: var(--accent-cyan);
   background: transparent;
@@ -491,6 +557,10 @@ nav button:hover {
 
 nav button[aria-current="page"]:hover {
   color: var(--accent-cyan);
+}
+
+.nav-minimize-btn {
+  display: none;
 }
 
 /* Dialog/Modal */
@@ -839,7 +909,8 @@ input[aria-label="Search managers"] {
   }
   
   .grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
   }
   
   .metrics {
@@ -848,5 +919,243 @@ input[aria-label="Search managers"] {
   
   .toolbar {
     flex-direction: column;
+  }
+  
+  .intelligence-hub {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Desktop Layout */
+@media (min-width: 769px) {
+  :root {
+    --desktop-sidebar-width: 200px;
+    --desktop-sidebar-width-collapsed: 64px;
+  }
+
+  /* Desktop Navigation Sidebar */
+  nav {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: auto;
+    right: auto;
+    width: var(--desktop-sidebar-width);
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 1rem 0.875rem 0 0.875rem;
+    background: white;
+    border-top: none;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.02);
+    z-index: 100;
+    transition: width 0.3s ease, padding 0.3s ease;
+  }
+
+  nav[data-expanded="false"] {
+    width: var(--desktop-sidebar-width-collapsed);
+    padding: 1rem 0.5rem 0 0.5rem;
+  }
+
+  .nav-minimize-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 24px;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--accent-cyan);
+    font-weight: 600;
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+
+  .nav-minimize-btn:hover {
+    background: rgba(0, 160, 185, 0.08);
+  }
+
+  .nav-minimize-btn:active {
+    background: rgba(0, 160, 185, 0.12);
+  }
+
+  .nav-minimize-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  nav button:not(.nav-minimize-btn) {
+    max-width: none;
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  nav[data-expanded="false"] button:not(.nav-minimize-btn) {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0.375rem;
+    margin-bottom: 0.25rem;
+  }
+
+  nav button:not(.nav-minimize-btn):hover {
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.03);
+  }
+
+  nav button svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  nav button span {
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.2s ease;
+  }
+
+  nav[data-expanded="false"] button span {
+    font-size: 0.625rem;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  nav button[aria-current="page"] {
+    color: var(--accent-cyan);
+    background: rgba(0, 160, 185, 0.08);
+  }
+
+  nav button[aria-current="page"]:hover {
+    background: rgba(0, 160, 185, 0.12);
+  }
+
+  nav[data-expanded="false"] button[aria-current="page"] {
+    background: rgba(0, 160, 185, 0.1);
+  }
+
+  /* Main content shifted right for sidebar */
+  main {
+    margin-left: var(--desktop-sidebar-width);
+    max-width: none;
+    padding: 1.5rem;
+    width: calc(100% - var(--desktop-sidebar-width));
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+  }
+
+  main[data-nav-expanded="false"] {
+    margin-left: var(--desktop-sidebar-width-collapsed);
+    width: calc(100% - var(--desktop-sidebar-width-collapsed));
+  }
+
+  /* Header improvements for desktop */
+  header {
+    margin-bottom: 2rem;
+  }
+
+  header button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* Wider card grids on desktop */
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+  }
+
+  /* Multi-column metrics */
+  .metrics {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Overview page layout */
+  .overview-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .best-next-move-full {
+    grid-column: 1 / -1;
+  }
+
+  .intelligence-hub {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  /* Desktop Manager Detail Drawer */
+  .detail-modal {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    max-width: 500px;
+    max-height: 100vh;
+    border-radius: 0;
+    animation: slideInRight 0.3s ease-out;
+    overflow-y: auto;
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  .dialog-backdrop {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  /* More page form constraints */
+  .more-page {
+    max-width: 600px;
+  }
+
+  /* Better card layouts */
+  .card-container {
+    min-height: 0;
+  }
+
+  /* Toolbar stays horizontal */
+  .toolbar {
+    flex-direction: row;
+  }
+}
+
+/* Extra large screens */
+@media (min-width: 1600px) {
+  main {
+    max-width: 1600px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .overview-page {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .overview-page > .card-container:first-child {
+    grid-column: 1 / -1;
   }
 }
