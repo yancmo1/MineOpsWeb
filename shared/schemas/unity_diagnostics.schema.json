@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MineOps Unity Diagnostics",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "releaseId",
+    "generatedAt",
+    "adapter",
+    "counts",
+    "warnings",
+    "errors"
+  ],
+  "properties": {
+    "releaseId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "adapter": { "type": "string", "minLength": 1 },
+    "counts": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["parsedFiles"],
+      "properties": {
+        "parsedFiles": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

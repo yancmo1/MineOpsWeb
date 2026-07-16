@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MineOps Inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "releaseId",
+    "generatedAt",
+    "versionName",
+    "versionCode",
+    "apkCount",
+    "apkFiles",
+    "apkHashes",
+    "filesExtracted",
+    "extractionErrors"
+  ],
+  "properties": {
+    "releaseId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "versionName": { "type": "string", "minLength": 1 },
+    "versionCode": { "type": "integer", "minimum": 1 },
+    "apkCount": { "type": "integer", "minimum": 0 },
+    "apkFiles": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "apkHashes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    },
+    "filesExtracted": { "type": "integer", "minimum": 0 },
+    "extractionErrors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["apk", "error"],
+        "properties": {
+          "apk": { "type": "string", "minLength": 1 },
+          "error": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

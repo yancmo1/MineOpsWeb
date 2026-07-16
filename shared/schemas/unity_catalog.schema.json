@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MineOps Unity Catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["releaseId", "generatedAt", "assets"],
+  "properties": {
+    "releaseId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assetId", "path", "assetType", "status"],
+        "properties": {
+          "assetId": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "assetType": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

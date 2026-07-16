@@ -146,9 +146,495 @@ MineOps can inspect, hash, archive, and compare releases
 
 ## Next technical step
 
-Automate extraction into versioned archives and trigger only when either changes:
-- `versionCode`
-- APK checksums (`SHA256SUMS`)
+# Phase 2 — MineOps Data Engine
+
+The Android emulator POC is now considered complete.
+
+UbuntuMac is no longer just an emulator host.
+
+It is now the **MineOps Data Engine**, whose responsibility is to ingest every Idle Miner release, normalize all extracted game data, maintain historical versions, and publish validated data into PocketBase for MineOpsWeb.
+
+---
+
+# Goals
+
+The MineOps Data Engine shall:
+
+1. Detect new Idle Miner releases.
+2. Archive every APK release immutably.
+3. Extract all available structured data.
+4. Normalize internal game IDs.
+5. Build relationships between every game object.
+6. Publish validated catalog data into PocketBase.
+7. Preserve every historical release.
+8. Produce machine-readable release reports.
+9. Never overwrite raw source data.
+
+The Data Engine becomes the canonical source of truth for MineOps.
+
+---
+
+# Canonical Directory Layout
+
+```
+~/mineops-data/
+
+├── incoming/
+│
+├── releases/
+│   ├── 4.90.0_123456/
+│   │
+│   ├── apk/
+│   ├── extracted/
+│   ├── manifests/
+│   ├── inventories/
+│   ├── mappings/
+│   ├── reports/
+│   └── release.json
+│
+│   └── ...
+│
+├── current -> releases/<latest>
+│
+├── overrides/
+│
+├── staging/
+│
+└── logs/
+```
+
+Nothing is ever deleted.
+
+Every release remains reproducible.
+
+---
+
+# Processing Pipeline
+
+Each execution performs the following stages.
+
+## Stage 1
+
+Determine installed version.
+
+Collect:
+
+- versionName
+- versionCode
+- package info
+- SHA256
+
+Compare against the previous release.
+
+If unchanged:
+
+Terminate successfully.
+
+---
+
+## Stage 2
+
+Pull every installed APK.
+
+Never assume only base.apk exists.
+
+Archive every split package.
+
+---
+
+## Stage 3
+
+Extract APK contents.
+
+Produce:
+
+- AndroidManifest.xml
+- resources
+- Unity assets
+- JSON
+- localization tables
+- databases
+- binary assets
+- sprites
+- textures
+
+No processing occurs during extraction.
+
+Only extraction.
+
+---
+
+## Stage 4
+
+Inventory every object.
+
+Examples:
+
+Managers
+
+Mines
+
+Mine Shafts
+
+Research
+
+Equipment
+
+Artifacts
+
+Collectibles
+
+Boosts
+
+Events
+
+Frontier
+
+Mainland
+
+Impossible Island
+
+Barriers
+
+Elevators
+
+Warehouses
+
+Prestige
+
+Currencies
+
+Anything else discovered.
+
+---
+
+## Stage 5
+
+Normalize IDs.
+
+Every discovered object becomes:
+
+```
+Internal UUID
+
+Game ID
+
+Display Name
+
+Type
+
+Parent
+
+Source File
+
+Version
+
+Raw JSON
+
+Extraction Timestamp
+```
+
+The original game ID is NEVER discarded.
+
+---
+
+## Stage 6
+
+Relationship Builder
+
+Create references such as
+
+Mine
+
+↓
+
+Mine Shaft
+
+↓
+
+Barrier
+
+↓
+
+Elevator
+
+↓
+
+Warehouse
+
+↓
+
+Prestige
+
+↓
+
+Research
+
+↓
+
+Equipment
+
+↓
+
+Manager bonuses
+
+↓
+
+Event modifiers
+
+Relationships become first-class data.
+
+---
+
+## Stage 7
+
+Localization
+
+Extract every localized string.
+
+Create a localization index.
+
+Store:
+
+Language
+
+Key
+
+Text
+
+Source
+
+Version
+
+---
+
+## Stage 8
+
+Sprite Index
+
+Inventory every sprite.
+
+Store
+
+Sprite ID
+
+Asset path
+
+Texture
+
+Atlas
+
+Object reference
+
+Version
+
+---
+
+## Stage 9
+
+Validation
+
+Detect
+
+Duplicate IDs
+
+Broken references
+
+Missing strings
+
+Missing sprites
+
+Unknown object types
+
+Relationship errors
+
+Produce validation reports.
+
+Nothing publishes until validation completes.
+
+---
+
+## Stage 10
+
+PocketBase Staging
+
+Publish normalized data into staging collections.
+
+Production collections are NEVER written directly.
+
+---
+
+# PocketBase Collections
+
+The Data Engine owns these collections.
+
+catalog_versions
+
+raw_imports
+
+game_objects
+
+game_relationships
+
+managers
+
+mines
+
+mineshafts
+
+research
+
+equipment
+
+artifacts
+
+collectibles
+
+boosts
+
+events
+
+frontier
+
+mainland
+
+impossible_island
+
+sprites
+
+localization_strings
+
+asset_index
+
+id_mappings
+
+validation_reports
+
+extraction_runs
+
+Player collections remain outside this pipeline.
+
+---
+
+# Canonical ID Rules
+
+Every object SHALL contain:
+
+Internal UUID
+
+Original Game ID
+
+Display Name
+
+Type
+
+Source Asset
+
+Source File
+
+Game Version
+
+Extraction Timestamp
+
+Raw JSON
+
+Unknown IDs MUST remain in the database.
+
+Unknown IDs are never discarded.
+
+Unknown IDs become future mapping candidates.
+
+---
+
+# Release Completion
+
+A release is complete only after:
+
+✓ APKs archived
+
+✓ Assets extracted
+
+✓ Inventories generated
+
+✓ Relationships built
+
+✓ Localization indexed
+
+✓ Sprite inventory generated
+
+✓ Validation passed
+
+✓ PocketBase staging updated
+
+✓ Release report generated
+
+✓ current symlink advanced
+
+---
+
+# Future Automation
+
+Eventually UbuntuMac will execute automatically.
+
+```
+Wake
+
+↓
+
+Start emulator
+
+↓
+
+Check Google Play
+
+↓
+
+Update Idle Miner
+
+↓
+
+Pull APKs
+
+↓
+
+Extract assets
+
+↓
+
+Normalize data
+
+↓
+
+Validate
+
+↓
+
+Publish staging
+
+↓
+
+Notify MineOpsWeb
+
+↓
+
+Shutdown emulator
+```
+
+No user interaction should be required.
+
+---
+
+# Long-Term Objective
+
+UbuntuMac is no longer simply an emulator.
+
+It is the MineOps Data Engine.
+
+MineOpsWeb consumes validated data from PocketBase.
+
+The Android emulator exists only to acquire new game releases.
+
+Every feature in MineOpsWeb shall rely on this canonical data platform.
 
 ## Handoff artifact on server
 Generated status file:

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MineOps Release",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "releaseId",
+    "versionName",
+    "versionCode",
+    "capturedAt",
+    "engineVersion",
+    "schemaVersion",
+    "apkHashes",
+    "status"
+  ],
+  "properties": {
+    "releaseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "versionName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "versionCode": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "capturedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engineVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schemaVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "acquired",
+        "processed",
+        "published",
+        "failed"
+      ]
+    },
+    "apkHashes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    }
+  }
+}

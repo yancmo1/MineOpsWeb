@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MineOps Unity Assets Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "releaseId",
+    "generatedAt",
+    "status",
+    "artifacts",
+    "notes"
+  ],
+  "properties": {
+    "releaseId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "minLength": 1 },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalog", "typetree", "localization", "relationships", "diagnostics", "androidManifests", "textAssets", "monobehaviours", "scriptableObjects", "sprites", "textures", "unknownObjects"],
+      "properties": {
+        "catalog": { "type": "string", "minLength": 1 },
+        "typetree": { "type": "string", "minLength": 1 },
+        "localization": { "type": "string", "minLength": 1 },
+        "relationships": { "type": "string", "minLength": 1 },
+        "diagnostics": { "type": "string", "minLength": 1 },
+        "androidManifests": { "type": "string", "minLength": 1 },
+        "textAssets": { "type": "string", "minLength": 1 },
+        "monobehaviours": { "type": "string", "minLength": 1 },
+        "scriptableObjects": { "type": "string", "minLength": 1 },
+        "sprites": { "type": "string", "minLength": 1 },
+        "textures": { "type": "string", "minLength": 1 },
+        "unknownObjects": { "type": "string", "minLength": 1 }
+      }
+    },
+    "notes": { "type": "string", "minLength": 1 }
+  }
+}

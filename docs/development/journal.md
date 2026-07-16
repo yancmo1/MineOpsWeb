@@ -16,6 +16,7 @@
 
 - Confirmed existing `dev` branch as the development-only branch; `main` remains production-only and has no deployment workflow yet.
 - Replaced the manager proof-of-concept with an editable local-first manager workflow, mobile navigation, status metrics, and a desktop/mobile-safe editor.
+
 ## 2026-07-14 — Revised PRD parity correction
 
 - Audited the read-only iOS reference at `/Users/yancyshepherd/Projects/mineops-companion` and created the required migration inventory, parity matrix, data migration map, calculation inventory, and visual reference set.
@@ -57,3 +58,45 @@
 - **UI improvement:** ManagerCard now shows a fragment progress bar with X/Y count (e.g., "⬥ 15/50") towards the next rank threshold, using `rankThreshold()`. Thresholds: R0=15, R1=30, R2=50, R3=80 fragments.
 - **CSS:** Added `.fragment-progress`, `.fragment-progress-bar`, `.fragment-progress-fill`, `.fragment-progress-label` styles with orange accent color and smooth width transition.
 - All 11 tests pass, TypeScript compiles cleanly.
+
+## 2026-07-16 — Docker production fix: nginx proxy, stage targeting, and port merging
+
+### Summary
+The production Docker setup had three distinct bugs that prevented the app from serving correctly after rebuild. Fixed all three and documented root causes for future prevention.
+
+### Changes
+
+**1. Dockerfile: production stage was unnamed**
+- The final nginx stage had no `AS production` label, so `docker-compose.yml`'s `target: build` was building the intermediate build stage (Node.js) instead of the nginx stage.
+- **Fix:** Named the final stage `AS production` and updated compose to `target: production`.
+- **Files:** `frontend/Dockerfile`, `docker-compose.yml`
+
+**2. nginx.conf: missing Kolibri API proxy**
+- In dev mode, Vite proxies `/kolibri` → `capsule.kolibrigames.com` and `/master` → `idle-miners.com`. The production nginx config only served static files, so Kolibri syncs silently failed after deployment.
+- **Fix:** Added `location /kolibri/` and `location /master/` proxy_pass blocks that forward headers (including Authorization) and support SSL server name.
+- **File:** `frontend/nginx.conf`
+
+**3. Docker compose port merging with dev.yml**
+- When using `docker-compose.yml` + `docker-compose.dev.yml` together, Compose *merges* port arrays instead of replacing them. Since base compose has `8080:80` and dev compose has `8080:5173`, both get published, causing "port already allocated" on restart.
+- **Fix:** Dev compose already uses `!override` on `web.ports` — this was correct. The issue was running the *production* compose (no dev.yml) which bundles code at build time, so source edits on the host don't take effect without a rebuild.
+- **Lesson:** Always verify merged config with `docker compose -f docker-compose.yml -f docker-compose.dev.yml config` and check `web.ports` contains only one entry.
+
+**4. Kolibri fragment field name unconfirmed**
+- Added `row.Fragments ?? row.fragments ?? row.FragmentCount ?? 0` fallback chain plus debug logging that prints the actual Kolibri response keys to console. The exact field name still needs to be confirmed from a real sync — check browser console for `[kolibri] First manager raw keys:` output.
+
+### Issues Found & Prevention
+
+| Issue | Root Cause | Prevention |
+|---|---|---|
+| Stale code in production containers | Production compose bundles source at build time; source edits don't propagate | Use `docker compose up --build -d` after code changes, or use dev compose with volume mounts |
+| nginx doesn't proxy like Vite dev | `nginx.conf` had no proxy rules for `/kolibri` or `/master` | Keep nginx proxy rules in sync with `vite.config.ts` proxy config |
+| Docker builds wrong stage | Intermediate stage (build) selected by `target` instead of final nginx stage | Always name final stage in Dockerfile (e.g., `AS production`) |
+| Port conflict with dev+base compose | Compose merges port arrays from multiple compose files | Use `!override` on ports in dev.yml; validate with `docker compose config` |
+| PB query 400 on launch | Remote PB returns 400 for `player_snapshots` query — collection may not exist on production PB | Handle PB 400s gracefully; the `player_snapshots` collection needs migration on the remote PB instance |
+
+### TL;DR for next agent
+
+Read this file before making changes. The production Docker setup is now correct:
+- `docker compose up --build -d` rebuilds and serves on port 8080 via nginx with Kolibri proxying
+- `docker compose -f docker-compose.dev.yml up --build -d` for Vite hot-reload development
+- Fragment parsing from Kolibri is wired but the exact response field name is unconfirmed — check `[kolibri]` console debug logs after a real sync

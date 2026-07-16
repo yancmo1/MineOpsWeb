@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MineOps Unity TypeTree",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["releaseId", "generatedAt", "nodes"],
+  "properties": {
+    "releaseId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["className", "pathId", "fields", "status"],
+        "properties": {
+          "className": { "type": "string", "minLength": 1 },
+          "pathId": { "type": "string", "minLength": 1 },
+          "fields": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "status": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

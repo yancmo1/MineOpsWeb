@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MineOps Extraction Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "releaseId",
+    "createdAt",
+    "apkCount",
+    "filesExtracted",
+    "apks",
+    "errors"
+  ],
+  "properties": {
+    "releaseId": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "apkCount": { "type": "integer", "minimum": 0 },
+    "filesExtracted": { "type": "integer", "minimum": 0 },
+    "apks": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["apk", "entryCount", "entries"],
+        "properties": {
+          "apk": { "type": "string", "minLength": 1 },
+          "entryCount": { "type": "integer", "minimum": 0 },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "sizeBytes", "compressedSizeBytes", "crc32"],
+              "properties": {
+                "path": { "type": "string", "minLength": 1 },
+                "sizeBytes": { "type": "integer", "minimum": 0 },
+                "compressedSizeBytes": { "type": "integer", "minimum": 0 },
+                "crc32": { "type": "string", "pattern": "^[a-f0-9]{8}$" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["apk", "error"],
+        "properties": {
+          "apk": { "type": "string", "minLength": 1 },
+          "error": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
