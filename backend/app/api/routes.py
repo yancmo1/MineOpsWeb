@@ -37,6 +37,7 @@ def manager_out(model: PlayerManager) -> ManagerOutput:
 
 
 def compute_object_counts(payload: dict[str, Any]) -> dict[str, int]:
+    # Keep this fallback in sync with ingestion-agent/mineops_ingest/cli.py::_object_counts.
     return {
         key: len(value) if isinstance(value, list) else 1
         for key, value in payload.items()
@@ -258,7 +259,6 @@ def update_snapshot_status(
     current_status = normalized_snapshot_status(snapshot.import_status)
     next_status = normalized_snapshot_status(update.import_status)
     if next_status == current_status:
-        db.rollback()
         return snapshot
     if next_status not in SNAPSHOT_TRANSITIONS.get(current_status, set()):
         raise HTTPException(

@@ -31,10 +31,10 @@ def ensure_additive_schema() -> None:
                 connection.exec_driver_sql(statement)
         for statement in CATALOG_SNAPSHOT_INDEXES:
             connection.exec_driver_sql(statement)
-    backfill_catalog_evidence()
+    backfill_missing_provenance_records()
 
 
-def backfill_catalog_evidence() -> None:
+def backfill_missing_provenance_records() -> None:
     with SessionLocal() as db:
         snapshots = db.scalars(
             select(CatalogSnapshot).where(

@@ -31,7 +31,7 @@ def _payload_manifest(source_hash: str, payload_size_bytes: int) -> dict:
     }
 
 
-def _extract_release_id(data: dict, source_hash: str) -> str:
+def _resolve_release_id(data: dict, source_hash: str) -> str:
     return data.get("release_id") or data.get("game_version") or source_hash
 
 
@@ -44,7 +44,7 @@ def payload_for(path: Path) -> dict:
     source_hash = hashlib.sha256(raw).hexdigest()
     payload_size_bytes = len(_canonical_json_bytes(data))
     object_counts = _object_counts(data)
-    release_id = _extract_release_id(data, source_hash)
+    release_id = _resolve_release_id(data, source_hash)
     config_hash = hashlib.sha256(
         _canonical_json_bytes(
             {
