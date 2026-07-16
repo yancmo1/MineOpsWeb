@@ -1,9 +1,9 @@
 import hashlib
-import json
 from datetime import datetime
 from typing import Any
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
+from app.core.serialization import canonical_json_bytes
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.core import CatalogRawImport, CatalogSnapshot, CatalogValidationRun, MutationLog, PlayerManager
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/v1")
 INLINE_ARTIFACT_LIMIT_BYTES = 256 * 1024
 ARTIFACT_FIELD_NAMES = {"apk", "apk_base64", "apk_bytes", "binary", "content_base64"}
 PUBLISHED_STATUS = "published"
+# Snapshots are staged first, may be explicitly reviewed, and become terminal once published.
 SNAPSHOT_TRANSITIONS = {
     "staged": {"reviewed", PUBLISHED_STATUS},
     "reviewed": {PUBLISHED_STATUS},
@@ -40,10 +41,6 @@ def compute_object_counts(payload: dict[str, Any]) -> dict[str, int]:
         key: len(value) if isinstance(value, list) else 1
         for key, value in payload.items()
     }
-
-
-def canonical_json_bytes(value: Any) -> bytes:
-    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def default_configuration_hash(source_type: str, capture_schema_version: str | None) -> str:

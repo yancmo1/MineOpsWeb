@@ -160,4 +160,8 @@ def test_snapshot_status_updates_do_not_mutate_raw_evidence():
         with pytest.raises(ValueError):
             db.commit()
         db.rollback()
+        db.delete(raw_import)
+        with pytest.raises(ValueError):
+            db.commit()
+        db.rollback()
         assert snapshot.import_status == "published"

@@ -1,5 +1,5 @@
-import json
 from sqlalchemy import inspect, or_, select
+from app.core.serialization import canonical_json_bytes
 from app.db.session import SessionLocal, engine
 from app.models.core import CatalogRawImport, CatalogSnapshot, CatalogValidationRun
 
@@ -17,7 +17,7 @@ CATALOG_SNAPSHOT_INDEXES = (
 
 
 def _json_size(value: dict) -> int:
-    return len(json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    return len(canonical_json_bytes(value))
 
 
 def ensure_additive_schema() -> None:
