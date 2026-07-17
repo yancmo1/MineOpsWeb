@@ -1,5 +1,261 @@
 # Development journal
 
+## 2026-07-17 — Implement JSON evidence review, quarantine, and catalog review (Issue #5)
+
+**Goal:** Review immutable JSON evidence and release summaries before a package can become active. Operates on the v2 package: manifest metadata, artifact verification, validation-report.json, changelog.json, mapping conflicts, unresolved IDs, object counts, and schema compatibility.
+
+### Review evidence module (`shared/schemas/review-package.mjs`)
+
+Created a shared review module that loads a v2 package and produces a structured review summary. Generated evidence remains in the immutable JSON package; PocketBase stores only the human decision and audit trail.
+
+Review checks performed:
+- **Artifact integrity:** All 7 artifacts verified (SHA-256 hash, byte size, file existence, schema compatibility). Missing required artifacts or hash mismatches are fatal.
+- **Validation findings:** Parses `validation-report.json`, classifies each check as fatal or warning based on check code. Fatal codes: `SCHEMA_VALID`, `MANIFEST_CATALOG_CONSISTENCY`, `ARTIFACT_HASH_CONSISTENCY`, `MANIFEST_ARTIFACTS`, `DETERMINISTIC_SERIALIZATION`. Warning codes: `DUPLICATE_CANONICAL_ID`, `DUPLICATE_SOURCE_IDENTIFIER`, `MISSING_REQUIRED_FIELDS`, `UNRESOLVED_OBJECTS`, `INVALID_REFERENCES`, `SUSPICIOUS_CHANGE_DETECTION`.
+- **Changelog review:** Flags suspiciously large manager changes (>50), unresolved objects, breaking entity removals.
+- **Mapping conflicts:** Detects duplicate source identifiers, orphaned mappings (references to non-existent entities), and orphaned aliases.
+- **Schema compatibility:** Checks manifest major version and every required artifact's schema version.
+- **Object counts:** Summarizes entity counts from the manifest.
+
+Recommendations: `approved` (no issues), `review_required` (warnings present), `quarantined` (fatal issues — cannot publish).
+
+### PocketBase migration: `catalog_reviews` (1700000005)
+
+New collection for human review decisions:
+- `releaseId` — FK to `catalog_releases`
+- `decision` — `approved` | `rejected` | `quarantined`
+- `reviewedBy`, `reviewedAt`, `notes`
+- `annotations` — JSON: specific annotations on findings
+- `manualOverrides` — JSON: manual mapping overrides with reason
+- `findingsSummary` — JSON: compact fatal/warning count summary
+- `schemaCompat` — JSON: schema compatibility assessment
+- `isLatest` — boolean for tracking most recent review per release
+
+### PocketBase review hook (`pocketbase/pb_hooks/catalog-review.pb.js`)
+
+Three routes for authenticated users:
+- `POST /api/catalog/review/approve` — status: candidate|review_required → ready
+- `POST /api/catalog/review/reject` — status: candidate|review_required → rejected
+- `POST /api/catalog/review/quarantine` — status: candidate|review_required|ready → review_required
+
+Each route:
+1. Validates the release exists
+2. Checks status transition validity
+3. For approval, blocks if validation summary has fatal findings
+4. Marks previous reviews as not latest
+5. Creates a `catalog_reviews` record
+6. Updates `catalog_releases.status` and appends to `auditLog`
+
+### CLI review tool (`tools/validation/review-package.mjs`)
+
+Command-line tool for reviewing a v2 package:
+```bash
+npm run review:catalog catalogs/example
+npm run review:catalog catalogs/example -- --json
+```
+
+Produces a formatted review summary with artifact integrity, validation findings, changelog review, mapping conflicts, schema compatibility, object counts, and decision guidance. Exit code: 0=approved, 1=quarantined, 2=not reviewable.
+
+### Contract tests (`tests/catalog-review.test.mjs`)
+
+24 tests in 9 suites, all passing:
+- **Valid package review (2):** Clean package → approved; example bundle → approved
+- **Missing required artifacts (4):** No manifest, no validation-report, no catalog-core → not reviewable; missing optional → still reviewable
+- **Hash failures (2):** Required artifact hash mismatch → quarantined; optional artifact hash mismatch → still passes integrity
+- **Fatal validation findings (2):** Fatal checks + blocking issues → quarantined; warnings only → review_required
+- **Unresolved mappings (4):** Duplicate source IDs, orphaned mappings, orphaned aliases, clean mappings
+- **Schema compatibility (3):** Unsupported manifest major → not reviewable; unsupported artifact schema → incompatible; non-v2 manifest → not reviewable
+- **Changelog review (3):** Suspicious changes flagged, first release exempt from suspicious threshold, unresolved objects flagged
+- **Review decision guidance (3):** Clean → approved; fatal + hash → quarantined; warnings → review_required
+- **Generated evidence immutability (1):** Review does not modify source artifact files
+
+### Documentation
+
+- Added `npm run review:catalog` and `npm run test:review` scripts
+- Updated `tools/validation/README.md` with review tool documentation
+
+### Verification
+
+- ✅ All 24 review contract tests pass
+- ✅ Review CLI produces correct output for example bundle (approved)
+- ✅ Review CLI produces correct JSON output
+- ✅ All 42 catalog package tests still pass
+- ✅ All 11 frontend tests still pass
+- ✅ All 39 capture-bridge contract tests still pass
+- ✅ Review evidence is read-only — source artifacts are never modified
+
+### Deferred
+- PocketBase migrations not yet applied to Oracle instance
+- Frontend review UI is deferred (separate issue)
+- Review hook not yet tested end-to-end against live PocketBase
+
+## 2026-07-17 — Post-review hardening for Issue #4 (7 architecture checks)
+
+Addressed 7 final architecture checks from the Issue #4 review:
+
+### Check 1 — Manifest does not hash itself ✅
+Confirmed: the manifest describes 7 content artifacts and never lists itself. The manifest's SHA-256 is stored in the `catalog_publication` singleton (`manifestSha256` field), breaking the recursive dependency. Model:
+```
+catalog_publication → manifestSha256
+manifest.json → artifacts[].sha256 (content artifacts only)
+```
+
+### Check 2 — Path traversal sanitization ✅
+Hardened `isSafeRelativePath()` in the validator to reject:
+- Absolute paths (`/etc/passwd`)
+- Windows drive letters (`C:\...`)
+- URL schemes (`http://...`, `file://...`)
+- Backslashes (`\`)
+- URL-encoded traversal sequences (`%2f`, `%2e%2e`, `%5c`)
+- Double-encoded sequences (`%252f`, `%252e`)
+- Encoded dot segments
+- Paths > 255 characters
+
+Also added `pattern` constraints on `path` and `filename` in the manifest JSON schema to enforce safe values at the schema level.
+
+### Check 3 — Release identity and manifest hash immutability ✅
+Documented immutable vs mutable fields in the `catalog_releases` migration and `catalogs/README.md`:
+- **Immutable:** `releaseId`, `manifestSha256`, artifact hashes/paths, `catalogVersion`, game version info, `previousCatalogVersion`, `storageBaseUrl`
+- **Mutable:** `status`, `reviewNotes`, `auditLog`, `reviewedBy`, `publishedAt`
+
+### Check 4 — Separate active-pointer singleton ✅
+Created `catalog_publication` collection (migration `1700000004`) with:
+- `activeReleaseId` — points to the currently active release
+- `previousReleaseId` — for rollback
+- `manifestSha256` — manifest integrity verification
+- `activatedAt`, `activatedBy`, `notes`
+
+Removed `isActive` boolean from `catalog_releases`. The singleton model makes atomic publish/rollback simpler and prevents two releases from accidentally becoming active.
+
+### Check 5 — Artifact schema compatibility policy ✅
+Documented two-level compatibility check:
+1. Manifest major version must be supported by the client
+2. Every `required: true` artifact's schema major version must be supported
+3. Optional artifacts with unsupported schemas → load with warning
+
+### Check 6 — Required vs optional artifacts ✅
+Added `required` boolean to every `artifactEntry` in the manifest schema and example:
+- **Required:** `catalog-core.json`, `validation-report.json`
+- **Optional:** `relationships.json`, `mappings.json`, `localization.json`, `assets.json`, `changelog.json`
+
+Missing required artifact → reject package. Missing optional artifact → load with warning.
+
+### Check 7 — Empty-file vs missing-file semantics ✅
+Defined in documentation and schema:
+- `recordCount: 0` → valid state meaning "no records of this type"
+- Missing artifact file → "artifact not produced" (distinct from empty)
+- These two states must not be silently treated as equivalent
+
+### Verification
+- ✅ All 42 contract tests pass (was 40; added `required` field check + path sanitization check)
+- ✅ All 18 validation checks pass
+- ✅ All 11 frontend tests pass
+- ✅ All 31 capture-bridge contract tests pass
+- ✅ Example manifest has no self-referencing hash entry
+- ✅ `catalog_publication` migration holds `manifestSha256` (manifest hash: `3045d6e7...`)
+
+## 2026-07-17 — Define versioned JSON catalog packages and PocketBase release-control records (Issue #4)
+
+**Goal:** Adopt a JSON-first catalog data plane with PocketBase as the release control plane. Evolve from monolithic `catalog.json` to 8 separate, content-addressed package artifacts.
+
+### Multi-artifact package contract (v2 manifest)
+
+The catalog package now consists of 8 immutable, content-addressed artifacts:
+
+| Artifact | Schema | Description |
+|---|---|---|
+| `manifest.json` | `catalog_manifest.schema.json` (v2) | Release descriptor with artifacts array, counts, storage pointer |
+| `catalog-core.json` | `catalog_core.schema.json` | Core entities (managers, mines, equipment, research, collectibles, artifacts) |
+| `relationships.json` | `relationships.schema.json` | Directed entity relationships |
+| `mappings.json` | `mappings.schema.json` | Identity mappings + aliases |
+| `localization.json` | `localization.schema.json` | Key-value localization table |
+| `assets.json` | `assets.schema.json` | Asset reference index |
+| `validation-report.json` | `catalog_validation.schema.json` | Deterministic validation checks (same schema as v1) |
+| `changelog.json` | `changelog.schema.json` | Domain-level diff (replaces `diff.json`) |
+
+### Manifest evolution
+
+- `manifestSchemaVersion` bumped to `"2.0.0"` with a new `artifacts` array replacing the single `artifact` object.
+- Each artifact entry includes: `filename`, `contentType`, `sha256`, `bytes`, `schemaVersion`, `recordCount`, `path`.
+- Added `storage` section with `baseUrl` and optional `cdnUrl`.
+- Removed `catalogSchemaVersion`, `diffPath`, `validationReportPath` (now covered by `artifacts` entries).
+
+### New schemas created
+
+- `shared/schemas/catalog_core.schema.json` — split from `normalized_catalog.schema.json` (entities only; relationships, mappings, localization moved to separate artifacts)
+- `shared/schemas/relationships.schema.json` — directed relationships with `sourceId`/`targetId`/`kind`
+- `shared/schemas/mappings.schema.json` — `idMappings` (source→canonical) + `aliases`
+- `shared/schemas/localization.schema.json` — locale + key-value entries
+- `shared/schemas/assets.schema.json` — asset reference index with type, path, dimensions
+- `shared/schemas/changelog.schema.json` — structured changelog (replaces `catalog_diff.schema.json`)
+
+All schemas use JSON Schema draft 2020-12 with `additionalProperties: false`.
+
+### Example bundle updated
+
+`catalogs/example/` now contains all 8 v2 artifacts plus the legacy v1 files for backward compatibility. All artifacts are in canonical JSON form (sorted keys, trailing newline). Status is `candidate`, zero game records, source kind `fixture`.
+
+Legacy v1 files (`catalog-manifest.json`, `catalog.json`, `diff.json`) retained so both formats are testable.
+
+### Validation tooling upgrade
+
+`tools/validation/validate-catalog.mjs` rewritten to support dual-format detection:
+- **v2:** Detects `manifest.json` with `manifestSchemaVersion: "2.0.0"` → validates all 8 artifacts against their schemas, checks all 7 artifact hashes, verifies deterministic serialization on every artifact.
+- **v1:** Falls back to `catalog-manifest.json` with legacy checks (single artifact hash, single deterministic serialization check).
+
+18 checks run on v2 bundles (8 schema + 8 integrity); all pass on the example bundle.
+
+### PocketBase migration: `catalog_releases` collection
+
+New migration `1700000003_catalog_releases.js` creates the `catalog_releases` collection for release-control-plane records:
+
+- Fields: `releaseId` (unique), `catalogVersion`, `gameVersion`, `gameVersionCode`, `status` (select), `manifestRef`, `artifactCount`, `counts` (JSON), `validationSummary` (JSON), `previousCatalogVersion`, `storageBaseUrl`, `isActive`, `publishedAt`, `reviewedBy`, `reviewNotes` (JSON), `auditLog` (JSON)
+- Indexes on `status`, `isActive`, `gameVersionCode`, and unique on `releaseId`
+- Public read, auth-required write
+- Stores only metadata needed to identify, govern, review, and publish; full catalog remains in JSON artifacts
+
+### Contract tests
+
+`tests/catalog-package.test.mjs` — 40 tests in 7 suites, all passing:
+
+- **Deterministic serialization (6):** Stable key sorting, array preservation, round-trip stability, hash stability, key order invariance, trailing newline.
+- **SHA-256 content addressing (4):** Format validation, idempotency, collision resistance, byte sensitivity.
+- **Manifest artifact integrity (9):** Schema version, artifact count, required fields, disk existence, SHA-256 match, byte size match, status, storage section, previous version.
+- **Example bundle fixture safety (8):** Zero game records in all artifacts, fixture source kind, no fabricated data.
+- **Schema conformance (8):** All 8 artifacts validate against their schemas.
+- **Manifest consistency (3):** catalogVersion, releaseId, and counts match catalog-core.
+- **Canonical JSON round-trip stability (2):** All example artifacts are canonical, stability with nested arrays.
+
+### Documentation
+
+- `catalogs/README.md` — full rewrite covering v2 package contract, artifact table, manifest entry spec, PocketBase records, rules, compatibility/storage/rollback boundaries, and validation commands.
+- Added `npm run test:catalog` script to root `package.json`.
+
+### Verification
+
+- ✅ All 18 validation checks pass on the v2 example bundle
+- ✅ All 40 contract tests pass (`npm run test:catalog`)
+- ✅ All 7 artifact hashes verified against actual file content
+- ✅ Deterministic serialization confirmed for all artifacts
+- ✅ Example bundle is fixture-safe (zero game records, no fabricated data)
+- ✅ Backward compatibility: v1 legacy bundle still validates with the same tool
+- ✅ No secrets, APK binaries, or raw extracted assets in fixtures
+
+### Remaining / deferred
+
+- PocketBase migration not yet applied to Oracle instance (requires `docker compose build pocketbase && docker compose up -d pocketbase` on oracle-vm)
+- `catalog_releases` record creation not yet wired into the capture ingest hook
+- Frontend catalog consumption from v2 packages is deferred (Issue #7)
+- Active-pointer publication and rollback is deferred (Issue #6)
+- Real APK data population is deferred (requires parser work)
+
+## 2026-07-17 — Revised GitHub backlog for JSON-first catalog architecture
+
+- Updated GitHub milestones 1–5 and issues #4–#12 to reflect the versioned JSON catalog data plane.
+- PocketBase is now documented as the release control plane for provenance, validation summaries, review decisions, publication pointers, and audit history; it must not duplicate the full static catalog.
+- Issue #4 now defines the immutable package contract and artifact manifest; #5 covers JSON evidence review; #6 covers active-pointer publication and rollback; #7 covers verified JSON retrieval and IndexedDB caching; #8 covers JSON mappings with audited PocketBase overrides.
+- Issues #9–#12 were retained and clarified to record catalog interpretation metadata, consume the verified JSON client, and expose package verification state in More.
+- No code or deployment state changed in this backlog/documentation update. The existing JSON schemas and validation scaffolding remain the implementation baseline.
+
 ## 2026-07-16 — Contract-test the capture envelope (Issue #1)
 
 **Goal:** Make the capture-bridge CLI, PocketBase ingest hook, and release schema a single versioned contract with stable machine-readable error codes and fixture-based contract tests.

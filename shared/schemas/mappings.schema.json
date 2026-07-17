@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mineops.io/schemas/mappings.schema.json",
+  "title": "MineOps Catalog Mappings",
+  "description": "Identity mappings and aliases linking source identifiers to canonical IDs. One artifact in the versioned JSON package.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "catalogVersion",
+    "releaseId",
+    "generatedAt",
+    "idMappings",
+    "aliases"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Version of this mappings schema."
+    },
+    "catalogVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deterministic bundle version string matching the manifest."
+    },
+    "releaseId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source release identity from the capture envelope."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this artifact was generated."
+    },
+    "idMappings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/identityMapping" },
+      "description": "Mappings from source identifiers to canonical IDs."
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/aliasRecord" },
+      "description": "Alternative names and identifiers for canonical entities."
+    }
+  },
+  "$defs": {
+    "identityMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId", "kind", "sourceValue"],
+      "properties": {
+        "canonicalId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The canonical entity this source identifier maps to."
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source identifier kind (e.g. 'unity_guid', 'kolibri_id', 'display_name')."
+        },
+        "sourceValue": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The source-system identifier value."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["verified", "inferred", "manual"],
+          "default": "verified",
+          "description": "Confidence level of this mapping."
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Additional mapping metadata."
+        }
+      }
+    },
+    "aliasRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId", "alias"],
+      "properties": {
+        "canonicalId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The canonical entity this alias refers to."
+        },
+        "alias": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Alternative name or identifier."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Alias kind (e.g. 'abbreviation', 'historical_name', 'community_name')."
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

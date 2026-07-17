@@ -9,7 +9,10 @@
     "build": "npm --prefix frontend run build",
     "test": "npm --prefix frontend run test",
     "dev": "docker compose -f docker-compose.dev.yml up --build",
-    "validate:catalog": "node tools/validation/validate-catalog.mjs"
+    "validate:catalog": "node tools/validation/validate-catalog.mjs",
+    "review:catalog": "node tools/validation/review-package.mjs",
+    "test:catalog": "node --test tests/catalog-package.test.mjs",
+    "test:review": "node --test tests/catalog-review.test.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1"

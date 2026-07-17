@@ -1,0 +1,28 @@
+{
+  "blockingIssues": [
+    {
+      "code": "SCHEMA_VALID",
+      "message": "catalog-core does not conform.",
+      "path": "catalog-core.json"
+    }
+  ],
+  "catalogVersion": "1.0.0-100000-test",
+  "checks": [
+    {
+      "code": "SCHEMA_VALID",
+      "message": "Schema validation failed.",
+      "passed": false,
+      "path": null,
+      "severity": "error"
+    }
+  ],
+  "counts": {
+    "errors": 0,
+    "unresolved": 0,
+    "warnings": 0
+  },
+  "status": "failed",
+  "validatedAt": "2026-07-16T00:00:00.000Z",
+  "validationSchemaVersion": "1.0.0",
+  "warnings": []
+}

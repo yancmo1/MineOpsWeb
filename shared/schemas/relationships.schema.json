@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mineops.io/schemas/relationships.schema.json",
+  "title": "MineOps Catalog Relationships",
+  "description": "Directed relationships between catalog entities. One artifact in the versioned JSON package.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "catalogVersion",
+    "releaseId",
+    "generatedAt",
+    "relationships"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Version of this relationships schema."
+    },
+    "catalogVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deterministic bundle version string matching the manifest."
+    },
+    "releaseId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source release identity from the capture envelope."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this artifact was generated."
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationshipRecord" },
+      "description": "Directed relationships between catalog entities."
+    }
+  },
+  "$defs": {
+    "relationshipRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId", "sourceId", "targetId", "kind"],
+      "properties": {
+        "canonicalId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for this relationship record."
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical ID of the source entity."
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical ID of the target entity."
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Relationship type (e.g. 'equips', 'researched_at', 'drops_from')."
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Optional relationship metadata (e.g. level requirements, drop rates)."
+        },
+        "sourceIdentifiers": {
+          "type": "object",
+          "additionalProperties": { "type": ["string", "null"] },
+          "description": "Source-system identifiers for this relationship."
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Preserved source fields not yet modeled."
+        }
+      }
+    }
+  }
+}
