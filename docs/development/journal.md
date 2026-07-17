@@ -1,5 +1,386 @@
 # Development journal
 
+## 2026-07-17 — Verified strategy recommendations and More operational diagnostics (Issues #11 and #12)
+
+**Goal:** Replace the Strategy placeholder with reproducible, catalog-backed recommendations and make More a safe operational surface for package, sync, import, and recovery state.
+
+### Strategy (Issue #11)
+
+- Strategy now reads manager facts exclusively from the active verified `catalog-core.json` package, not raw PocketBase rows, fixtures, or the legacy app catalog.
+- Every evaluation carries the immutable `releaseId`, catalog version, and manifest hash used for its ranking.
+- Unlocked progress records missing from the selected package are explicitly excluded and reported as unresolved; incomplete active-effect data is visibly limited and never estimated.
+- Recommendations retain the documented calculation basis (existing iOS-derived strength score, level, rank, promotion, rarity, and known active effect), plus reproducible rationale and upgrade priority detail.
+
+### More (Issue #12)
+
+- Added a catalog package panel showing active/download/verified/stale/offline/fallback/failed state, release ID, manifest hash, schema version, cached package count/size, last-known-good package, and each verified artifact.
+- Added a non-destructive **Refresh catalog safely** recovery action. Package failures retain player data and provide explicit recovery guidance.
+- Added local player-import history beside the existing snapshot and capture workflows.
+- Redacted token-like values and private local paths in surfaced diagnostics, and made the save-game key field private in the UI.
+- Bootstrap package verification now requires both the declared hash and byte count before artifacts can be represented as verified.
+
+### Verification
+
+- ✅ `npm --prefix frontend run build`
+- ✅ `npm --prefix frontend run test` — 92 tests passed across 7 files
+
+### Remaining limitations
+
+- The current fixture catalog intentionally has no real managers. Strategy shows the limited/empty state until a real verified release is published.
+- Broader iOS strategy rules (mine context, full assignment constraints, and effects not yet modeled in the catalog contract) remain intentionally deferred rather than inferred.
+
+## 2026-07-16 — Hotfix: Kolibri ID fallback restoration + PB snapshot filter compatibility
+
+**Goal:** Resolve the runtime regression where Kolibri sync imported managers as unresolved (`0/111` unlocked) and emitted repeated `player_snapshots` filter 400s against the Oracle PocketBase instance.
+
+### Kolibri resolver fix (`frontend/src/lib/kolibri.ts`)
+
+- Fixed a fallback gating bug: legacy `gameId` fallback incorrectly depended on `evidenceMap.size === 0`.
+   - `resolveIds()` always returns entries (including unresolved), so fallback effectively never ran.
+- Updated resolution flow to:
+   1. Try mapping/override evidence
+   2. If unresolved, always attempt `gameId` fallback using catalog `gameId`
+- Trimmed source IDs before lookup to avoid whitespace mismatch edge cases.
+- Corrected unresolved diagnostics to only include IDs unresolved by **both** mapping evidence and `gameId` fallback.
+- Added runtime resolution summary debug line:
+   - total, resolved, mapping-resolved, fallback-resolved, unresolved
+
+### PocketBase snapshot compatibility fix (`frontend/src/lib/pocketbase.ts`)
+
+- Removed server-side `filter=` dependence for `player_snapshots` reads in push/pull paths (older/partial remote schemas returned 400 for filter expressions).
+- Added compatibility helper that reads recent snapshots sorted by `-created` and filters by `owner` client-side.
+- Preserved idempotency/revision behavior using client-side inspection of owned snapshots.
+- Preserved active snapshot handling by marking prior active records inactive best-effort.
+
+### Verification
+
+- ✅ `frontend`: `npm run build` passes
+- ✅ `frontend`: `npx vitest run` passes (86/86)
+
+### Remaining limitation
+
+- This hotfix removes the observed filter-related 400 path for snapshot sync operations in the web client, but server migration parity on the Oracle instance should still be completed/verified so remote schema fully matches v2 expectations.
+
+## 2026-07-17 — Production-safe player snapshot storage and sync recovery (Issue #9)
+
+**Goal:** Finish the server-side snapshot path so player state sync works reliably against the Oracle PocketBase instance.
+
+### Migration: player_snapshots v2 (1700000008)
+
+Added to the existing `player_snapshots` collection:
+- `capturedAt` (date, required) — ISO-8601 capture timestamp
+- `progress` (text, required) — JSON-serialized PlayerManager[]
+- `metadata` (text) — JSON-serialized SyncMetadata
+- `catalogVersion` (text) — catalog version used for interpretation
+- `manifestHash` (text) — SHA-256 of the manifest at interpretation time
+- `revision` (number) — monotonic counter for conflict detection
+- `idempotencyKey` (text) — client-generated UUID for deduplication
+- `unresolvedSourceIds` (text) — JSON-serialized string[] of unresolvable IDs
+- `source` (text) — import origin (e.g. "kolibri", "manual")
+
+Indexes on `capturedAt` and `idempotencyKey`. Migration is additive and non-destructive — rollback is a no-op.
+
+### PocketBase client updates (`frontend/src/lib/pocketbase.ts`)
+
+- `pushPlayerSnapshot()` now generates/manages idempotency keys — checks for existing snapshot with the same key before creating, preventing duplicate pushes on retry
+- Maintains a monotonic `revision` counter per user across snapshots
+- Marks previous active snapshots as inactive (best-effort, errors don't block)
+- `pullLatestSnapshot()` distinguishes missing collection (404) from server errors — logs a migration hint for the former, a warn for the latter
+
+### Sync orchestrator updates (`frontend/src/lib/sync.ts`)
+
+- `pushStateToPB()` accepts `manifestHash`, `unresolvedSourceIds`, and `source` parameters for catalog interpretation traceability
+- Generates `idempotencyKey` (crypto.randomUUID()) on each push
+- Reports the pushed revision in the sync event summary
+- `pullNewerFromPB()` uses **revision-based** conflict detection (not timestamp):
+  - PB revision > local revision → pull applies (cross-device catch-up)
+  - Local revision >= PB revision → pull skipped (local-first)
+- Added `getLocalRevision(metadata)` — extracts revision from `source: "rev-N"` format
+- Added `updateSyncMetadata(metadata, revision)` — updates sync metadata after push/pull
+- Missing collection produces a distinct warning with migration instructions
+- Server failures leave local data authoritative (never discarded)
+
+### Catalog interpretation isolation
+
+- Snapshots retain `catalogVersion` and `manifestHash` at capture time
+- A newer catalog activation does NOT mutate historical snapshot data
+- Re-interpretation is explicit (via `reinterpretSnapshot()` from Issue #8), never automatic
+
+### Tests (`frontend/src/lib/sync.test.ts`)
+
+15 tests across 8 suites, all passing:
+- **Local revision tracking (3):** extract revision, unknown format, empty string
+- **Sync metadata updates (2):** status reset, error clearing
+- **Revision-based conflict detection (4):** PB newer, local newer, equal (local wins), first launch
+- **Safe client handling (2):** collection error distinguishable, server error never throws
+- **Push idempotency (1):** unique UUID per push
+- **Catalog interpretation isolation (2):** snapshot retains version, newer catalog coexists
+- **Player state persistence (1):** catalog failure doesn't clear progress
+
+### Verification
+- ✅ All 15 sync tests pass
+- ✅ All 57 frontend tests pass (was 42; +15 new)
+- ✅ All other test suites still pass
+
+**Goal:** Resolve player IDs against mappings.json while preserving unknown IDs and separating generated facts from human decisions.
+
+### Mapping resolver (`frontend/src/lib/catalog-mapping.ts`)
+
+Resolution order (first match wins):
+1. **Manual override** (PocketBase `catalog_overrides` collection) — highest priority
+2. **mappings.json identity mapping** — auto-generated candidates with confidence
+3. **mappings.json alias** — alternative name/abbreviation lookup
+4. **Unresolved** — no match found; canonicalId is null
+
+Each resolution returns `MappingEvidence` with sourceValue, sourceKind, canonicalId, resolution method, confidence, catalogVersion, releaseId, and displayName.
+
+Key functions:
+- `resolveId(sourceValue, sourceKind, overrides)` — single ID resolution
+- `resolveIds(sources[], overrides)` — batch resolution
+- `getUnresolved(sourceValues)` — filter for only unresolved IDs
+- `fetchOverrides(releaseId)` — fetch active overrides from PocketBase
+- `needsReinterpretation(snapshotCatalogVersion)` — check if a newer catalog exists
+
+### PocketBase migration: `catalog_overrides` (1700000007)
+
+Dedicated collection for auditable manual mapping corrections:
+- `releaseId`, `sourceKind`, `sourceValue`, `canonicalId`
+- `confidence` (verified/inferred/manual), `reason`, `createdBy`, `createdAt`
+- `supersedes` — for overriding previous overrides
+- `isActive` — currently active override for this source
+
+### Kolibri import updated
+
+`fetchKolibri()` now uses the mapping resolver instead of direct `gameId` lookup:
+- Returns `KolibriResult` with `mappingEvidence` (Map) and `unresolved` (MappingEvidence[])
+- The `catalogVersion` used for resolution is tracked in the result
+- Unknown managers retain their source IDs in the diagnostics
+
+### Snapshot reinterpretation
+
+- `Snapshot` type extended with `catalogVersion` and `unresolvedSourceIds`
+- `saveSnapshot()` now accepts `catalogVersion` and `unresolvedSourceIds` parameters
+- `reinterpretSnapshot()` can re-map old snapshot source IDs against a newer catalog
+- Previously-unresolved IDs are re-evaluated; still-unresolved IDs retain last-known-good values
+- No destructive migration — original snapshot data is preserved
+
+### Tests (`frontend/src/lib/catalog-mapping.test.ts`)
+
+13 tests across 6 suites, all passing:
+- **Matched IDs (2):** Single and batch resolution through mappings.json
+- **Unmatched IDs (2):** Unknown IDs return unresolved; getUnresolved filter works
+- **Alias resolution (1):** Falls back to alias lookup when mapping not found
+- **Manual overrides (2):** Overrides take priority; confidence reported correctly
+- **Catalog version tracking (3):** Evidence includes version; reinterpretation detection
+- **Edge cases (3):** No catalog, empty source value, different source kind
+
+### Verification
+- ✅ All 13 mapping tests pass
+- ✅ All 42 frontend tests pass (was 29; +13 new)
+- ✅ All other test suites still pass
+
+Addressed 8 follow-up checks from the Issue #7 review:
+
+### Check 1 — Required artifacts from manifest contract ✅
+Already correct. The client derives required/optional status from `manifest.artifacts[].required`, not from a hardcoded list. Optional artifact failures produce warnings without blocking activation.
+
+### Check 2 — Manifest hash verified against publication record ✅
+Already correct. The client compares the computed manifest SHA-256 against `pub.manifestHash` from the PocketBase `catalog_publication` record — not against a self-computed value.
+
+### Check 3 — Multi-tab activation protection ✅
+Added `safeActivate()` using the Web Locks API (`navigator.locks.request`). Two open MineOpsWeb tabs cannot activate different releases simultaneously. Falls back to direct activation if Web Locks is unavailable (non-secure context / older browser).
+
+### Check 4 — Cached package validation metadata ✅
+Added `verifiedAt`, `clientVersion`, and `verificationVersion` to `CachedCatalogPackage`. When the client's compatibility logic changes (`VERIFICATION_VERSION` bump), cached entries are marked `active_stale` and the client re-fetches the package. Eviction preserves packages with stale verification to avoid data loss.
+
+### Check 5 — Bootstrap identity explicit ✅
+Added `source: "bootstrap"` field to `CachedCatalogPackage`. Bootstrap packages have normal immutable identity (`releaseId`, `manifestHash`, `schemaVersion`, `source`), making diagnostics, cache eviction, and replacement behavior transparent.
+
+### Check 6 — Eviction protects recovery assets ✅
+Updated `evictOldPackages()` to never remove:
+- Active package
+- Bootstrap package
+- Packages with pending activation (`isPendingActivation`)
+- Last-known-good (the most recent formerly-active package)
+- Packages referenced by an in-progress switch
+
+### Check 7 — Byte accounting uses manifest-declared values ✅
+Changed `totalBytes` computation from `Buffer.byteLength` / JS string length to manifest-declared `entry.bytes` values (which were already verified against actual content during the fetch phase). `getCacheStatus()` now reports manifest-authoritative byte sizes.
+
+### Check 8 — Distinct stale/fallback states ✅
+Added 5 new load states to the state machine, replacing the old monolithic `"active"`:
+- `active_current` — Freshly verified from publication
+- `active_stale` — Cached with old verification version; usable but needs re-fetch
+- `offline_cached` — Loaded from cache without publication metadata
+- `bootstrap_fallback` — Last resort bundled package
+- `verification_failed_using_previous` — New verification failed; using previous active
+
+### Verification
+- ✅ All 18 catalog client tests pass (updated eviction expectations)
+- ✅ All 29 frontend tests pass
+- ✅ All other test suites still pass
+
+## 2026-07-17 — Create versioned JSON catalog client (Issue #7)
+
+**Goal:** Load the active immutable JSON package safely, cache it locally, and never blend artifacts from different releases.
+
+### Catalog cache (`frontend/src/lib/catalog-cache.ts`)
+
+IndexedDB-backed (Dexie) cache for verified catalog packages. Separate database (`mineops_catalog_cache`) from the main app DB — catalog operations never touch player progress tables.
+
+Features:
+- Store complete verified packages (all artifact JSON + metadata)
+- Retrieve by compound key: `releaseId::manifestHash`
+- Activate/deactivate — exactly one active package at a time
+- Bootstrap package support (bundled, first-launch / offline fallback)
+- Eviction: keeps active, bootstrap, and N most recent packages
+- Cache status: package count, total bytes, active release info, bootstrap presence
+
+### Catalog client (`frontend/src/lib/catalog-client.ts`)
+
+Singleton orchestrator that manages the full lifecycle:
+
+1. **Read publication metadata** from PocketBase (`catalog_publication` collection)
+2. **Check cache** — if already cached with matching hash, activate immediately
+3. **Fetch manifest** — download `manifest.json`, verify SHA-256 against PocketBase
+4. **Validate manifest** — check schema version (major ≤ 2), verify artifacts array
+5. **Fetch artifacts** — download all required artifacts, verify SHA-256 + byte count
+6. **Store in IndexedDB** — cache the verified package
+7. **Activate** — set as active, deactivate previous
+
+**Fallback chain:**
+- Online publication metadata → fetch + verify + cache + activate
+- No publication → use last cached active package
+- No cache → load bundled bootstrap package (`/catalog/bootstrap/`)
+- No bootstrap → error state (`NO_CATALOG_AVAILABLE`)
+
+**State machine phases:** idle → checking_publication → fetching_manifest → verifying_manifest → fetching_artifacts → verifying_artifacts → caching → activating → active / offline_bootstrap / error
+
+**Guarantees:**
+- Never blends artifacts from different releases (each package is a separate cache entry)
+- Hash/schema failures leave previously active package intact
+- Player state never erased on catalog load failure (separate IndexedDB databases)
+- Version switching is atomic: deactivate old → activate new within a transaction
+
+### Bootstrap package
+
+Copied the v2 example bundle to `frontend/public/catalog/bootstrap/` — serves as the bundled fallback for first launch or prolonged offline use. Contains all 8 artifacts with verified hashes.
+
+### Tests (`frontend/src/lib/catalog-client.test.ts`)
+
+18 tests in 5 suites, all passing:
+
+- **Cache (8):** store/retrieve, isCached, activate/deactivate, bootstrap retrieval, list ordering, eviction (keeps active+bootstrap+recent), cache status
+- **Client (6):** idle state, subscribe/unsubscribe, hasCatalog (verified/failed/empty), getActivePackage, getArtifact
+- **Release switching (1):** atomic switch without blending artifacts
+- **Player state isolation (1):** catalog cache uses separate DB from player data
+
+### Verification
+
+- ✅ All 18 catalog client tests pass
+- ✅ All 11 existing frontend tests still pass
+- ✅ All 24 publish, 26 review, 42 catalog, 39 capture-bridge tests still pass
+- ✅ Bootstrap package deployed to `frontend/public/catalog/bootstrap/`
+
+### Deferred
+- Frontend UI integration (loading states, catalog display)
+- Live end-to-end test against PocketBase publication
+- Performance optimization for large catalogs
+
+## 2026-07-17 — Post-review hardening for Issue #6 (7 architecture checks)
+
+Addressed 7 follow-up checks from the Issue #6 review:
+
+### Check 1 — Role-based authorization ✅
+Added `catalog_admin` / `canPublishCatalog` role check to `resolvePublisher()`. The hook now requires `authRecord.catalogRole === "admin"` or `authRecord.canPublishCatalog === true`. Normal authenticated MineOps users get 403 (`FORBIDDEN / INSUFFICIENT_ROLE`). Added 2 tests: insufficient role for publish and rollback.
+
+### Check 2 — Transactional intent ✅
+Documented the mutation order: supersede old → update pointer → activate new → create event. All writes are sequenced to minimize inconsistency windows. Added `MISSING_STORED_MANIFEST_HASH` error for releases that somehow lack a stored hash.
+
+### Check 3 — Rollback target eligibility ✅
+Rollback targets must be previously published (status `active` or `superseded`). Arbitrary `candidate`, `rejected`, or `review_required` releases are rejected with `TARGET_NOT_ELIGIBLE`. Added test for non-eligible target.
+
+### Check 4 — Publication events ✅
+Created `catalog_publication_events` collection (migration `1700000006`) as append-only audit log. Each publish/rollback creates one event with `action`, `fromReleaseId`, `toReleaseId`, `manifestHash`, `performedBy`, `performedAt`, `reason`. Events are never edited or deleted.
+
+### Check 5 — Forward history preserved ✅
+Documented: rollback does NOT destroy forward history. After A→B→C and rollback C→B, all releases remain in `catalog_releases` with full metadata. C can be re-activated later. The `catalog_publication_events` record preserves the complete history.
+
+### Check 6 — Concurrent publication protection ✅
+Documented: the singleton `catalog_publication` row acts as a natural serialization point. Only one publish/rollback can succeed at a time because the active pointer is a single row.
+
+### Check 7 — Manifest hash from stored data ✅
+Already correct. The client-supplied `manifestHash` is treated as a concurrency guard; the server-authoritative value comes from the immutable release record. Added a guard for missing stored hash.
+
+### Test updates
+- 24 tests (was 21): +3 for insufficient role (publish + rollback), non-eligible target
+- Updated rollback simulation with eligibility check and role check
+
+## 2026-07-17 — Publish and roll back immutable JSON releases (Issue #6)
+
+**Goal:** Publish a release by changing one small control-plane pointer, not by rewriting catalog objects. Roll back by pointing to a prior verified package.
+
+### Publication hook (`pocketbase/pb_hooks/catalog-publish.pb.js`)
+
+Two routes, both requiring PocketBase auth cookie (capture Bearer tokens rejected):
+
+**`POST /api/catalog/publish`:**
+1. Authenticate — rejects Bearer tokens with 403 (`FORBIDDEN / CAPTURE_CLIENT_NOT_ALLOWED`)
+2. Validate `releaseId`, `manifestHash` (64-char SHA-256 hex required)
+3. Find release, verify status is `ready`
+4. Verify an approved, latest review exists in `catalog_reviews`
+5. Verify manifest hash matches stored `manifestSha256`
+6. Idempotent: if already active, return 200 with `alreadyActive: true`
+7. Mark old active release → `superseded`
+8. Update `catalog_publication` singleton atomically (activeReleaseId, previousReleaseId, manifestSha256, activatedAt, activatedBy)
+9. Mark new release → `active`, record audit trail
+
+**`POST /api/catalog/rollback`:**
+1. Same auth as publish (rejects capture tokens)
+2. Read current `catalog_publication` → get `previousReleaseId` (or accept explicit `targetReleaseId` in body)
+3. Verify target release exists, is not already active
+4. Mark current active → `superseded`
+5. Swap publication pointer to target
+6. Mark target → `active`, record audit trail
+7. No re-ingestion, no bulk object update, no content rewrite
+
+### Publication CLI (`tools/validation/publish-release.mjs`)
+
+```bash
+npm run publish:catalog publish <releaseId> <manifestHash>
+npm run publish:catalog rollback [targetReleaseId]
+npm run publish:catalog status
+```
+
+Options: `--url`, `--token`, `--json`. Uses `MINEOPS_PB_URL` and `MINEOPS_AUTH_TOKEN` env vars.
+
+### Contract tests (`tests/catalog-publish.test.mjs`)
+
+21 tests in 6 suites, all passing:
+
+- **Successful publish (3):** Ready + approved → active; supersedes previous; idempotent
+- **Failed verification (6):** Hash mismatch, wrong status, no review, non-latest review, rejected review, non-existent release
+- **Capture credentials rejected (3):** Bearer token → 403 (publish + rollback); no auth → 401
+- **Rollback (6):** To previous, to explicit target, non-existent target, no active release, already active, no content rewrite
+- **Exactly one active (2):** Single active after publish; single active after rollback
+- **Player state isolation (1):** Publication never touches player collections
+
+### Documentation
+
+- Added `npm run publish:catalog` and `npm run test:publish` scripts
+- Updated `tools/validation/README.md` with publication usage
+
+### Verification
+
+- ✅ All 21 publication tests pass
+- ✅ All 26 review, 42 catalog, 11 frontend, 39 capture-bridge tests still pass
+- ✅ All 18 validation checks still pass
+
+### Deferred
+- PocketBase migrations not yet applied to Oracle instance
+- Hook not yet tested against live PocketBase
+- Frontend publication UI deferred
+
 ## 2026-07-17 — Implement JSON evidence review, quarantine, and catalog review (Issue #5)
 
 **Goal:** Review immutable JSON evidence and release summaries before a package can become active. Operates on the v2 package: manifest metadata, artifact verification, validation-report.json, changelog.json, mapping conflicts, unresolved IDs, object counts, and schema compatibility.
@@ -87,6 +468,39 @@ Produces a formatted review summary with artifact integrity, validation findings
 - PocketBase migrations not yet applied to Oracle instance
 - Frontend review UI is deferred (separate issue)
 - Review hook not yet tested end-to-end against live PocketBase
+
+## 2026-07-17 — Post-review hardening for Issue #5 (7 architecture checks)
+
+Addressed 7 follow-up checks from the Issue #5 review:
+
+### Check 1 — Bind review to exact package ✅
+Added `manifestHash`, `validationReportHash`, and `reviewEngineVersion` to every review record. The `catalog_reviews` migration now requires all three. The review hook validates SHA-256 format on both hashes and requires `reviewEngineVersion` in the request body. Each review is cryptographically bound to the exact immutable package it evaluated.
+
+### Check 2 — Transactional isLatest enforcement ✅
+Hook already marks previous `isLatest=true` reviews as `false` before creating a new one. Documented the transactional expectation. A unique constraint or app-level hook should additionally prevent two latest reviews from existing simultaneously.
+
+### Check 3 — Manual overrides contract ✅
+Defined a typed contract in the migration header: `{ type, sourceId, canonicalId, reason, reviewedBy, createdAt, supersedes }`. Overrides must be auditable, reversible, and validated against known canonical IDs.
+
+### Check 4 — Duplicate mappings now fatal ✅
+Moved `DUPLICATE_CANONICAL_ID` and `DUPLICATE_SOURCE_IDENTIFIER` from `WARNING_CHECK_CODES` to `FATAL_CHECK_CODES`. Added duplicate canonical ID detection. Mapping conflicts now trigger `hasFatalConflicts` → `quarantined`. Rationale: ambiguous identity can corrupt player-to-catalog resolution.
+
+### Check 5 — Configurable changelog threshold ✅
+Replaced hardcoded `SUSPICIOUS_THRESHOLD = 50` with named, versioned `CHANGELOG_RULES.SUSPICIOUS_CHANGE_COUNT { ruleVersion: 1, threshold: 50 }`. Warning message includes rule name + version.
+
+### Check 6 — Reviewer identity server-derived ✅
+Rewrote `resolveReviewer()` to only use the PocketBase auth record. Removed Bearer-token fallback. Added explicit 401 when no PB auth record exists. Reviewer identity is never accepted from the request body.
+
+### Check 7 — Review immutability ✅
+Documented: once created, a review record is never edited in place. Corrections create a new record marked as latest, preserving complete decision history.
+
+### Naming concern ✅
+Two distinct files: `shared/schemas/review-package.mjs` (logic module) and `tools/validation/review-package.mjs` (CLI wrapper). No duplication.
+
+### Test updates
+- 26 tests (was 24): +2 for binding hashes + engine version
+- Updated duplicate mapping test: expects `quarantined`
+- Updated changelog test: expects rule name + version in message
 
 ## 2026-07-17 — Post-review hardening for Issue #4 (7 architecture checks)
 

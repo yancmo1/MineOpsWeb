@@ -8,7 +8,12 @@ import {
   type AuthStatus,
 } from "../lib/pocketbase";
 import { type CaptureStatus } from "../lib/capture";
-import { useState } from "react";
+import { catalogClient, type CatalogClientState } from "../lib/catalog-client";
+import type { CachedCatalogPackage } from "../lib/catalog-cache";
+import { listImportRecords } from "../lib/import-history";
+import type { ImportRecord } from "../lib/kolibri-fixtures";
+import { describeCache, describeCatalogStatus, redactDiagnostic } from "../lib/operational-status";
+import { useEffect, useState } from "react";
 
 interface MorePageProps {
   credentials: KolibriCredentials;
@@ -47,6 +52,19 @@ export function MorePage({
   const [pbPassword, setPbPassword] = useState("");
   const [pbError, setPbError] = useState<string | null>(null);
   const [pbBusy, setPbBusy] = useState(false);
+  const [catalogState, setCatalogState] = useState<CatalogClientState>(() => ({ ...catalogClient }));
+  const [packages, setPackages] = useState<CachedCatalogPackage[]>([]);
+  const [imports, setImports] = useState<ImportRecord[]>([]);
+
+  useEffect(() => {
+    const refresh = async () => {
+      setCatalogState({ ...catalogClient });
+      setPackages(await catalogClient.getCachedPackages());
+      setImports(await listImportRecords());
+    };
+    void refresh();
+    return catalogClient.subscribe(() => { void refresh(); });
+  }, []);
 
   async function handlePbSignIn() {
     setPbBusy(true);
@@ -73,6 +91,9 @@ export function MorePage({
     onSettingsChange(newSettings);
     await saveSettings(newSettings);
   }
+  const catalogStatus = describeCatalogStatus(catalogState.loadState);
+  const cacheDetail = describeCache(catalogState.cacheStatus, packages);
+  const activePackage = packages.find((pkg) => pkg.isActive);
   return (
     <div className="more-page">
       {/* PocketBase Account Section */}
@@ -228,7 +249,7 @@ export function MorePage({
                 color: "var(--accent-orange)",
               }}
             >
-              <strong>Error:</strong> {metadata.error}
+              <strong>Error:</strong> {redactDiagnostic(metadata.error)}
             </p>
           )}
           <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
@@ -272,6 +293,7 @@ export function MorePage({
         <label style={{ display: "grid", gap: "0.5rem", marginBottom: "1rem" }}>
           <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Save game key</span>
           <input
+            type="password"
             value={credentials.saveGameKey}
             onChange={(e) =>
               onCredentialsChange({ ...credentials, saveGameKey: e.target.value })
@@ -295,6 +317,26 @@ export function MorePage({
             {diagnostics.unknownManagerCount} unmatched catalog IDs
           </p>
         )}
+      </section>
+
+      <section className="card-container" aria-live="polite">
+        <h2 className="card-title">Catalog package</h2>
+        <p style={{ marginTop: "-0.5rem", fontSize: "0.875rem" }}><strong>{catalogStatus.label}</strong></p>
+        <p className="muted" style={{ fontSize: "0.8rem" }}>{catalogStatus.detail}</p>
+        <div style={{ padding: "0.75rem", background: "var(--bg-secondary)", borderRadius: "0.5rem", fontSize: "0.8rem" }}>
+          <p style={{ margin: 0 }}><strong>Active release:</strong> {activePackage?.releaseId ?? "None"}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Manifest:</strong> {activePackage?.manifestHash ?? "Not available"}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Schema:</strong> {activePackage?.manifestSchemaVersion ?? "Not available"}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Cache:</strong> {catalogState.cacheStatus.packageCount} package(s), {cacheDetail.size}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Last-known-good:</strong> {cacheDetail.lastKnownGood}</p>
+        </div>
+        {activePackage && <div style={{ marginTop: "0.75rem", fontSize: "0.8rem" }}>
+          <strong>Artifact verification</strong>
+          {Object.values(activePackage.artifacts).map((artifact) => <p className="muted" key={artifact.filename} style={{ margin: "0.3rem 0" }}>✓ {artifact.filename} · {artifact.schemaVersion} · {artifact.bytes.toLocaleString()} bytes</p>)}
+          {activePackage.warnings.map((warning) => <p key={warning} style={{ color: "var(--accent-orange)", margin: "0.3rem 0" }}>{redactDiagnostic(warning)}</p>)}
+        </div>}
+        <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.75rem" }}>{catalogStatus.recovery}</p>
+        <button onClick={() => void catalogClient.reloadCatalog()} style={{ width: "100%" }}>Refresh catalog safely</button>
       </section>
 
       {/* Snapshot History */}
@@ -340,7 +382,7 @@ export function MorePage({
               )}
               {captureStatus.lastSource && (
                 <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                  <strong>Source:</strong> {captureStatus.lastSource}
+                  <strong>Source:</strong> {redactDiagnostic(captureStatus.lastSource)}
                 </p>
               )}
               {captureStatus.lastObjectCount !== undefined && (
@@ -438,7 +480,7 @@ export function MorePage({
               </p>
               {captureStatus.error && (
                 <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem", color: "var(--accent-orange)" }}>
-                  {captureStatus.error}
+                  {redactDiagnostic(captureStatus.error)}
                 </p>
               )}
               <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
@@ -450,6 +492,11 @@ export function MorePage({
         <button onClick={onRefreshCaptureStatus} style={{ width: "100%" }}>
           Refresh
         </button>
+      </section>
+
+      <section className="card-container">
+        <h2 className="card-title">Player import history</h2>
+        {imports.length ? imports.slice(0, 5).map((record) => <p key={record.id ?? record.importedAt} className="muted" style={{ fontSize: "0.8rem" }}>{new Date(record.importedAt).toLocaleString()} · {record.source} · {record.resolvedCount} resolved / {record.unresolvedCount} unresolved · {record.catalogVersion ?? "no catalog reference"}</p>) : <p className="muted" style={{ fontSize: "0.8rem" }}>No local player imports recorded yet.</p>}
       </section>
 
       {/* About Section */}

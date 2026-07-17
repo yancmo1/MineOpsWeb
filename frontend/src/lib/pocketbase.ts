@@ -96,6 +96,14 @@ export interface PlayerSnapshotPayload {
   metadata: string;
   /** Catalog version hash or identifier */
   catalogVersion?: string;
+  /** SHA-256 of the manifest used for interpretation */
+  manifestHash?: string;
+  /** Client-generated UUID for idempotent retry */
+  idempotencyKey?: string;
+  /** Source IDs that couldn't be resolved */
+  unresolvedSourceIds?: string[];
+  /** Import source (e.g. "kolibri", "manual") */
+  source?: string;
 }
 
 export interface PlayerSnapshotRecord extends RecordModel {
@@ -104,12 +112,18 @@ export interface PlayerSnapshotRecord extends RecordModel {
   progress: string;
   metadata: string;
   catalogVersion: string;
+  manifestHash: string;
   active: boolean;
+  revision: number;
+  idempotencyKey: string;
+  unresolvedSourceIds: string;
+  source: string;
 }
 
 /**
  * Push a new player snapshot to PocketBase.
  * Marks previous active snapshots as inactive.
+ * Uses idempotency key to prevent duplicate pushes on retry.
  */
 export async function pushPlayerSnapshot(
   payload: PlayerSnapshotPayload,
@@ -118,25 +132,55 @@ export async function pushPlayerSnapshot(
   if (!pb.authStore.isValid || !pb.authStore.record) {
     throw new Error("Not authenticated");
   }
+  const ownerId = pb.authStore.record.id;
 
-  // Mark all previous snapshots as inactive
-  const previous = await pb
-    .collection("player_snapshots")
-    .getFullList<PlayerSnapshotRecord>({
-      filter: `owner = "${pb.authStore.record.id}" && active = true`,
-    });
-  for (const snap of previous) {
-    await pb.collection("player_snapshots").update(snap.id, { active: false });
+  // Generate idempotency key if not provided
+  const idempotencyKey =
+    payload.idempotencyKey ?? crypto.randomUUID();
+
+  // Compatibility mode: avoid server-side filters for older remote schemas.
+  const existingSnapshots = await listOwnSnapshots(ownerId, 200);
+
+  // Check for existing snapshot with this idempotency key
+  const existing = existingSnapshots.find((snap) => snap.idempotencyKey === idempotencyKey);
+  if (existing) {
+    console.debug("[pocketbase] Snapshot already pushed (idempotent):", idempotencyKey);
+    return existing;
+  }
+
+  // Get current revision count for conflict detection
+  const latestRevision = existingSnapshots.reduce((maxRev, snap) => {
+    const rev = Number(snap.revision ?? 0);
+    return Number.isFinite(rev) ? Math.max(maxRev, rev) : maxRev;
+  }, 0);
+  const revision = latestRevision + 1;
+
+  // Mark all previous snapshots as inactive (best effort)
+  try {
+    for (const snap of existingSnapshots) {
+      if (snap.active === true) {
+        await pb.collection("player_snapshots").update(snap.id, { active: false });
+      }
+    }
+  } catch {
+    // Best-effort — new snapshot will still be created
   }
 
   const record = await pb
     .collection("player_snapshots")
     .create<PlayerSnapshotRecord>({
-      owner: pb.authStore.record.id,
+      owner: ownerId,
       capturedAt: payload.capturedAt,
       progress: payload.progress,
       metadata: payload.metadata,
       catalogVersion: payload.catalogVersion ?? "",
+      manifestHash: payload.manifestHash ?? "",
+      revision,
+      idempotencyKey,
+      unresolvedSourceIds: payload.unresolvedSourceIds
+        ? JSON.stringify(payload.unresolvedSourceIds)
+        : "",
+      source: payload.source ?? "",
       active: true,
     });
 
@@ -145,7 +189,7 @@ export async function pushPlayerSnapshot(
 
 /**
  * Pull the latest active player snapshot from PocketBase.
- * Returns null if no snapshot exists.
+ * Returns null if no snapshot exists or the collection is missing.
  */
 export async function pullLatestSnapshot(): Promise<PlayerSnapshotRecord | null> {
   const pb = getClient();
@@ -153,14 +197,35 @@ export async function pullLatestSnapshot(): Promise<PlayerSnapshotRecord | null>
     throw new Error("Not authenticated");
   }
 
-  const results = await pb
-    .collection("player_snapshots")
-    .getList<PlayerSnapshotRecord>(1, 1, {
-      filter: `owner = "${pb.authStore.record.id}" && active = true`,
-      sort: "-created",
-    });
+  try {
+    const snapshots = await listOwnSnapshots(pb.authStore.record.id, 200);
+    const active = snapshots.filter((snap) => snap.active === true);
+    const pool = active.length > 0 ? active : snapshots;
+    return pool[0] ?? null;
+  } catch (err) {
+    // Distinguish missing collection from other errors
+    const msg = String(err);
+    if (msg.includes("404") || msg.includes("not found") || msg.includes("Collection")) {
+      console.warn("[pocketbase] player_snapshots collection not found. Run migration 1700000008.");
+    } else {
+      console.warn("[pocketbase] Failed to pull latest snapshot:", err);
+    }
+    return null;
+  }
+}
 
-  return results.items[0] ?? null;
+async function listOwnSnapshots(ownerId: string, perPage: number): Promise<PlayerSnapshotRecord[]> {
+  const pb = getClient();
+  try {
+    const page = await pb
+      .collection("player_snapshots")
+      .getList<PlayerSnapshotRecord>(1, perPage, {
+        sort: "-created",
+      });
+    return page.items.filter((item) => item.owner === ownerId);
+  } catch {
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------

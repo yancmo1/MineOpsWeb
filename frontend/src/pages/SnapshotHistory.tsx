@@ -14,6 +14,7 @@ import {
   type SnapshotDiff,
   computeDiff,
 } from "../lib/snapshot";
+import { getImportRecord } from "../lib/import-history";
 
 interface SnapshotHistoryProps {
   catalog: CatalogManager[];
@@ -33,6 +34,8 @@ export function SnapshotHistory({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [diff, setDiff] = useState<SnapshotDiff | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmRollbackId, setConfirmRollbackId] = useState<number | null>(null);
+  const [rollbackError, setRollbackError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -57,21 +60,36 @@ export function SnapshotHistory({
     setDiff(result);
   }
 
+  // Prompt for confirmation before rollback
+  function promptRollback(snap: Snapshot) {
+    setConfirmRollbackId(snap.id ?? null);
+    setRollbackError(null);
+  }
+
   async function handleRollback(snap: Snapshot) {
     if (!snap.id) return;
     setBusy(true);
+    setRollbackError(null);
     try {
       const restored = await rollbackToSnapshot(snap.id);
       if (restored) {
         onRollback(restored.progress);
         setActiveId(snap.id);
         setDiff(null);
+        setConfirmRollbackId(null);
         // Refresh list
         setSnapshots(await listSnapshots());
       }
+    } catch (err) {
+      setRollbackError(err instanceof Error ? err.message : "Rollback failed");
     } finally {
       setBusy(false);
     }
+  }
+
+  function cancelRollback() {
+    setConfirmRollbackId(null);
+    setRollbackError(null);
   }
 
   return (
@@ -159,7 +177,7 @@ export function SnapshotHistory({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleRollback(snap);
+                        promptRollback(snap);
                       }}
                       disabled={busy}
                       style={{
@@ -203,6 +221,45 @@ export function SnapshotHistory({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Rollback confirmation dialog */}
+      {confirmRollbackId !== null && (
+        <div className="confirmation-dialog" style={{
+          position: "fixed", inset: 0, display: "flex",
+          alignItems: "center", justifyContent: "center",
+          backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000,
+        }}>
+          <div style={{
+            backgroundColor: "var(--bg-primary)",
+            padding: "1.5rem", borderRadius: "0.75rem",
+            maxWidth: "400px", width: "90%",
+          }}>
+            <h3 style={{ margin: "0 0 0.75rem" }}>Restore this snapshot?</h3>
+            <p style={{ margin: "0 0 1rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+              This will replace your current progress with the selected snapshot.
+              Your current progress is not deleted — it remains in the snapshot history.
+            </p>
+            {rollbackError && (
+              <p style={{ color: "var(--error-color)", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
+                ❌ {rollbackError}
+              </p>
+            )}
+            <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+              <button onClick={cancelRollback} disabled={busy}>Cancel</button>
+              <button
+                onClick={() => {
+                  const snap = snapshots.find((s) => s.id === confirmRollbackId);
+                  if (snap) handleRollback(snap);
+                }}
+                disabled={busy}
+                style={{ backgroundColor: "var(--accent-red)", color: "#fff" }}
+              >
+                {busy ? "Restoring…" : "Restore Snapshot"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

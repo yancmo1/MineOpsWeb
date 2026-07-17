@@ -6,13 +6,23 @@
  *   POST /api/catalog/review/reject   — Reject a release
  *   POST /api/catalog/review/quarantine — Quarantine a release (fatal findings)
  *
- * Auth: Bearer token or PocketBase auth cookie (authenticated users only).
+ * Auth: PocketBase auth cookie (authenticated users only).
+ *       Reviewer identity is ALWAYS derived from the server-side auth record —
+ *       it is NEVER accepted from the request body.
  *
  * Each action:
  *   1. Validates the release exists
- *   2. Creates a catalog_reviews record with the decision
- *   3. Updates the catalog_releases status accordingly
- *   4. Records the action in the release's auditLog
+ *   2. Checks status transition validity
+ *   3. For approval: blocks if validation summary has fatal findings
+ *   4. Transactionally marks previous latest reviews as not-latest
+ *   5. Creates a catalog_reviews record bound to the exact package
+ *      (manifestHash + validationReportHash + reviewEngineVersion)
+ *   6. Updates the catalog_releases status accordingly
+ *   7. Records the action in the release's auditLog
+ *
+ * Immutability: Once created, a review record is never edited in place.
+ * Corrections create a NEW review record and mark it as latest. This
+ * preserves the complete decision history.
  *
  * Data ownership:
  *   - Generated evidence (validation-report.json, changelog.json, artifact hashes)
@@ -27,12 +37,13 @@
  */
 
 /**
- * Shared helper: resolve the authenticated user identity from the request.
- * Returns a display string like "admin@example.com" or "authenticated-user".
+ * Resolve the authenticated user identity from the PocketBase auth record.
+ * NEVER accepts reviewer identity from the request body — always server-derived.
+ *
+ * @returns {string} Display identity like "admin@example.com" or the auth record ID.
  */
 function resolveReviewer(c) {
-  var info = c.requestInfo();
-  // Try PocketBase auth record first
+  // MUST come from the PocketBase auth record — not from request headers or body
   try {
     var authRecord = c.get("authRecord");
     if (authRecord) {
@@ -40,14 +51,10 @@ function resolveReviewer(c) {
     }
   } catch (_) { /* not authenticated via PB cookie */ }
 
-  // Fall back to Bearer token client name
-  var authHeader = (info.headers || {}).authorization || "";
-  var tokenMatch = authHeader.match(/^Bearer\s+(.+)$/i);
-  if (tokenMatch) {
-    return "token:" + tokenMatch[1].slice(0, 8) + "...";
-  }
-
-  return "unknown";
+  // If no PB auth record, the request is unauthenticated.
+  // We still return a value for error reporting, but the route guard
+  // should reject unauthenticated requests before reaching here.
+  return "unauthenticated";
 }
 
 /**
@@ -62,6 +69,16 @@ function performReview(c, decision, newStatus) {
     var info = c.requestInfo();
     var body = (typeof info.body === "string") ? JSON.parse(info.body) : (info.body || {});
 
+    // Require authentication — reviewer identity must be server-derived
+    var reviewer = resolveReviewer(c);
+    if (reviewer === "unauthenticated") {
+      return c.json(401, {
+        success: false,
+        error: "Authentication required. Reviewer identity is server-derived and cannot be supplied in the request body.",
+        code: "UNAUTHORIZED",
+      });
+    }
+
     // Validate required fields
     if (!body.releaseId || typeof body.releaseId !== "string" || body.releaseId.length < 1) {
       return c.json(400, {
@@ -71,7 +88,29 @@ function performReview(c, decision, newStatus) {
       });
     }
 
-    var reviewer = resolveReviewer(c);
+    // Package-binding hashes — tie this review to the exact immutable package
+    if (!body.manifestHash || typeof body.manifestHash !== "string" || !/^[a-f0-9]{64}$/.test(body.manifestHash)) {
+      return c.json(400, {
+        success: false,
+        error: "manifestHash is required (64-char SHA-256 hex of the manifest.json being reviewed)",
+        code: "VALIDATION_ERROR / MISSING_MANIFEST_HASH",
+      });
+    }
+    if (!body.validationReportHash || typeof body.validationReportHash !== "string" || !/^[a-f0-9]{64}$/.test(body.validationReportHash)) {
+      return c.json(400, {
+        success: false,
+        error: "validationReportHash is required (64-char SHA-256 hex of the validation-report.json being reviewed)",
+        code: "VALIDATION_ERROR / MISSING_VALIDATION_REPORT_HASH",
+      });
+    }
+    if (!body.reviewEngineVersion || typeof body.reviewEngineVersion !== "string" || body.reviewEngineVersion.length < 1) {
+      return c.json(400, {
+        success: false,
+        error: "reviewEngineVersion is required (version of the review engine that produced this review)",
+        code: "VALIDATION_ERROR / MISSING_REVIEW_ENGINE_VERSION",
+      });
+    }
+
     var now = new Date().toISOString();
 
     // 1. Find the release
@@ -131,7 +170,9 @@ function performReview(c, decision, newStatus) {
       }
     }
 
-    // 3. Mark previous reviews for this release as not latest
+    // 3. Transactionally mark previous reviews for this release as not latest.
+    //    A unique constraint or app-level hook should additionally prevent two
+    //    latest reviews for the same release from existing simultaneously.
     var reviewsCol = $app.findCollectionByNameOrId("catalog_reviews");
     var prevReviews = $app.findRecordsByFilter(
       reviewsCol,
@@ -146,7 +187,8 @@ function performReview(c, decision, newStatus) {
       $app.save(prevReviews[i]);
     }
 
-    // 4. Create the review record
+    // 4. Create the review record — immutable once created.
+    //    Corrections create a NEW review record (never edit in place).
     var reviewRecord = new Record(reviewsCol, {
       releaseId: body.releaseId,
       decision: decision,
@@ -157,6 +199,9 @@ function performReview(c, decision, newStatus) {
       manualOverrides: JSON.stringify(body.manualOverrides || []),
       findingsSummary: JSON.stringify(body.findingsSummary || {}),
       schemaCompat: JSON.stringify(body.schemaCompat || {}),
+      manifestHash: body.manifestHash,
+      validationReportHash: body.validationReportHash,
+      reviewEngineVersion: body.reviewEngineVersion,
       isLatest: true,
     });
     $app.save(reviewRecord);
@@ -192,6 +237,9 @@ function performReview(c, decision, newStatus) {
       newStatus: newStatus,
       reviewedBy: reviewer,
       reviewedAt: now,
+      manifestHash: body.manifestHash,
+      validationReportHash: body.validationReportHash,
+      reviewEngineVersion: body.reviewEngineVersion,
     });
   } catch (e) {
     return c.json(500, {

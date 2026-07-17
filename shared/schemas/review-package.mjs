@@ -268,14 +268,15 @@ function checkChangelog(changelog, manifest) {
 }
 
 function checkMappingsAndConflicts(mappings, catalogCore) {
-  const findings = [];
+  const fatalFindings = [];
+  const warningFindings = [];
 
-  // Check for duplicate source identifiers
+  // Check for duplicate source identifiers (FATAL — ambiguous identity corrupts resolution)
   const seenSources = new Map();
   for (const mapping of mappings.idMappings || []) {
     const key = `${mapping.kind}:${mapping.sourceValue}`;
     if (seenSources.has(key)) {
-      findings.push({
+      fatalFindings.push({
         code: "DUPLICATE_SOURCE_IDENTIFIER",
         severity: "error",
         message: `Duplicate mapping: ${key} maps to both ${seenSources.get(key)} and ${mapping.canonicalId}`,
@@ -285,7 +286,22 @@ function checkMappingsAndConflicts(mappings, catalogCore) {
     }
   }
 
-  // Check for mappings to non-existent entities
+  // Check for duplicate canonical IDs (FATAL)
+  const seenCanonical = new Map();
+  for (const mapping of mappings.idMappings || []) {
+    const key = `${mapping.kind}:${mapping.canonicalId}`;
+    if (seenCanonical.has(key) && seenCanonical.get(key) !== mapping.sourceValue) {
+      fatalFindings.push({
+        code: "DUPLICATE_CANONICAL_ID",
+        severity: "error",
+        message: `Canonical ID ${mapping.canonicalId} has conflicting source values in kind ${mapping.kind}`,
+      });
+    } else {
+      seenCanonical.set(key, mapping.sourceValue);
+    }
+  }
+
+  // Check for mappings to non-existent entities (warning)
   const validIds = new Set();
   for (const arr of ["managers", "mines", "equipment", "research", "collectibles", "artifacts"]) {
     for (const entity of catalogCore[arr] || []) {
@@ -295,7 +311,7 @@ function checkMappingsAndConflicts(mappings, catalogCore) {
 
   for (const mapping of mappings.idMappings || []) {
     if (mapping.canonicalId && !validIds.has(mapping.canonicalId)) {
-      findings.push({
+      warningFindings.push({
         code: "ORPHANED_MAPPING",
         severity: "warning",
         message: `Mapping references non-existent canonicalId: ${mapping.canonicalId} (source: ${mapping.kind}:${mapping.sourceValue})`,
@@ -303,10 +319,10 @@ function checkMappingsAndConflicts(mappings, catalogCore) {
     }
   }
 
-  // Check for unresolvable aliases
+  // Check for unresolvable aliases (warning)
   for (const alias of mappings.aliases || []) {
     if (alias.canonicalId && !validIds.has(alias.canonicalId)) {
-      findings.push({
+      warningFindings.push({
         code: "ORPHANED_ALIAS",
         severity: "warning",
         message: `Alias "${alias.alias}" references non-existent canonicalId: ${alias.canonicalId}`,
@@ -314,11 +330,16 @@ function checkMappingsAndConflicts(mappings, catalogCore) {
     }
   }
 
+  const allFindings = [...fatalFindings, ...warningFindings];
+
   return {
-    findings,
+    findings: allFindings,
+    fatalFindings,
+    warningFindings,
     mappingCount: (mappings.idMappings || []).length,
     aliasCount: (mappings.aliases || []).length,
-    hasConflicts: findings.filter((f) => f.severity === "error").length > 0,
+    hasFatalConflicts: fatalFindings.length > 0,
+    hasConflicts: fatalFindings.length > 0,
   };
 }
 
@@ -425,9 +446,15 @@ export function reviewPackage(bundleDir) {
   const mappingReview = checkMappingsAndConflicts(mappings, catalogCore);
   const schemaReview = checkSchemaCompatibility(manifest);
 
-  // Determine overall review status
-  const hasFatal = !artifactIntegrity.passed || !validationFindings.canPublish || !schemaReview.compatible;
-  const hasWarnings = validationFindings.warningCount > 0 || changelogReview.findings.length > 0 || mappingReview.findings.length > 0;
+  // Compute package-binding hashes for review traceability
+  const manifestRaw = readFileSync(manifestPath, "utf-8");
+  const manifestHash = sha256(manifestRaw);
+  const validationReportRaw = readFileSync(validationReportPath, "utf-8");
+  const validationReportHash = sha256(validationReportRaw);
+
+  // Determine overall review status — mapping conflicts with fatal severity now block
+  const hasFatal = !artifactIntegrity.passed || !validationFindings.canPublish || !schemaReview.compatible || mappingReview.hasFatalConflicts;
+  const hasWarnings = validationFindings.warningCount > 0 || changelogReview.findings.length > 0 || mappingReview.warningFindings.length > 0;
 
   let recommendedDecision = "approved";
   if (hasFatal) {
@@ -444,6 +471,11 @@ export function reviewPackage(bundleDir) {
     gameVersion: manifest.gameVersion,
     generatedAt: manifest.generatedAt,
     recommendedDecision,
+
+    /** Package-binding hashes — tie this review to the exact immutable package. */
+    manifestHash,
+    validationReportHash,
+    reviewEngineVersion: REVIEW_ENGINE_VERSION,
 
     artifactIntegrity: {
       passed: artifactIntegrity.passed,
@@ -466,8 +498,11 @@ export function reviewPackage(bundleDir) {
 
     mappingReview: {
       findings: mappingReview.findings,
+      fatalFindings: mappingReview.fatalFindings,
+      warningFindings: mappingReview.warningFindings,
       mappingCount: mappingReview.mappingCount,
       aliasCount: mappingReview.aliasCount,
+      hasFatalConflicts: mappingReview.hasFatalConflicts,
       hasConflicts: mappingReview.hasConflicts,
     },
 

@@ -13,26 +13,41 @@
  * can exist per release (initial review + re-review after fixes).
  *
  * Immutable after creation:
- *   releaseId, decision, reviewedAt, reviewedBy
+ *   releaseId, decision, reviewedAt, reviewedBy, manifestHash,
+ *   validationReportHash, reviewEngineVersion
  *
  * Mutable if re-reviewing:
  *   notes, annotations, manualOverrides, findings
  *
  * Fields:
- *   releaseId        — FK to catalog_releases.releaseId
- *   decision         — approved | rejected | quarantined
- *   reviewedBy       — Person/system that made the decision
- *   reviewedAt       — ISO-8601 timestamp
- *   notes            — Free-text reviewer notes
- *   annotations      — JSON: array of specific annotations on findings
- *                       [{checkCode, finding, annotation, severity}]
- *   manualOverrides  — JSON: array of manual mapping overrides
- *                       [{canonicalId, kind, sourceValue, reason}]
- *   findingsSummary  — JSON: compact summary of findings reviewed
- *                       {fatalCount, warningCount, fatalCodes[], warningCodes[]}
- *   schemaCompat     — JSON: schema compatibility assessment
- *                       {manifestSupported, requiredArtifactsSupported, unsupportedArtifacts[]}
- *   isLatest         — True if this is the most recent review for this release
+ *   releaseId            — FK to catalog_releases.releaseId
+ *   decision             — approved | rejected | quarantined
+ *   reviewedBy           — Server-derived: PocketBase auth identity (never from request body)
+ *   reviewedAt           — ISO-8601 timestamp
+ *   notes                — Free-text reviewer notes
+ *   annotations          — JSON: array of specific annotations on findings
+ *                           [{checkCode, finding, annotation, severity}]
+ *   manualOverrides      — JSON: array of manual mapping overrides (see contract below)
+ *   findingsSummary      — JSON: compact summary of findings reviewed
+ *                           {fatalCount, warningCount, fatalCodes[], warningCodes[]}
+ *   schemaCompat         — JSON: schema compatibility assessment
+ *                           {manifestSupported, requiredArtifactsSupported, unsupportedArtifacts[]}
+ *   manifestHash         — SHA-256 of the manifest.json this review evaluated (immutable)
+ *   validationReportHash — SHA-256 of the validation-report.json this review evaluated (immutable)
+ *   reviewEngineVersion  — Version of the review engine that produced this review (immutable)
+ *   isLatest             — True if this is the most recent review for this release
+ *
+ * Manual override contract (each entry in manualOverrides array):
+ *   {
+ *     "type": "manager_mapping",
+ *     "sourceId": "<source-system-identifier>",
+ *     "canonicalId": "<mineops-canonical-id>",
+ *     "reason": "<why the override was needed>",
+ *     "reviewedBy": "<server-derived reviewer identity>",
+ *     "createdAt": "<ISO-8601 timestamp>",
+ *     "supersedes": null | "<previous-override-id>"
+ *   }
+ *   Overrides must be auditable, reversible, and validated against known canonical IDs.
  */
 
 migrate((app) => {
@@ -106,6 +121,35 @@ migrate((app) => {
         name: "schemaCompat",
         type: "json",
         required: false,
+      },
+      {
+        name: "manifestHash",
+        type: "text",
+        required: true,
+        options: {
+          min: 64,
+          max: 64,
+          pattern: "^[a-f0-9]{64}$",
+        },
+      },
+      {
+        name: "validationReportHash",
+        type: "text",
+        required: true,
+        options: {
+          min: 64,
+          max: 64,
+          pattern: "^[a-f0-9]{64}$",
+        },
+      },
+      {
+        name: "reviewEngineVersion",
+        type: "text",
+        required: true,
+        options: {
+          min: 1,
+          max: 20,
+        },
       },
       {
         name: "isLatest",

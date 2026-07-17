@@ -3,9 +3,11 @@ import { getSyncMetadata, loadProgress, rankThreshold, saveProgress, setSyncMeta
 import { fetchKolibri, type KolibriCredentials, type KolibriDiagnostics } from "./lib/kolibri";
 import { type Tab, navigationItems, getTabLabel } from "./lib/navigation";
 import { restoreAuth, getAuthStatus, onAuthChange, getClient, getBaseUrl, type AuthStatus } from "./lib/pocketbase";
-import { pushStateToPB, pullNewerFromPB } from "./lib/sync";
+import { pushStateToPB, pullNewerFromPB, getLocalRevision, updateSyncMetadata } from "./lib/sync";
 import { saveSnapshot } from "./lib/snapshot";
+import { saveImportRecord } from "./lib/import-history";
 import { fetchCaptureStatus, type CaptureStatus } from "./lib/capture";
+import { catalogClient } from "./lib/catalog-client";
 import { TodayPage } from "./pages/TodayPage";
 import { SnapshotHistory } from "./pages/SnapshotHistory";
 import { StrategyPage } from "./pages/StrategyPage";
@@ -119,7 +121,7 @@ export default function App() {
       if (status.authenticated && progressRef.length > 0) {
         void (async () => {
           const loadedMetadata = await getSyncMetadata();
-          const pbSnapshot = await pullNewerFromPB(loadedMetadata.lastSuccessfulSyncAt);
+          const pbSnapshot = await pullNewerFromPB(getLocalRevision(loadedMetadata));
           if (pbSnapshot) {
             setProgress(pbSnapshot.progress);
             await saveProgress(pbSnapshot.progress);
@@ -133,6 +135,10 @@ export default function App() {
     });
 
     void (async () => {
+      // Package loading is independent from player state. Strategy and More
+      // consume this verified cache; a failure never prevents local progress
+      // from rendering below.
+      void catalogClient.loadActiveCatalog();
       const response = await fetch("/catalog/sm_complete_database.json");
       const json = await response.json() as { managers: CatalogManager[] };
       let managers = json.managers;
@@ -151,7 +157,7 @@ export default function App() {
 
       // Pull newer PB snapshot on launch (cross-device catch-up)
       if (getAuthStatus().authenticated) {
-        const pbSnapshot = await pullNewerFromPB(loadedMetadata.lastSuccessfulSyncAt);
+        const pbSnapshot = await pullNewerFromPB(getLocalRevision(loadedMetadata));
         if (pbSnapshot) {
           progressRef = pbSnapshot.progress;
           setProgress(pbSnapshot.progress);
@@ -297,6 +303,12 @@ export default function App() {
       await saveProgress(result.progress);
       setProgress(result.progress);
       setDiagnostics(result.diagnostics);
+
+      // Get active catalog metadata for import traceability
+      const pkg = await catalogClient.getActivePackage();
+      const catalogVersion = result.catalogVersion ?? pkg?.catalogVersion ?? null;
+      const manifestHash = pkg?.manifestHash ?? null;
+
       const next: SyncMetadata = {
         ...metadata,
         lastAttemptAt: attemptedAt,
@@ -308,11 +320,49 @@ export default function App() {
       await setSyncMetadata(next);
       setMetadata(next);
 
-      // Save local snapshot (with diff from previous)
-      void saveSnapshot(result.progress, next, "Kolibri Capsule", { nameMap: new Map(catalog.map((m) => [m.id, m.name])) });
+      // Save local snapshot with catalog metadata + unresolved IDs
+      const unresolvedIds = result.unresolved.length > 0
+        ? result.unresolved.map((u) => u.sourceValue)
+        : undefined;
+
+      const snapshot = await saveSnapshot(
+        result.progress,
+        next,
+        "Kolibri Capsule",
+        { nameMap: new Map(catalog.map((m) => [m.id, m.name])) },
+        catalogVersion,
+        unresolvedIds,
+      );
+
+      // Save sanitized import record (no credentials, no raw payloads)
+      const newlyUnlocked = snapshot.summary.includes("Unlocked")
+        ? parseInt(snapshot.summary.match(/\d+/)?.[0] ?? "0", 10)
+        : 0;
+      const importStatus = result.diagnostics.unknownManagerCount > 0 ? "partially_succeeded" : "succeeded";
+
+      await saveImportRecord({
+        importedAt: attemptedAt,
+        source: "kolibri",
+        status: importStatus,
+        managerCount: result.diagnostics.managerCount,
+        unresolvedCount: result.diagnostics.unknownManagerCount,
+        resolvedCount: result.diagnostics.managerCount - result.diagnostics.unknownManagerCount,
+        newlyUnlocked,
+        catalogVersion,
+        manifestHash,
+        snapshotId: snapshot.id ?? null,
+        diagnosticsSummary: `HTTP ${result.diagnostics.statusCode}, ${result.diagnostics.payloadFormat}, ${result.diagnostics.rawBytes}b`,
+      });
 
       // Push to PB (fire-and-forget — never blocks the user)
-      void pushStateToPB(result.progress, next);
+      void pushStateToPB(
+        result.progress,
+        next,
+        catalogVersion ?? undefined,
+        manifestHash ?? undefined,
+        unresolvedIds,
+        "kolibri",
+      );
     } catch (error) {
       const next: SyncMetadata = {
         ...metadata,
@@ -482,7 +532,7 @@ export default function App() {
           </section>
         </>
       )}
-      {tab === "strategy" && <StrategyPage catalog={catalog} progress={progress} />}
+      {tab === "strategy" && <StrategyPage progress={progress} />}
       {tab === "more" && (
         <MorePage
           credentials={credentials}

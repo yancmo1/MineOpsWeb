@@ -52,11 +52,35 @@ node tools/validation/review-package.mjs catalogs/example --json
 - Suspiciously large changelog changes (>50 managers)
 - Orphaned mappings/aliases
 
+## Publication (`publish-release.mjs`)
+
+Manages the active-release pointer: publish a reviewed release or roll back to a previous one. The active release is tracked by a single `catalog_publication` record — publishing changes only this pointer.
+
+```bash
+# Publish a reviewed release
+npm run publish:catalog publish <releaseId> <manifestHash>
+
+# Roll back to previous (or specified) release
+npm run publish:catalog rollback [targetReleaseId]
+
+# View current publication state
+npm run publish:catalog status
+
+# Options
+npm run publish:catalog -- --url http://pb:8090 --token <auth-token> --json
+```
+
+### Requirements
+- Release must be in `ready` status (reviewed and approved)
+- Manifest hash must match the stored release record
+- Capture-client Bearer tokens are rejected (PB auth cookie required)
+
 ## Tests
 
 ```bash
 npm run test:catalog    # 42 catalog package contract tests
-npm run test:review     # 24 review contract tests
+npm run test:review     # 26 review contract tests
+npm run test:publish    # 21 publication contract tests
 ```
 
 ## Requirements

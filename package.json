@@ -11,8 +11,10 @@
     "dev": "docker compose -f docker-compose.dev.yml up --build",
     "validate:catalog": "node tools/validation/validate-catalog.mjs",
     "review:catalog": "node tools/validation/review-package.mjs",
+    "publish:catalog": "node tools/validation/publish-release.mjs",
     "test:catalog": "node --test tests/catalog-package.test.mjs",
-    "test:review": "node --test tests/catalog-review.test.mjs"
+    "test:review": "node --test tests/catalog-review.test.mjs",
+    "test:publish": "node --test tests/catalog-publish.test.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1"

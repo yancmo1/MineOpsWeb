@@ -358,7 +358,7 @@ describe("Fatal validation findings", () => {
 });
 
 describe("Unresolved mappings and conflicts", () => {
-  it("detects duplicate source identifiers", () => {
+  it("detects duplicate source identifiers as fatal", () => {
     const dir = setupFixture("duplicate-mappings");
     createValidFixture(dir, {
       mappings: {
@@ -369,8 +369,10 @@ describe("Unresolved mappings and conflicts", () => {
       },
     });
     const summary = reviewPackage(dir);
-    assert.equal(summary.mappingReview.hasConflicts, true);
-    const dupFinding = summary.mappingReview.findings.find((f) => f.code === "DUPLICATE_SOURCE_IDENTIFIER");
+    // Duplicate source identifiers are now fatal → quarantined
+    assert.equal(summary.mappingReview.hasFatalConflicts, true);
+    assert.equal(summary.recommendedDecision, "quarantined");
+    const dupFinding = summary.mappingReview.fatalFindings.find((f) => f.code === "DUPLICATE_SOURCE_IDENTIFIER");
     assert.ok(dupFinding);
   });
 
@@ -418,9 +420,34 @@ describe("Unresolved mappings and conflicts", () => {
       },
     });
     const summary = reviewPackage(dir);
-    assert.equal(summary.mappingReview.hasConflicts, false);
+    assert.equal(summary.mappingReview.hasFatalConflicts, false);
     assert.equal(summary.mappingReview.mappingCount, 2);
     assert.equal(summary.mappingReview.aliasCount, 1);
+  });
+});
+
+describe("Package-binding hashes", () => {
+  it("review output includes manifestHash and validationReportHash", () => {
+    const dir = setupFixture("binding-hashes");
+    createValidFixture(dir);
+    const summary = reviewPackage(dir);
+    // Both hashes must be present and valid SHA-256
+    assert.ok(summary.manifestHash, "manifestHash missing");
+    assert.ok(/^[a-f0-9]{64}$/.test(summary.manifestHash), "manifestHash not valid SHA-256");
+    assert.ok(summary.validationReportHash, "validationReportHash missing");
+    assert.ok(/^[a-f0-9]{64}$/.test(summary.validationReportHash), "validationReportHash not valid SHA-256");
+    // Hashes must differ (different files)
+    assert.notEqual(summary.manifestHash, summary.validationReportHash);
+  });
+
+  it("review output includes reviewEngineVersion", () => {
+    const dir = setupFixture("engine-version");
+    createValidFixture(dir);
+    const summary = reviewPackage(dir);
+    assert.ok(summary.reviewEngineVersion, "reviewEngineVersion missing");
+    assert.equal(typeof summary.reviewEngineVersion, "string");
+    // Must be semver-like
+    assert.ok(/^\d+\.\d+\.\d+$/.test(summary.reviewEngineVersion));
   });
 });
 
@@ -459,7 +486,7 @@ describe("Schema compatibility", () => {
 });
 
 describe("Changelog review", () => {
-  it("flags suspiciously large manager changes", () => {
+  it("flags suspiciously large manager changes with rule reference", () => {
     const dir = setupFixture("suspicious-changelog");
     createValidFixture(dir, {
       changelog: {
@@ -475,6 +502,9 @@ describe("Changelog review", () => {
     const summary = reviewPackage(dir);
     const suspiciousFinding = summary.changelogReview.findings.find((f) => f.code === "SUSPICIOUS_CHANGE_DETECTION");
     assert.ok(suspiciousFinding);
+    // Should reference the named rule and version
+    assert.ok(suspiciousFinding.message.includes("SUSPICIOUS_CHANGE_COUNT"));
+    assert.ok(suspiciousFinding.message.includes("v1"));
     assert.equal(summary.changelogReview.changeSummary.added, 60);
   });
 
