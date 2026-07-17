@@ -1,0 +1,2029 @@
+{
+  "artifacts": [],
+  "catalogVersion": "4.42.1-test-fixture",
+  "collectibles": [],
+  "equipment": [],
+  "generatedAt": "2026-07-17T22:23:51.755Z",
+  "managers": [
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sir_henry",
+          "cooldown": 900,
+          "description": "Store mined resources in the Magic Safe. Unload 16.35x at the end of the Effect",
+          "extensions": {},
+          "name": "Store mined resources in the Magic Safe",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sir_henry",
+      "element": "Flame",
+      "extensions": {
+        "active": {
+          "cooldown": "15m",
+          "description": "Store mined resources in the Magic Safe. Unload 16.35x at the end of the Effect",
+          "duration": "30s",
+          "multiplier": 16.35
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": "VIP Daily Delivery (30 days only)"
+        },
+        "elements": [
+          "Flame",
+          "Light"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Sir Henry",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-sir_henry-1",
+          "description": "+2.17x Mining & Walking Speed Boost",
+          "extensions": {
+            "multiplier": 2.17,
+            "progression": [],
+            "type": "mining_walking_speed",
+            "unlockLevel": 10
+          },
+          "name": "Mining & Walking Speed Boost"
+        }
+      ],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "sir_henry"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sir_lorenzo",
+          "cooldown": 1800,
+          "description": "Transmit 10.19x of Mine Shaft production directly to the Warehouse",
+          "extensions": {},
+          "name": "Transmit 10",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sir_lorenzo",
+      "element": null,
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Transmit 10.19x of Mine Shaft production directly to the Warehouse",
+          "duration": "1m",
+          "multiplier": 10.19
+        },
+        "availability": {
+          "briefcases": false,
+          "greenGems": false,
+          "special": "Impossible Island only"
+        },
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Sir Lorenzo",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-sir_lorenzo-1",
+          "description": "+4.17x Mining Speed Boost",
+          "extensions": {
+            "multiplier": 4.17,
+            "progression": [
+              {
+                "level": 10,
+                "value": 4.9
+              },
+              {
+                "level": 20,
+                "value": 6.03
+              }
+            ],
+            "type": "mining_speed",
+            "unlockLevel": 10
+          },
+          "name": "Mining Speed Boost"
+        },
+        {
+          "canonicalId": "ps-sir_lorenzo-2",
+          "description": "-50% Upgrade Cost",
+          "extensions": {
+            "multiplier": 0.5,
+            "progression": [],
+            "type": "upgrade_cost_reduction",
+            "unlockLevel": 30
+          },
+          "name": "% Upgrade Cost"
+        },
+        {
+          "canonicalId": "ps-sir_lorenzo-3",
+          "description": "+1.41x Continent Income",
+          "extensions": {
+            "multiplier": 1.41,
+            "progression": [],
+            "type": "continent_income",
+            "unlockLevel": 50
+          },
+          "name": "Continent Income"
+        }
+      ],
+      "progression": [],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "sir_lorenzo"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-luna_stella",
+          "cooldown": 1800,
+          "description": "Collect 3.4x mined resources with an additional elevator",
+          "extensions": {},
+          "name": "Collect 3",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "luna_stella",
+      "element": null,
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Collect 3.4x mined resources with an additional elevator",
+          "duration": "2m30s",
+          "multiplier": 3.4
+        },
+        "availability": {
+          "briefcases": false,
+          "greenGems": false,
+          "special": "Impossible Island only"
+        },
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Luna & Stella",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-luna_stella-1",
+          "description": "+1.19x Loading & Movement Speed Boost",
+          "extensions": {
+            "multiplier": 1.19,
+            "progression": [
+              {
+                "level": 10,
+                "value": 1.4
+              }
+            ],
+            "type": "loading_movement_speed",
+            "unlockLevel": 10
+          },
+          "name": "Loading & Movement Speed Boost"
+        },
+        {
+          "canonicalId": "ps-luna_stella-2",
+          "description": "-50% Elevator Upgrade Cost",
+          "extensions": {
+            "multiplier": 0.5,
+            "progression": [],
+            "type": "elevator_upgrade_cost_reduction",
+            "unlockLevel": 30
+          },
+          "name": "% Elevator Upgrade Cost"
+        },
+        {
+          "canonicalId": "ps-luna_stella-3",
+          "description": "Beam 0.17x Resources to Warehouse",
+          "extensions": {
+            "multiplier": 0.17,
+            "progression": [],
+            "type": "beam_to_warehouse",
+            "unlockLevel": 50
+          },
+          "name": "Beam 0.17x Resources to Warehouse"
+        }
+      ],
+      "progression": [],
+      "rarity": "legendary",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "luna_stella"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-professor_impossible",
+          "cooldown": 1800,
+          "description": "Conveyor speeds 5.95x resources to the warehouse",
+          "extensions": {},
+          "name": "Conveyor speeds 5",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "professor_impossible",
+      "element": null,
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Conveyor speeds 5.95x resources to the warehouse",
+          "duration": "2m30s",
+          "multiplier": 5.95
+        },
+        "availability": {
+          "briefcases": false,
+          "greenGems": false,
+          "special": "Impossible Island only"
+        },
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Professor Impossible",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-professor_impossible-1",
+          "description": "+1.19x Walking & Loading Speed",
+          "extensions": {
+            "multiplier": 1.19,
+            "progression": [
+              {
+                "level": 10,
+                "value": 1.4
+              }
+            ],
+            "type": "walking_loading_speed",
+            "unlockLevel": 10
+          },
+          "name": "Walking & Loading Speed"
+        },
+        {
+          "canonicalId": "ps-professor_impossible-2",
+          "description": "-50% Warehouse Upgrade Cost",
+          "extensions": {
+            "multiplier": 0.5,
+            "progression": [],
+            "type": "warehouse_upgrade_cost_reduction",
+            "unlockLevel": 30
+          },
+          "name": "% Warehouse Upgrade Cost"
+        },
+        {
+          "canonicalId": "ps-professor_impossible-3",
+          "description": "+1.41x Continent Income",
+          "extensions": {
+            "multiplier": 1.41,
+            "progression": [],
+            "type": "continent_income",
+            "unlockLevel": 50
+          },
+          "name": "Continent Income"
+        }
+      ],
+      "progression": [],
+      "rarity": "legendary",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "legacy_id": "professor_impossible"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-samantha_reiss",
+          "cooldown": 1800,
+          "description": "Elevator, Warehouse and assigned Mineshaft are boosted by 3x",
+          "extensions": {},
+          "name": "Elevator, Warehouse and assigned Mineshaft are boosted by 3x",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "samantha_reiss",
+      "element": null,
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Elevator, Warehouse and assigned Mineshaft are boosted by 3x",
+          "duration": "2m30s",
+          "multiplier": 3
+        },
+        "availability": {
+          "briefcases": false,
+          "greenGems": false,
+          "special": null
+        },
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Samantha Reiss",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-samantha_reiss-1",
+          "description": "-42.9% Upgrade Cost",
+          "extensions": {
+            "multiplier": 0.571,
+            "progression": [],
+            "type": "upgrade_cost_reduction",
+            "unlockLevel": 10
+          },
+          "name": "% Upgrade Cost"
+        },
+        {
+          "canonicalId": "ps-samantha_reiss-2",
+          "description": "-3.17x Idle Cash",
+          "extensions": {
+            "multiplier": -3.17,
+            "progression": [],
+            "type": "idle_cash",
+            "unlockLevel": 30
+          },
+          "name": "Idle Cash"
+        },
+        {
+          "canonicalId": "ps-samantha_reiss-3",
+          "description": "+1.41x Continent Income",
+          "extensions": {
+            "multiplier": 1.41,
+            "progression": [],
+            "type": "continent_income",
+            "unlockLevel": 50
+          },
+          "name": "Continent Income"
+        }
+      ],
+      "progression": [],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "samantha_reiss"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-utux",
+          "cooldown": 1800,
+          "description": "Store Mined resources in the Hive. Unload 20x split between the Warehouse and the Crate at the end of the Effect",
+          "extensions": {},
+          "name": "Store Mined resources in the Hive",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "utux",
+      "element": null,
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Store Mined resources in the Hive. Unload 20x split between the Warehouse and the Crate at the end of the Effect",
+          "duration": "1m30s",
+          "multiplier": 20
+        },
+        "availability": {
+          "briefcases": false,
+          "greenGems": false,
+          "special": "Frontier Mines only"
+        },
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Ut'ux",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-utux-1",
+          "description": "+4.17x Mining Speed Boost",
+          "extensions": {
+            "multiplier": 4.17,
+            "progression": [],
+            "type": "mining_speed",
+            "unlockLevel": 10
+          },
+          "name": "Mining Speed Boost"
+        },
+        {
+          "canonicalId": "ps-utux-2",
+          "description": "-50% Upgrade Cost",
+          "extensions": {
+            "multiplier": 0.5,
+            "progression": [],
+            "type": "upgrade_cost_reduction",
+            "unlockLevel": 30
+          },
+          "name": "% Upgrade Cost"
+        },
+        {
+          "canonicalId": "ps-utux-3",
+          "description": "+1.41x Continent Income",
+          "extensions": {
+            "multiplier": 1.41,
+            "progression": [],
+            "type": "continent_income",
+            "unlockLevel": 50
+          },
+          "name": "Continent Income"
+        }
+      ],
+      "progression": [],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "utux"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-dr_lilly",
+          "cooldown": 1800,
+          "description": "Beam 3x of collected resources to the Warehouse",
+          "extensions": {},
+          "name": "Beam 3x of collected resources to the Warehouse",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "dr_lilly",
+      "element": "Flame",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Beam 3x of collected resources to the Warehouse",
+          "duration": "5m",
+          "multiplier": 3
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Flame",
+          "Nature",
+          "Wind"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Dr. Lilly",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-dr_lilly-1",
+          "description": "+Loading & Movement Speed Boost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 20,
+                "value": 1.73
+              }
+            ],
+            "type": "loading_movement_speed",
+            "unlockLevel": 10
+          },
+          "name": "+Loading & Movement Speed Boost"
+        },
+        {
+          "canonicalId": "ps-dr_lilly-2",
+          "description": "+Continent Income",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "continent_income",
+            "unlockLevel": 30
+          },
+          "name": "+Continent Income"
+        },
+        {
+          "canonicalId": "ps-dr_lilly-3",
+          "description": "Beam resources to Warehouse",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "beam_to_warehouse",
+            "unlockLevel": 50
+          },
+          "name": "Beam resources to Warehouse"
+        }
+      ],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "dr_lilly"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-blingsley",
+          "cooldown": 1800,
+          "description": "Gain 10x Cash every 5 seconds",
+          "extensions": {},
+          "name": "Gain 10x Cash every 5 seconds",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "blingsley",
+      "element": "Light",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Gain 10x Cash every 5 seconds",
+          "duration": "1m",
+          "multiplier": 10
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Light",
+          "Frost"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Blingsley",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-blingsley-1",
+          "description": "-Upgrade Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 0.2626
+              }
+            ],
+            "type": "upgrade_cost_reduction",
+            "unlockLevel": 10
+          },
+          "name": "-Upgrade Cost"
+        },
+        {
+          "canonicalId": "ps-blingsley-2",
+          "description": "+Idle Cash",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 1.72
+              }
+            ],
+            "type": "idle_cash",
+            "unlockLevel": 30
+          },
+          "name": "+Idle Cash"
+        }
+      ],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "blingsley"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-mr_goodman",
+          "cooldown": 1800,
+          "description": "-90% Upgrade Cost",
+          "extensions": {},
+          "name": "-90% Upgrade Cost",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "mr_goodman",
+      "element": "Nature",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "-90% Upgrade Cost",
+          "duration": "5m",
+          "multiplier": 0.1
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Nature"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Mr. Goodman",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-mr_goodman-1",
+          "description": "-Barrier Unlock Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 0.0971
+              }
+            ],
+            "type": "barrier_unlock_cost_reduction",
+            "unlockLevel": 10
+          },
+          "name": "-Barrier Unlock Cost"
+        }
+      ],
+      "progression": [],
+      "rarity": "common",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "legacy_id": "mr_goodman"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-mr_turner",
+          "cooldown": 900,
+          "description": "Store mined resources in a Piggy Bank. Unload 10x at the end of the Effect",
+          "extensions": {},
+          "name": "Store mined resources in a Piggy Bank",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "mr_turner",
+      "element": "Nature",
+      "extensions": {
+        "active": {
+          "cooldown": "15m",
+          "description": "Store mined resources in a Piggy Bank. Unload 10x at the end of the Effect",
+          "duration": "30s",
+          "multiplier": 10
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Nature",
+          "Water"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Mr. Turner",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-mr_turner-1",
+          "description": "+Mining & Walking Speed Boost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 1.77
+              }
+            ],
+            "type": "mining_walking_speed",
+            "unlockLevel": 10
+          },
+          "name": "+Mining & Walking Speed Boost"
+        },
+        {
+          "canonicalId": "ps-mr_turner-2",
+          "description": "+Mine Income Factor",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 1.24
+              }
+            ],
+            "type": "mine_income_factor",
+            "unlockLevel": 30
+          },
+          "name": "+Mine Income Factor"
+        }
+      ],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "mr_turner"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-dr_steiner",
+          "cooldown": 1800,
+          "description": "Beam 3x of your mined resourced to the Warehouse",
+          "extensions": {},
+          "name": "Beam 3x of your mined resourced to the Warehouse",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "dr_steiner",
+      "element": "Wind",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Beam 3x of your mined resourced to the Warehouse",
+          "duration": "5m",
+          "multiplier": 3
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Wind",
+          "Sand",
+          "Dark"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Dr. Steiner",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-dr_steiner-1",
+          "description": "+Mining & Walking Speed Boost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 10,
+                "value": 1.4
+              },
+              {
+                "level": 20,
+                "value": 1.9
+              }
+            ],
+            "type": "mining_walking_speed",
+            "unlockLevel": 10
+          },
+          "name": "+Mining & Walking Speed Boost"
+        },
+        {
+          "canonicalId": "ps-dr_steiner-2",
+          "description": "+Continent Income",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "continent_income",
+            "unlockLevel": 30
+          },
+          "name": "+Continent Income"
+        },
+        {
+          "canonicalId": "ps-dr_steiner-3",
+          "description": "Beam resources to Warehouse",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "beam_to_warehouse",
+            "unlockLevel": 50
+          },
+          "name": "Beam resources to Warehouse"
+        }
+      ],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "dr_steiner"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-mark",
+          "cooldown": 1800,
+          "description": "5x Loading & Walking Speed Boost",
+          "extensions": {},
+          "name": "5x Loading & Walking Speed Boost",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "mark",
+      "element": "Nature",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "5x Loading & Walking Speed Boost",
+          "duration": "5m",
+          "multiplier": 5
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Nature"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Mark",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-mark-1",
+          "description": "+Walking Speed Boost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 20,
+                "value": 1.83
+              }
+            ],
+            "type": "walking_speed",
+            "unlockLevel": 10
+          },
+          "name": "+Walking Speed Boost"
+        }
+      ],
+      "progression": [],
+      "rarity": "common",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "legacy_id": "mark"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-gordon",
+          "cooldown": 1800,
+          "description": "5x Mining & Walking Speed Boost",
+          "extensions": {},
+          "name": "5x Mining & Walking Speed Boost",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "gordon",
+      "element": "Flame",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "5x Mining & Walking Speed Boost",
+          "duration": "5m",
+          "multiplier": 5
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Flame"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Gordon",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-gordon-1",
+          "description": "-Mine Shaft Unlock Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 0.0971
+              }
+            ],
+            "type": "mineshaft_unlock_cost_reduction",
+            "unlockLevel": 10
+          },
+          "name": "-Mine Shaft Unlock Cost"
+        }
+      ],
+      "progression": [],
+      "rarity": "common",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "gordon"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-lee_vatori",
+          "cooldown": 1800,
+          "description": "5x Loading & Movement Speed Boost",
+          "extensions": {},
+          "name": "5x Loading & Movement Speed Boost",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "lee_vatori",
+      "element": "Water",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "5x Loading & Movement Speed Boost",
+          "duration": "5m",
+          "multiplier": 5
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Water"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Lee Vatori",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-lee_vatori-1",
+          "description": "+Movement Speed Boost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 20,
+                "value": 1.83
+              }
+            ],
+            "type": "movement_speed",
+            "unlockLevel": 10
+          },
+          "name": "+Movement Speed Boost"
+        }
+      ],
+      "progression": [],
+      "rarity": "common",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "lee_vatori"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-mrs_goodman",
+          "cooldown": 1800,
+          "description": "-90% Upgrade Cost",
+          "extensions": {},
+          "name": "-90% Upgrade Cost",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "mrs_goodman",
+      "element": "Sand",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "-90% Upgrade Cost",
+          "duration": "5m",
+          "multiplier": 0.1
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Sand"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Mrs. Goodman",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-mrs_goodman-1",
+          "description": "-Barrier Unlock Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 0.0971
+              }
+            ],
+            "type": "barrier_unlock_cost_reduction",
+            "unlockLevel": 10
+          },
+          "name": "-Barrier Unlock Cost"
+        }
+      ],
+      "progression": [],
+      "rarity": "common",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "mrs_goodman"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-ranger_sue",
+          "cooldown": 900,
+          "description": "6x Mining Speed Boost & Infinite Worker Capacity",
+          "extensions": {},
+          "name": "6x Mining Speed Boost & Infinite Worker Capacity",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "ranger_sue",
+      "element": "Sand",
+      "extensions": {
+        "active": {
+          "cooldown": "15m",
+          "description": "6x Mining Speed Boost & Infinite Worker Capacity",
+          "duration": "1m",
+          "multiplier": 6
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Sand",
+          "Dark"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Ranger Sue",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-ranger_sue-1",
+          "description": "-Barrier Unlock Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 0.1119
+              }
+            ],
+            "type": "barrier_unlock_cost_reduction",
+            "unlockLevel": 10
+          },
+          "name": "-Barrier Unlock Cost"
+        },
+        {
+          "canonicalId": "ps-ranger_sue-2",
+          "description": "+Mine Income Factor",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 1.24
+              }
+            ],
+            "type": "mine_income_factor",
+            "unlockLevel": 30
+          },
+          "name": "+Mine Income Factor"
+        }
+      ],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "ranger_sue"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-goodman_jr",
+          "cooldown": 1800,
+          "description": "-90% Upgrade Cost",
+          "extensions": {},
+          "name": "-90% Upgrade Cost",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "goodman_jr",
+      "element": "Frost",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "-90% Upgrade Cost",
+          "duration": "5m",
+          "multiplier": 0.1
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Frost"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Goodman Jr.",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-goodman_jr-1",
+          "description": "-Barrier Unlock Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 30,
+                "value": 0.0971
+              }
+            ],
+            "type": "barrier_unlock_cost_reduction",
+            "unlockLevel": 10
+          },
+          "name": "-Barrier Unlock Cost"
+        }
+      ],
+      "progression": [],
+      "rarity": "common",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "goodman_jr"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-chester",
+          "cooldown": 1800,
+          "description": "5x Mining & Walking Speed Boost",
+          "extensions": {},
+          "name": "5x Mining & Walking Speed Boost",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "chester",
+      "element": "Wind",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "5x Mining & Walking Speed Boost",
+          "duration": "5m",
+          "multiplier": 5
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Wind"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Chester",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-chester-1",
+          "description": "-Upgrade Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "upgrade_cost_reduction",
+            "unlockLevel": 10
+          },
+          "name": "-Upgrade Cost"
+        }
+      ],
+      "progression": [],
+      "rarity": "common",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "chester"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-santa_claus",
+          "cooldown": 1800,
+          "description": "Warehouse workers transform 4x of elevator resources into presents (CASH)",
+          "extensions": {},
+          "name": "Warehouse workers transform 4x of elevator resources into presents (CASH)",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "santa_claus",
+      "element": "Frost",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Warehouse workers transform 4x of elevator resources into presents (CASH)",
+          "duration": "5m",
+          "multiplier": 4
+        },
+        "availability": {
+          "briefcases": false,
+          "greenGems": false,
+          "special": "Santa's Holiday Draw 2019 only"
+        },
+        "elements": [
+          "Frost",
+          "Light",
+          "Water"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Santa Claus",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-santa_claus-1",
+          "description": "+Walking & Loading Speed",
+          "extensions": {
+            "multiplier": null,
+            "progression": [
+              {
+                "level": 20,
+                "value": 1.73
+              }
+            ],
+            "type": "walking_loading_speed",
+            "unlockLevel": 10
+          },
+          "name": "+Walking & Loading Speed"
+        },
+        {
+          "canonicalId": "ps-santa_claus-2",
+          "description": "+Continent Income",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "continent_income",
+            "unlockLevel": 30
+          },
+          "name": "+Continent Income"
+        },
+        {
+          "canonicalId": "ps-santa_claus-3",
+          "description": "-Barrier Unlock Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "barrier_unlock_cost_reduction",
+            "unlockLevel": 50
+          },
+          "name": "-Barrier Unlock Cost"
+        }
+      ],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "legacy_id": "santa_claus"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-santa_2020",
+          "cooldown": 1800,
+          "description": "Warehouse workers transform 4x of elevator resources into presents (CASH)",
+          "extensions": {},
+          "name": "Warehouse workers transform 4x of elevator resources into presents (CASH)",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "santa_2020",
+      "element": "Water",
+      "extensions": {
+        "active": {
+          "cooldown": "30m",
+          "description": "Warehouse workers transform 4x of elevator resources into presents (CASH)",
+          "duration": "5m",
+          "multiplier": 4
+        },
+        "availability": {
+          "briefcases": false,
+          "greenGems": false,
+          "special": "Santa's Holiday Draw 2020 only"
+        },
+        "elements": [
+          "Water",
+          "Dark",
+          "Frost"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Santa 2020",
+      "nameSource": "verified",
+      "passives": [
+        {
+          "canonicalId": "ps-santa_2020-1",
+          "description": "+Walking & Loading Speed",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "walking_loading_speed",
+            "unlockLevel": 10
+          },
+          "name": "+Walking & Loading Speed"
+        },
+        {
+          "canonicalId": "ps-santa_2020-2",
+          "description": "+Continent Income",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "continent_income",
+            "unlockLevel": 30
+          },
+          "name": "+Continent Income"
+        },
+        {
+          "canonicalId": "ps-santa_2020-3",
+          "description": "-Barrier Unlock Cost",
+          "extensions": {
+            "multiplier": null,
+            "progression": [],
+            "type": "barrier_unlock_cost_reduction",
+            "unlockLevel": 50
+          },
+          "name": "-Barrier Unlock Cost"
+        }
+      ],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "legacy_id": "santa_2020"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-violet_evergreen",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "violet_evergreen",
+      "element": "Nature",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": false,
+          "special": null
+        },
+        "elements": [
+          "Nature",
+          "Water",
+          "Sand"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Violet Evergreen",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "violet_evergreen"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-jade_kim",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "jade_kim",
+      "element": "Flame",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Flame",
+          "Sand",
+          "Nature"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Jade Kim",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "legacy_id": "jade_kim"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-rabbid_blingsley",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "rabbid_blingsley",
+      "element": "Light",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": false,
+          "special": null
+        },
+        "elements": [
+          "Light",
+          "Frost",
+          "Nature"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Rabbid Blingsley",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "rabbid_blingsley"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-queen_aurora",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "queen_aurora",
+      "element": "Frost",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": false,
+          "special": null
+        },
+        "elements": [
+          "Frost",
+          "Nature",
+          "Light"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Queen Aurora",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "queen_aurora"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-wolfgang_clawson",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "wolfgang_clawson",
+      "element": "Dark",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": false,
+          "special": null
+        },
+        "elements": [
+          "Dark",
+          "Sand",
+          "Wind"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Wolfgang Clawson",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "wolfgang_clawson"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-ezio_auditore",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "ezio_auditore",
+      "element": "Light",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": false,
+          "special": null
+        },
+        "elements": [
+          "Light",
+          "Nature",
+          "Flame"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Ezio Auditore",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "ezio_auditore"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-al_titude",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "al_titude",
+      "element": "Dark",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": false,
+          "greenGems": false,
+          "special": "Likely in future briefcases"
+        },
+        "elements": [
+          "Dark",
+          "Flame"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Al Titude",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "legacy_id": "al_titude"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sojo",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sojo",
+      "element": "Flame",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": false,
+          "special": null
+        },
+        "elements": [
+          "Flame",
+          "Wind"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Sojo",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "sojo"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-chris_cappella",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "chris_cappella",
+      "element": "Wind",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": false,
+          "special": null
+        },
+        "elements": [
+          "Wind",
+          "Water"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Chris Cappella",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "legacy_id": "chris_cappella"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-zi_glavani",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "zi_glavani",
+      "element": "Flame",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": false,
+          "special": null
+        },
+        "elements": [
+          "Flame",
+          "Wind"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Zi Glavani",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "legacy_id": "zi_glavani"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-damian_jones",
+          "cooldown": null,
+          "description": null,
+          "extensions": {},
+          "name": null,
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "damian_jones",
+      "element": "Frost",
+      "extensions": {
+        "active": {
+          "cooldown": null,
+          "description": null,
+          "duration": null,
+          "multiplier": null
+        },
+        "availability": {
+          "briefcases": true,
+          "greenGems": true,
+          "special": null
+        },
+        "elements": [
+          "Frost",
+          "Light"
+        ],
+        "notes": "Part of test fixture. Not APK-derived."
+      },
+      "name": "Damian Jones",
+      "nameSource": "verified",
+      "passives": [],
+      "progression": [],
+      "rarity": "rare",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "legacy_id": "damian_jones"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    }
+  ],
+  "mines": [],
+  "releaseId": "test-fixture-20260717",
+  "research": [],
+  "schemaVersion": "1.0.0",
+  "source": {
+    "apkHashes": {},
+    "kind": "test-fixture",
+    "parserVersion": "0.1.0",
+    "versionCode": 999999,
+    "versionName": "4.42.1"
+  }
+}

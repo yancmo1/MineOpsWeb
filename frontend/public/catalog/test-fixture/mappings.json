@@ -1,0 +1,599 @@
+{
+  "aliases": [
+    {
+      "alias": "Sir Henry",
+      "canonicalId": "sir_henry",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "sir henry",
+      "canonicalId": "sir_henry",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Sir Lorenzo",
+      "canonicalId": "sir_lorenzo",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "sir lorenzo",
+      "canonicalId": "sir_lorenzo",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Luna & Stella",
+      "canonicalId": "luna_stella",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "luna & stella",
+      "canonicalId": "luna_stella",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Professor Impossible",
+      "canonicalId": "professor_impossible",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "professor impossible",
+      "canonicalId": "professor_impossible",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Samantha Reiss",
+      "canonicalId": "samantha_reiss",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "samantha reiss",
+      "canonicalId": "samantha_reiss",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Ut'ux",
+      "canonicalId": "utux",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "ut'ux",
+      "canonicalId": "utux",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Dr. Lilly",
+      "canonicalId": "dr_lilly",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "dr. lilly",
+      "canonicalId": "dr_lilly",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Blingsley",
+      "canonicalId": "blingsley",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "blingsley",
+      "canonicalId": "blingsley",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Mr. Goodman",
+      "canonicalId": "mr_goodman",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "mr. goodman",
+      "canonicalId": "mr_goodman",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Mr. Turner",
+      "canonicalId": "mr_turner",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "mr. turner",
+      "canonicalId": "mr_turner",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Dr. Steiner",
+      "canonicalId": "dr_steiner",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "dr. steiner",
+      "canonicalId": "dr_steiner",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Mark",
+      "canonicalId": "mark",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "mark",
+      "canonicalId": "mark",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Gordon",
+      "canonicalId": "gordon",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "gordon",
+      "canonicalId": "gordon",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Lee Vatori",
+      "canonicalId": "lee_vatori",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "lee vatori",
+      "canonicalId": "lee_vatori",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Mrs. Goodman",
+      "canonicalId": "mrs_goodman",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "mrs. goodman",
+      "canonicalId": "mrs_goodman",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Ranger Sue",
+      "canonicalId": "ranger_sue",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "ranger sue",
+      "canonicalId": "ranger_sue",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Goodman Jr.",
+      "canonicalId": "goodman_jr",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "goodman jr.",
+      "canonicalId": "goodman_jr",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Chester",
+      "canonicalId": "chester",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "chester",
+      "canonicalId": "chester",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Santa Claus",
+      "canonicalId": "santa_claus",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "santa claus",
+      "canonicalId": "santa_claus",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Santa 2020",
+      "canonicalId": "santa_2020",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "santa 2020",
+      "canonicalId": "santa_2020",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Violet Evergreen",
+      "canonicalId": "violet_evergreen",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "violet evergreen",
+      "canonicalId": "violet_evergreen",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Jade Kim",
+      "canonicalId": "jade_kim",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "jade kim",
+      "canonicalId": "jade_kim",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Rabbid Blingsley",
+      "canonicalId": "rabbid_blingsley",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "rabbid blingsley",
+      "canonicalId": "rabbid_blingsley",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Queen Aurora",
+      "canonicalId": "queen_aurora",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "queen aurora",
+      "canonicalId": "queen_aurora",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Wolfgang Clawson",
+      "canonicalId": "wolfgang_clawson",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "wolfgang clawson",
+      "canonicalId": "wolfgang_clawson",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Ezio Auditore",
+      "canonicalId": "ezio_auditore",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "ezio auditore",
+      "canonicalId": "ezio_auditore",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Al Titude",
+      "canonicalId": "al_titude",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "al titude",
+      "canonicalId": "al_titude",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Sojo",
+      "canonicalId": "sojo",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "sojo",
+      "canonicalId": "sojo",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Chris Cappella",
+      "canonicalId": "chris_cappella",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "chris cappella",
+      "canonicalId": "chris_cappella",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Zi Glavani",
+      "canonicalId": "zi_glavani",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "zi glavani",
+      "canonicalId": "zi_glavani",
+      "extensions": {},
+      "kind": "display_name_lower"
+    },
+    {
+      "alias": "Damian Jones",
+      "canonicalId": "damian_jones",
+      "extensions": {},
+      "kind": "display_name"
+    },
+    {
+      "alias": "damian jones",
+      "canonicalId": "damian_jones",
+      "extensions": {},
+      "kind": "display_name_lower"
+    }
+  ],
+  "catalogVersion": "4.42.1-test-fixture",
+  "generatedAt": "2026-07-17T22:23:51.755Z",
+  "idMappings": [
+    {
+      "canonicalId": "sir_henry",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "sir_henry"
+    },
+    {
+      "canonicalId": "sir_lorenzo",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "sir_lorenzo"
+    },
+    {
+      "canonicalId": "luna_stella",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "luna_stella"
+    },
+    {
+      "canonicalId": "professor_impossible",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "professor_impossible"
+    },
+    {
+      "canonicalId": "samantha_reiss",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "samantha_reiss"
+    },
+    {
+      "canonicalId": "utux",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "utux"
+    },
+    {
+      "canonicalId": "dr_lilly",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "dr_lilly"
+    },
+    {
+      "canonicalId": "blingsley",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "blingsley"
+    },
+    {
+      "canonicalId": "mr_goodman",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "mr_goodman"
+    },
+    {
+      "canonicalId": "mr_turner",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "mr_turner"
+    },
+    {
+      "canonicalId": "dr_steiner",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "dr_steiner"
+    },
+    {
+      "canonicalId": "mark",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "mark"
+    },
+    {
+      "canonicalId": "gordon",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "gordon"
+    },
+    {
+      "canonicalId": "lee_vatori",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "lee_vatori"
+    },
+    {
+      "canonicalId": "mrs_goodman",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "mrs_goodman"
+    },
+    {
+      "canonicalId": "ranger_sue",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "ranger_sue"
+    },
+    {
+      "canonicalId": "goodman_jr",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "goodman_jr"
+    },
+    {
+      "canonicalId": "chester",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "chester"
+    },
+    {
+      "canonicalId": "santa_claus",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "santa_claus"
+    },
+    {
+      "canonicalId": "santa_2020",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "santa_2020"
+    },
+    {
+      "canonicalId": "violet_evergreen",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "violet_evergreen"
+    },
+    {
+      "canonicalId": "jade_kim",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "jade_kim"
+    },
+    {
+      "canonicalId": "rabbid_blingsley",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "rabbid_blingsley"
+    },
+    {
+      "canonicalId": "queen_aurora",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "queen_aurora"
+    },
+    {
+      "canonicalId": "wolfgang_clawson",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "wolfgang_clawson"
+    },
+    {
+      "canonicalId": "ezio_auditore",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "ezio_auditore"
+    },
+    {
+      "canonicalId": "al_titude",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "al_titude"
+    },
+    {
+      "canonicalId": "sojo",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "sojo"
+    },
+    {
+      "canonicalId": "chris_cappella",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "chris_cappella"
+    },
+    {
+      "canonicalId": "zi_glavani",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "zi_glavani"
+    },
+    {
+      "canonicalId": "damian_jones",
+      "confidence": "verified",
+      "extensions": {},
+      "kind": "legacy_id",
+      "sourceValue": "damian_jones"
+    }
+  ],
+  "releaseId": "test-fixture-20260717",
+  "schemaVersion": "1.0.0"
+}

@@ -8,6 +8,8 @@ Read these files in order:
 3. `AGENTS.md` — this file.
 4. `docs/architecture/*.md` — architecture decisions and data/sync models.
 5. `docs/server-guide` — if it exists; production deployment details.
+6. `SERVER_MASTER_GUIDE.md` — the canonical server reference for UbuntuMac (symlinked in repo root). Consult before any server-side operations.
+7. `docs/ORACLE_VM_SETUP_REFERENCE.md`, `docs/ORACLE-VM-DEPLOY-SETUP.md`, `docs/ORACLE-VM-GUIDE.md` — Oracle VM infrastructure reference. Consult before any Oracle VM operations.
 
 The iOS project at `../mineops-companion` is the behavioral reference until the parity matrix (`docs/PARITY_MATRIX.md`) says the web has achieved parity.
 
@@ -69,3 +71,25 @@ For every implementation, configuration, schema, test, deployment, bug-fix, or w
 - Update documentation and `docs/development/journal.md` for every work item; architecture, data, auth, Docker, and workflow decisions require especially explicit entries.
 - Update `docs/PARITY_MATRIX.md` when parity changes.
 - Do not declare completion based on infrastructure — a running Docker container or successful sync is not product completion (V3 PRD guardrail).
+
+## 🖥️ Server access conventions
+
+### UbuntuMac (100.105.31.42)
+- **SSH alias**: `ubuntumac`, fallbacks `ubuntumac-ip` (Tailscale IP) and `ubuntumac-lan` (LAN IP)
+- **Python venv**: `~/mineops-env` — use `~/mineops-env/bin/mineops-data-engine` for all engine commands
+- **ADB**: `~/Android/Sdk/platform-tools/adb` — not in default PATH, must add per session
+- **Engine code**: `~/mineops-engine`
+- **Data root**: `~/mineops-data/releases/`
+- Emulator serial: `emulator-5556`
+- Full server reference: `SERVER_MASTER_GUIDE.md` (symlinked in repo root)
+
+### Oracle VM (100.81.231.58)
+- **SSH alias**: `oracle-vm`
+- **Compose project**: `/opt/infra-new/compose` — all MineOps service changes must use `-p infra-new`
+- **PocketBase**: container in infra-new stack, port mapping `127.0.0.1:8091→8090`
+- **Public endpoint**: `https://mineops-pb.shepswork.com`
+- **Server reference**: `docs/ORACLE_VM_SETUP_REFERENCE.md`
+- **Deploy guide**: `docs/ORACLE-VM-DEPLOY-SETUP.md`
+- **Production guide**: `docs/ORACLE-VM-GUIDE.md`
+- **Important**: This is ARM64 (aarch64). Any deployed image must support `linux/arm64`.
+- **Traefik/Caddy**: Not used — routing via Cloudflare Tunnel.

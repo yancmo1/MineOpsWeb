@@ -75,7 +75,7 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["apk_capture", "fixture", "manual", "external"],
+          "enum": ["apk_capture", "fixture", "test-fixture", "manual", "external"],
           "description": "Origin of the catalog data."
         },
         "versionName": {

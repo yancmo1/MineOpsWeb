@@ -13,7 +13,7 @@ import type { CachedCatalogPackage } from "../lib/catalog-cache";
 import { listImportRecords } from "../lib/import-history";
 import type { ImportRecord } from "../lib/kolibri-fixtures";
 import { describeCache, describeCatalogStatus, redactDiagnostic } from "../lib/operational-status";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 interface MorePageProps {
   credentials: KolibriCredentials;
@@ -30,6 +30,42 @@ interface MorePageProps {
   onOpenSnapshotHistory: () => void;
   captureStatus: CaptureStatus;
   onRefreshCaptureStatus: () => void;
+}
+
+function CollapsibleSection({
+  title,
+  defaultOpen = false,
+  ariaLive,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  ariaLive?: "polite" | "assertive" | "off";
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="card-container" {...(ariaLive ? { "aria-live": ariaLive } : {})}>
+      <h2
+        className="card-title"
+        onClick={() => setOpen(!open)}
+        style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+      >
+        <span>{title}</span>
+        <span
+          style={{
+            fontSize: "0.75rem",
+            color: "var(--text-secondary)",
+            transition: "transform 0.2s",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          ▼
+        </span>
+      </h2>
+      {open && <div className="collapsible-content">{children}</div>}
+    </section>
+  );
 }
 
 export function MorePage({
@@ -96,9 +132,7 @@ export function MorePage({
   const activePackage = packages.find((pkg) => pkg.isActive);
   return (
     <div className="more-page">
-      {/* PocketBase Account Section */}
-      <section className="card-container">
-        <h2 className="card-title">PocketBase Account</h2>
+      <CollapsibleSection title="PocketBase Account">
         <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
           Server: {getBaseUrl()}
         </p>
@@ -128,7 +162,7 @@ export function MorePage({
             </button>
           </div>
         ) : (
-          <div>
+          <form onSubmit={(event) => { event.preventDefault(); void handlePbSignIn(); }}>
             <div
               style={{
                 display: "flex",
@@ -146,6 +180,8 @@ export function MorePage({
               <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Email</span>
               <input
                 type="email"
+                name="email"
+                autoComplete="username"
                 value={pbEmail}
                 onChange={(e) => setPbEmail(e.target.value)}
                 placeholder="admin@mineops.yancmo.xyz"
@@ -155,6 +191,8 @@ export function MorePage({
               <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Password</span>
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 value={pbPassword}
                 onChange={(e) => setPbPassword(e.target.value)}
                 placeholder="••••••••"
@@ -172,19 +210,17 @@ export function MorePage({
               </p>
             )}
             <button
-              onClick={handlePbSignIn}
+              type="submit"
               disabled={pbBusy || !pbEmail || !pbPassword}
               style={{ width: "100%" }}
             >
               {pbBusy ? "Signing in…" : "Sign In"}
             </button>
-          </div>
+          </form>
         )}
-      </section>
+      </CollapsibleSection>
 
-      {/* Sync Settings Section */}
-      <section className="card-container">
-        <h2 className="card-title">Sync Settings</h2>
+      <CollapsibleSection title="Sync Settings">
         <label
           style={{
             display: "flex",
@@ -213,11 +249,9 @@ export function MorePage({
             </div>
           </div>
         </label>
-      </section>
+      </CollapsibleSection>
 
-      {/* Kolibri Sync Section */}
-      <section className="card-container">
-        <h2 className="card-title">Kolibri Sync</h2>
+      <CollapsibleSection title="Kolibri Sync">
 
         {/* Sync Status */}
         <div
@@ -264,6 +298,7 @@ export function MorePage({
           </p>
         </div>
 
+        <form onSubmit={(event) => { event.preventDefault(); if (!syncing) onSyncNow(); }}>
         {/* Credentials */}
         <label style={{ display: "grid", gap: "0.5rem", marginBottom: "1rem" }}>
           <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>
@@ -282,6 +317,8 @@ export function MorePage({
           <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Auth token</span>
           <input
             type="password"
+            name="authToken"
+            autoComplete="current-password"
             value={credentials.authToken}
             onChange={(e) =>
               onCredentialsChange({ ...credentials, authToken: e.target.value })
@@ -294,6 +331,8 @@ export function MorePage({
           <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Save game key</span>
           <input
             type="password"
+            name="saveGameKey"
+            autoComplete="off"
             value={credentials.saveGameKey}
             onChange={(e) =>
               onCredentialsChange({ ...credentials, saveGameKey: e.target.value })
@@ -303,7 +342,7 @@ export function MorePage({
         </label>
 
         {/* Sync Button */}
-        <button onClick={() => onSyncNow()} disabled={syncing} style={{ width: "100%" }}>
+        <button type="submit" disabled={syncing} style={{ width: "100%" }}>
           {syncing ? "Syncing…" : "Sync Now"}
         </button>
 
@@ -317,10 +356,10 @@ export function MorePage({
             {diagnostics.unknownManagerCount} unmatched catalog IDs
           </p>
         )}
-      </section>
+        </form>
+      </CollapsibleSection>
 
-      <section className="card-container" aria-live="polite">
-        <h2 className="card-title">Catalog package</h2>
+      <CollapsibleSection title="Catalog package" ariaLive="polite">
         <p style={{ marginTop: "-0.5rem", fontSize: "0.875rem" }}><strong>{catalogStatus.label}</strong></p>
         <p className="muted" style={{ fontSize: "0.8rem" }}>{catalogStatus.detail}</p>
         <div style={{ padding: "0.75rem", background: "var(--bg-secondary)", borderRadius: "0.5rem", fontSize: "0.8rem" }}>
@@ -337,22 +376,18 @@ export function MorePage({
         </div>}
         <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.75rem" }}>{catalogStatus.recovery}</p>
         <button onClick={() => void catalogClient.reloadCatalog()} style={{ width: "100%" }}>Refresh catalog safely</button>
-      </section>
+      </CollapsibleSection>
 
-      {/* Snapshot History */}
-      <section className="card-container">
-        <h2 className="card-title">Snapshot History</h2>
+      <CollapsibleSection title="Snapshot History">
         <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
           Review changes between Kolibri syncs and restore previous game states.
         </p>
         <button onClick={onOpenSnapshotHistory} style={{ width: "100%" }}>
           View Snapshots
         </button>
-      </section>
+      </CollapsibleSection>
 
-      {/* Capture Status */}
-      <section className="card-container">
-        <h2 className="card-title">Capture Status</h2>
+      <CollapsibleSection title="Capture Status">
         <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
           APK extraction pipeline from ubuntumac. Refresh to check for new releases.
         </p>
@@ -404,7 +439,7 @@ export function MorePage({
                   </p>
                   <div style={{ display: "grid", gap: "0.25rem", marginTop: "0.25rem" }}>
                     {captureStatus.recentReleases.slice(0, 5).map((release, idx) => (
-                      <div key={`${release.releaseId}-${release.ingestedAt}`} style={{ 
+                      <div key={`${release.releaseId}-${release.ingestedAt}-${idx}`} style={{
                         display: "flex", 
                         justifyContent: "space-between",
                         alignItems: "center",
@@ -492,21 +527,18 @@ export function MorePage({
         <button onClick={onRefreshCaptureStatus} style={{ width: "100%" }}>
           Refresh
         </button>
-      </section>
+      </CollapsibleSection>
 
-      <section className="card-container">
-        <h2 className="card-title">Player import history</h2>
+      <CollapsibleSection title="Player import history">
         {imports.length ? imports.slice(0, 5).map((record) => <p key={record.id ?? record.importedAt} className="muted" style={{ fontSize: "0.8rem" }}>{new Date(record.importedAt).toLocaleString()} · {record.source} · {record.resolvedCount} resolved / {record.unresolvedCount} unresolved · {record.catalogVersion ?? "no catalog reference"}</p>) : <p className="muted" style={{ fontSize: "0.8rem" }}>No local player imports recorded yet.</p>}
-      </section>
+      </CollapsibleSection>
 
-      {/* About Section */}
-      <section className="card-container">
-        <h2 className="card-title">About this build</h2>
+      <CollapsibleSection title="About this build">
         <p style={{ marginBottom: 0, fontSize: "0.875rem" }}>
           MineOpsWeb uses the verified Idle Miner Tycoon manager catalog ({catalogCount || "…"}{" "}
           records) and keeps catalog definitions separate from player state.
         </p>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

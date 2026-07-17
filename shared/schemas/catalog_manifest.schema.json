@@ -61,7 +61,7 @@
     },
     "status": {
       "type": "string",
-      "enum": ["candidate", "review_required", "ready", "active", "superseded", "rejected"],
+      "enum": ["candidate", "review_required", "ready", "active", "superseded", "rejected", "test-fixture"],
       "description": "Lifecycle status. Only 'active' catalogs are consumed by the frontend."
     },
     "artifacts": {

@@ -1,0 +1,25 @@
+{
+  "task_id": "20260717-231101-pasted-text-2-48-lines-begin-pasted-text-2-48-lines-next",
+  "goal": "[Pasted text #2 · 48 lines]\n\n--- Begin [Pasted text #2 · 48 lines] ---\n# Next Milestone — Generalize APK Manager Extraction\r\rThe single-manager IL2CPP extraction proof is accepted.\r\rProceed to generalize the extractor across the full captured manager set.\r\r## Required Deliverables\r\r1. Move the reusable extraction logic into the version-controlled Data Engine repository.\r2. Extract a representative sample of at least 8–12 managers covering multiple:\r   - rarities\r   - roles\r   - event/non-event types\r   - older and newer IDs\r3. Confirm whether the seven-ScriptableObject pattern is consistent.\r4. Add graceful handling for:\r   - missing assets\r   - optional fields\r   - duplicate IDs\r   - partial records\r   - unknown enum values\r5. Run a full batch extraction across all discoverable manager IDs.\r6. Produce:\r   - managers.json\r   - extraction-report.json\r   - unresolved-fields.json\r   - source-evidence.json\r7. Add automated tests using sanitized extracted fixtures.\r8. Do not resume production frontend catalog activation until batch extraction and validation are complete.\r\r## Validation Targets\r\r- No duplicate canonical IDs\r- Every extracted manager has a verified gameId\r- All enum values are preserved or explicitly reported as unknown\r- Partial records are retained with warnings, not silently discarded\r- Source paths and evidence are recorded for every extracted field\r- Extraction failures are machine-readable\r\r## Secondary Investigation\r\rContinue investigation of:\r\r- localization/name sources\r- element ID mapping\r- sprite/portrait relationships\r\rThese should remain separate subproblems and must not block batch extraction of the metadata already available.\n--- End [Pasted text #2 · 48 lines] ---",
+  "scope": null,
+  "non_goals": null,
+  "allowed_operations": {
+    "write": true,
+    "network": false,
+    "publish": false
+  },
+  "success_criteria": [
+    {
+      "id": "objective_evidence",
+      "description": "The goal outcome is supported by direct evidence, such as inspected code, reproduced behavior, source material, or concrete findings.",
+      "required": true,
+      "evidence_ids": null
+    },
+    {
+      "id": "verification",
+      "description": "The result has relevant verification evidence, such as tests, commands, benchmarks, manual checks, or a documented reason why verification is not applicable.",
+      "required": true,
+      "evidence_ids": null
+    }
+  ]
+}

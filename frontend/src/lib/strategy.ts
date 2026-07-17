@@ -231,15 +231,29 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
     const id = typeof item.canonicalId === "string" ? item.canonicalId : item.id;
     if (typeof id !== "string" || !id) return [];
 
-    const active = item.active && typeof item.active === "object"
-      ? item.active as Record<string, unknown>
-      : undefined;
+    // Read active ability from either top-level (legacy) or extensions.active (strict v2)
+    const active =
+      (item.active && typeof item.active === "object")
+        ? item.active as Record<string, unknown>
+        : (item.extensions && typeof item.extensions === "object" && (item.extensions as Record<string, unknown>).active && typeof (item.extensions as Record<string, unknown>).active === "object")
+          ? (item.extensions as Record<string, unknown>).active as Record<string, unknown>
+          : undefined;
+
+    // Read elements from top-level array, extensions.elements, or derive from element field
+    const elements: string[] = Array.isArray(item.elements)
+      ? item.elements.filter((value): value is string => typeof value === "string")
+      : (item.extensions && typeof item.extensions === "object" && Array.isArray((item.extensions as Record<string, unknown>).elements))
+        ? ((item.extensions as Record<string, unknown>).elements as unknown[]).filter((value): value is string => typeof value === "string")
+        : typeof item.element === "string"
+          ? [item.element]
+          : [];
+
     return [{
       id,
       name: typeof item.name === "string" ? item.name : id,
       rarity: typeof item.rarity === "string" ? item.rarity : "unknown",
-      type: typeof item.type === "string" ? item.type : "Unknown area",
-      elements: Array.isArray(item.elements) ? item.elements.filter((value): value is string => typeof value === "string") : [],
+      type: typeof item.role === "string" ? item.role : (typeof item.type === "string" ? item.type : "Unknown area"),
+      elements,
       active: active ? {
         description: typeof active.description === "string" ? active.description : undefined,
         multiplier: typeof active.multiplier === "number" ? active.multiplier : undefined,

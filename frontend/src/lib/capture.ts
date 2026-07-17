@@ -71,27 +71,38 @@ export async function fetchCaptureStatus(): Promise<CaptureStatus> {
 
     let catalog;
     try {
+      // Fetch without sort to avoid 400 on PB setups that reject sort by
+      // system fields (e.g. created). We'll sort client-side instead.
       catalog = await pb.collection("catalog_versions").getList(1, 5, {
-        sort: "-created",
         fields: "version,source,recordCount,created",
       });
     } catch {
-      // Some dev PB setups/migrations reject sort by system fields.
-      // Fallback keeps capture status available instead of showing false offline.
-      notes.push("Server does not support sorting capture records by created; using default order.");
-      catalog = await pb.collection("catalog_versions").getList(1, 5, {
-        fields: "version,source,recordCount",
-      });
+      // Collection may not exist or be inaccessible — return unavailable
+      return {
+        healthy: false,
+        error: "catalog_versions collection is not available",
+        notes: [],
+        recentReleases: [],
+      };
     }
 
-    const recentReleases: CaptureReleaseSummary[] = catalog.items.map((item) => ({
-      releaseId: String(item.version ?? ""),
-      ingestedAt: String(item.created ?? ""),
-      source: item.source ? String(item.source) : undefined,
-      objectCount: typeof item.recordCount === "number"
-        ? item.recordCount
-        : (typeof item.recordCount === "string" ? Number(item.recordCount) : undefined),
-    })).filter((item) => item.releaseId.length > 0);
+    const recentReleases: CaptureReleaseSummary[] = catalog.items
+      .map((item) => ({
+        releaseId: String(item.version ?? ""),
+        ingestedAt: String(item.created ?? ""),
+        source: item.source ? String(item.source) : undefined,
+        objectCount: typeof item.recordCount === "number"
+          ? item.recordCount
+          : (typeof item.recordCount === "string" ? Number(item.recordCount) : undefined),
+      }))
+      .filter((item) => item.releaseId.length > 0)
+      // Sort newest-first by ingestedAt (client-side to avoid 400 from PB sort)
+      .sort((a, b) => {
+        if (!a.ingestedAt && !b.ingestedAt) return 0;
+        if (!a.ingestedAt) return 1;
+        if (!b.ingestedAt) return -1;
+        return b.ingestedAt.localeCompare(a.ingestedAt);
+      });
 
     const latest = recentReleases[0];
     const previous = recentReleases[1];

@@ -1,5 +1,80 @@
 # Development journal
 
+## 2026-07-17 — Batch APK manager extraction (82/82 all managers)
+
+**Goal:** Generalize the single-manager extraction proof to cover all 82 discoverable managers, integrate into the Data Engine CLI, and produce validation targets.
+
+**Deliverables produced:**
+- `src/mineops_data_engine/il2cpp_extractor.py` — generalized batch extraction module with graceful handling for missing assets, unknown enums, duplicate IDs, and partial records
+- `tests/unit/test_il2cpp_extractor.py` — 9 unit tests covering enum mappings, asset types, and data structures
+- CLI command `mineops-data-engine extract-managers` with `--release-id`, `--manager-id`, `--output-dir` flags
+- 4 output files in `exports/extracted_managers/`:
+  - `managers.json` (690KB, 82 managers)
+  - `extraction-report.json` (1.2KB)
+  - `unresolved-fields.json` (3.2KB, 145 entries — all from 6 partial managers)
+  - `source-evidence.json` (723KB, 27,729 evidence records)
+
+**Extraction results:**
+- 82 manager IDs discovered (10001–10082)
+- 76 fully extracted (all 7 ScriptableObject assets)
+- 6 partial (4 assets each — missing ActiveEffectFactorType, RankEffectsValues, ToFragments)
+- 0 failures
+- 0 duplicate IDs
+- 0 unknown enum values
+- All managers have verified NameKey and matching SuperManagerId
+
+**7-asset pattern confirmed:** Consistent across 82 managers. The 7 ScriptableObjects per manager are:
+1. SuperManagers.asset (core definition)
+2. SuperManagersActivesToLevels.asset (active ability scaling)
+3. SuperManagersLevelsToPromotions.asset (promotions & passives)
+4. ActiveEffectFactorType.asset (effect type descriptor)
+5. RankEffectsValues.asset (rank-based scaling)
+6. SuperManagerToFragments.asset (fragment linkage)
+7. SuperManagerDataConfig.asset (metadata)
+
+**Secondary investigation (ongoing):**
+- Element ID mapping: IDs 4100000-4100007 identified, name mapping is in IL2CPP code
+- Sprite mapping: 36 manager portrait bundles found for IDs 10083-10118
+- Localization: NameKey is documented but display name table is IL2CPP-compiled
+
+## 2026-07-17 — APK IL2CPP extraction proof (Poseidon/10074)
+
+**Goal:** Recover one complete manager record from the APK's IL2CPP-backed Unity data, proving the extraction pipeline before resuming frontend work.
+
+**Result:** Successfully extracted manager 10074 (Poseidon) — Legendary, Event, Elevator, Male — with all 7 ScriptableObject assets, elemental config, active ability scaling (100 levels), promotions, fragment linkage, and rank effects.
+
+**Pipeline established:**
+- **Il2CppDumper v6.7.46** — installed on UbuntuMac via dotnet 8.0 runtime. Recovered full type system (56MB `dump.cs`, 154MB `script.json`) from `libil2cpp.so` + `global-metadata.dat`.
+- **UnityPy v1.25.2** — successfully deserializes IL2CPP MonoBehaviours using embedded TypeTrees. No stub DLLs needed.
+- **Manager data architecture discovered:** Each manager has 7 individual `.asset` ScriptableObjects in `configfiles-supermanagers` bundle, plus external `SuperManagerElementalConfig_{ID}.json` TextAssets.
+- **Key classes recovered:** `SuperManagersEntity.Param` (17 fields), `SuperManagersActivesToLevelsEntity.Param`, `SuperManagersLevelsToPromotion2Entity.Param`, and all supporting enums (Rarity, Category, Region, PassiveType, Gender, EffectDescType).
+
+**Deliverables:**
+- `docs/APK_EXTRACTION_REPORT.md` — full extraction report with data architecture map
+- `~/mineops-engine/scripts/extract_manager.py` — reusable extraction script
+- `exports/manager_10074_complete.json` — complete manager JSON record
+- `exports/supermanager_configs/` — 9 extracted elemental config JSONs
+
+**Remaining limitations:**
+- Localization table is compiled into IL2CPP code; display names not extractable statically
+- Sprite portrait bundles exist only for managers 10083-10118; runner 10074 may use spine-based portrait from generalassets
+- Element ID→name mapping (4100000-4100007) is in IL2CPP code, not extracted data
+
+**Verification:** ✅ `extract_manager.py` tested with ID 10074 — 7 assets extracted; ✅ `build` passes; ✅ Report written and saved.
+
+## 2026-07-17 — Console and password-manager hygiene
+
+**Goal:** Remove avoidable browser-console noise and make credential fields behave correctly with password managers.
+
+- PocketBase sign-in is now a real form with semantic names, username/password autocomplete metadata, Enter-to-submit behavior, and an explicit submit button.
+- Kolibri credential fields are contained by a form as well; submitting the form invokes the existing Sync Now action.
+- A missing `catalog_publication` collection remains a visible network 404 until migration `1700000004_catalog_publication.js` is deployed, but the expected fallback is now logged at debug level. Unexpected publication request statuses remain warnings.
+- Catalog loads share an in-flight promise so React development Strict Mode does not duplicate the initial publication/storage requests.
+
+**Verification:** `npm --prefix frontend run build`; `npm --prefix frontend run test`.
+
+**Remaining limitation:** The production PocketBase instance still needs the catalog publication migration for the HTTP 404 itself to disappear and for remote catalog publication metadata to become available.
+
 ## 2026-07-17 — Verified strategy recommendations and More operational diagnostics (Issues #11 and #12)
 
 **Goal:** Replace the Strategy placeholder with reproducible, catalog-backed recommendations and make More a safe operational surface for package, sync, import, and recovery state.
@@ -1090,3 +1165,204 @@ Read this file before making changes. The production Docker setup is now correct
 - `docker compose up --build -d` rebuilds and serves on port 8080 via nginx with Kolibri proxying
 - `docker compose -f docker-compose.dev.yml up --build -d` for Vite hot-reload development
 - Fragment parsing from Kolibri is wired but the exact response field name is unconfirmed — check `[kolibri]` console debug logs after a real sync
+
+## 2026-07-17 — More page: all sections collapsible, collapsed by default
+
+**Goal:** Reduce visual clutter on the More page by making every section a collapsible accordion panel, starting collapsed.
+
+### Change
+
+- Added a `CollapsibleSection` utility component that renders a `card-container` section with a clickable title row (chevrot indicator rotates on toggle) and conditionally renders children.
+- All 8 sections on the More page are now wrapped in `CollapsibleSection`:
+  - PocketBase Account
+  - Sync Settings
+  - Kolibri Sync
+  - Catalog package
+  - Snapshot History
+  - Capture Status
+  - Player import history
+  - About this build
+- Each section defaults to **collapsed** (`defaultOpen={false}`). Users click the title bar to expand and view content.
+- The Catalog package section preserves its `aria-live="polite"` attribute for accessibility.
+
+### Files changed
+
+- `frontend/src/pages/MorePage.tsx` — added `CollapsibleSection` component, imported `ReactNode`, wrapped all sections
+
+### Verification
+
+- ✅ `tsc -b` passes (no type errors)
+- ✅ `vite build` succeeds (no build errors)
+- Relies on Vite HMR/hot reload; no new tests needed (purely presentational change)
+
+### Remaining limitations
+
+- None specific to this change. The collapsible pattern is self-contained to the More page and does not affect other pages or state.
+
+## 2026-07-17 — Frontend catalog unification + test fixture + data engine inventory
+
+**Goal:** Unify the frontend catalog path so Managers, Today, and Strategy all consume the same catalog authority (catalogClient). Generate a populated v2 test fixture from legacy data for development. Inventory the UbuntuMac data engine pipeline for real APK extraction.
+
+### Test fixture generator (`tools/generate-test-fixture.mjs`)
+
+Created a Node.js script that transforms the legacy `sm_complete_database.json` (31 managers) into a complete v2 catalog package:
+- Output to `frontend/public/catalog/test-fixture/`
+- 7 artifacts: catalog-core.json, validation-report.json, relationships.json, mappings.json, localization.json, assets.json, changelog.json
+- All artifacts have computed SHA-256 hashes + byte counts in manifest.json
+- **Clearly labeled:** `source.kind: "test-fixture"`, `status: "test-fixture"`, plus notes field
+- Manager records use plain IDs (matching legacy format) for progress data compatibility
+- Active ability and passives stored in `extensions.*` for v2 schema compliance
+- Usage: `node tools/generate-test-fixture.mjs`
+
+### Schema updates
+
+- `shared/schemas/catalog_core.schema.json`: Added `"test-fixture"` to `catalogSource.kind` enum
+- `shared/schemas/catalog_manifest.schema.json`: Added `"test-fixture"` to `status` enum
+
+### Frontend catalog unification
+
+**catalog-client.ts:**
+- Added `loadTestFixturePackage()` function (modeled after `loadBootstrapPackage()`) that loads from `/catalog/test-fixture/manifest.json`
+- Added dev-only test fixture fallback after bootstrap and before error state: `if (import.meta.env.DEV) { try test fixture }`
+- Test fixture goes through full schema validation, SHA-256 verification, caching, and adapter flow
+
+**strategy.ts — managersFromVerifiedPackage():**
+- Now reads `active` from either top-level (legacy) or `extensions.active` (strict v2)
+- Reads `elements` from top-level `elements[]`, `extensions.elements[]`, or derives from `element` field
+- Reads `type` from `role` field (v2) with fallback to `type` (legacy)
+
+**StrategyPage.tsx:**
+- Subscribes to `catalogClient` state changes for reactive rendering (no longer one-shot)
+- Shows "TEST FIXTURE — Not production data" badge when source is test fixture
+- Shows loading state during catalog load
+
+**App.tsx:**
+- No longer loads `sm_complete_database.json` as primary catalog source
+- Subscribes to `catalogClient` — extracts managers via `managersFromVerifiedPackage()` when active
+- Legacy file retained as initial bootstrap for instant first render only
+- Removed `/master/api/sm-data` remote override (`RemoteMaster` type, `normalizeMaster` function)
+- Added proper cleanup for catalog subscription
+
+**Files changed:**
+- `tools/generate-test-fixture.mjs` (new)
+- `frontend/public/catalog/test-fixture/*` (8 files, generated)
+- `shared/schemas/catalog_core.schema.json`
+- `shared/schemas/catalog_manifest.schema.json`
+- `frontend/src/lib/catalog-client.ts`
+- `frontend/src/lib/strategy.ts`
+- `frontend/src/pages/StrategyPage.tsx`
+- `frontend/src/App.tsx`
+
+**Verification:**
+- ✅ All 92 frontend tests pass
+- ✅ All 42 catalog package contract tests pass
+- ✅ All 50 review + publish contract tests pass
+- ✅ `tsc --noEmit` clean
+- ✅ `npm run build` succeeds
+
+### Data engine inventory (A1)
+
+- Confirmed SSH access to UbuntuMac via `ubuntumac-ip` alias (Tailscale DNS not resolving)
+- Existing release `5.59.0_96449_20260716T143539Z` has full M4-M7 pipeline output:
+  - 12 Unity artifact files (all extractors ran)
+  - 4,035 normalized canonical objects
+  - v1 export artifacts
+- However, extractors are at **file-discovery level** — "Manager" objects are files with "manager" in filename, not parsed game data
+- 50 "Manager" objects exist but they're Android support libs and `supermanager-XXXXX.bundle` AssetBundle references (unparsed Unity binary)
+- No readable game config data found in text_assets (APK text files)
+- Real game data is in Unity AssetBundle binary format (`.bundle` files) — needs UnityPy or similar parser
+- `mineops-data-engine` not installed in PATH on UbuntuMac; engine source location needs discovery
+- Two releases exist on UbuntuMac; no current release symlink
+
+**Next data engine steps (A2+):**
+- Install/locate `mineops-data-engine` on UbuntuMac
+- Run a fresh controlled capture (`process` pipeline)
+- Inspect Unity binary bundles to understand manager data format
+- Define v2 catalog generator approach (upgrade export.py or new M8 step)
+
+### Oracle PB status
+
+- `catalog_versions` queryable on Oracle (3 records visible)
+- SSH alias `oracle-vm` exists and configured
+- Need to inspect migration files in the running container
+
+### Remaining limitations
+
+- Test fixture has 31 managers (not 51 as metadata claims — actual file content is 31)
+- Data engine needs Unity binary parser for real game data extraction
+- `mineops-data-engine` Python package needs installation on UbuntuMac
+- Oracle PB migration status is unverified
+- Kolibri ID resolution fails against test fixture (no `kolibri_id` mappings yet — expected, pending real captures)
+- Catalog page may show empty manager grid if a stale bootstrap fixture is cached in IndexedDB. Clear IndexedDB or use dev tools to verify test fixture activation.
+
+## 2026-07-17 — Fix managers not showing in grid (bug fix)
+
+**Root cause:** Two issues:
+
+1. **Default ownership filter was `"unlocked"`**, showing zero managers when none have `unlocked: true`. After the test fixture swap, the Kolibri sync couldn't resolve any IDs (60 unresolved, 0 resolved) because the test fixture lacks Kolibri ID mappings. This reset all progress to `unlocked=false`.
+
+2. **Kolibri sync was destructive** — `saveProgress(result.progress)` replaced ALL existing progress with the new sync results. Unresolved managers lost their existing progress data.
+
+**Fixes applied:**
+
+1. Changed default ownership filter from `"unlocked"` to `"all"` so the manager grid always shows all catalog managers regardless of unlock status. Users can still filter to unlocked via the toggle button.
+
+2. Added progress merge in `syncNow()`: before saving, merges new Kolibri progress with existing IndexedDB data. Managers that weren't resolved by the sync keep their existing progress (unlocked status, level, rank, fragments preserved).
+
+**Files changed:**
+- `frontend/src/App.tsx` — default ownership filter changed, Kolibri sync now merges progress
+
+**Verification:** ✅ `tsc --noEmit` clean, ✅ all 92 tests pass, ✅ `npm run build` succeeds
+
+## 2026-07-17 — Fix test fixture load order (bug fix)
+
+**Bug:** The test fixture fallback in `catalog-client.ts` was placed after the bootstrap `return`, making it unreachable. The bootstrap (example fixture with 0 managers) always loaded first.
+
+**Fix:** Reordered the fallback chain in `loadActiveCatalogImpl()` to try the test fixture BEFORE both the cached package and the bootstrap in dev mode:
+
+```
+Publication → Test fixture (dev) → Cache → Bootstrap → Error
+```
+
+Also cleaned up the duplicate test fixture check (was checking both before and after cache).
+
+**Files changed:** `frontend/src/lib/catalog-client.ts`
+
+**Verification:** ✅ `tsc --noEmit` clean, ✅ all 92 tests pass, ✅ `npm run build` succeeds
+
+## 2026-07-17 — Build v2 catalog generator from Unity TextAsset configs
+
+**Goal:** Extract manager definitions from Unity AssetBundle TextAsset JSON configs and produce populated v2 catalog packages directly from APK data.
+
+### Discovery: Unity AssetBundle format
+
+The main game data bundle (`generalassets_assets_all_*.bundle`, 62MB) contains **123,307 Unity objects** including 142 TextAsset JSON configs. Key findings:
+- `SuperManagerElementalConfig_100XX.json` — 73 files, each with `superManagerId`, `elementalMapping`, `elementalRecipe`
+- `ElementalMinesDefaultConfig` — mine balancing configs
+- `FallbackEventJson` — mine/elevator/warehouse configs
+
+**Critical:** The `superManagerId` values (10001–10073) match the Kolibri API's `Id` field. These configs provide the `kolibri_id → canonicalId` mapping that resolves the 60 previously-unresolved Kolibri IDs.
+
+### v2 Catalog Generator
+
+Created `src/mineops_data_engine/catalog_v2.py` — reads Unity AssetBundles via UnityPy, extracts TextAsset configs, generates all 7 v2 artifacts + manifest with SHA-256 integrity.
+
+**CLI:** `mineops-data-engine catalog-v2 <release_id>`
+**Pipeline step:** `catalog-v2` (after export, requires UnityPy)
+
+### Generated output
+
+- **73 managers** (IDs 10001–10073), **73 kolibri_id mappings** in `mappings.json`
+- Source: `apk_capture`, status: `candidate`
+- Display names: `null` (stored in MonoBehaviours, not TextAssets)
+- All artifact SHA-256 hashes verified against manifest
+
+### Files changed
+- `mineops-data-engine/src/mineops_data_engine/catalog_v2.py` (new)
+- `mineops-data-engine/src/mineops_data_engine/cli.py` (register command + dispatch)
+- `mineops-data-engine/src/mineops_data_engine/pipeline.py` (add pipeline step)
+
+### Remaining limitations
+- Display names, rarities, areas unknown — in MonoBehaviours, not TextAssets
+- Dev test fixture (legacy data with names) continues for frontend development
+- Next: Upload v2 catalog to Oracle, register release, review, publish

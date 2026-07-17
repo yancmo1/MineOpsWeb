@@ -2,6 +2,12 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../mineops-catalog-contracts"
+		},
+		{
+			"path": "../mineops-data-engine"
 		}
 	],
 	"settings": {

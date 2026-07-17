@@ -1,0 +1,178 @@
+{
+  "catalogVersion": "4.42.1-test-fixture",
+  "changes": {
+    "added": [
+      {
+        "canonicalId": "sir_henry",
+        "changeType": "added",
+        "name": "Sir Henry"
+      },
+      {
+        "canonicalId": "sir_lorenzo",
+        "changeType": "added",
+        "name": "Sir Lorenzo"
+      },
+      {
+        "canonicalId": "luna_stella",
+        "changeType": "added",
+        "name": "Luna & Stella"
+      },
+      {
+        "canonicalId": "professor_impossible",
+        "changeType": "added",
+        "name": "Professor Impossible"
+      },
+      {
+        "canonicalId": "samantha_reiss",
+        "changeType": "added",
+        "name": "Samantha Reiss"
+      },
+      {
+        "canonicalId": "utux",
+        "changeType": "added",
+        "name": "Ut'ux"
+      },
+      {
+        "canonicalId": "dr_lilly",
+        "changeType": "added",
+        "name": "Dr. Lilly"
+      },
+      {
+        "canonicalId": "blingsley",
+        "changeType": "added",
+        "name": "Blingsley"
+      },
+      {
+        "canonicalId": "mr_goodman",
+        "changeType": "added",
+        "name": "Mr. Goodman"
+      },
+      {
+        "canonicalId": "mr_turner",
+        "changeType": "added",
+        "name": "Mr. Turner"
+      },
+      {
+        "canonicalId": "dr_steiner",
+        "changeType": "added",
+        "name": "Dr. Steiner"
+      },
+      {
+        "canonicalId": "mark",
+        "changeType": "added",
+        "name": "Mark"
+      },
+      {
+        "canonicalId": "gordon",
+        "changeType": "added",
+        "name": "Gordon"
+      },
+      {
+        "canonicalId": "lee_vatori",
+        "changeType": "added",
+        "name": "Lee Vatori"
+      },
+      {
+        "canonicalId": "mrs_goodman",
+        "changeType": "added",
+        "name": "Mrs. Goodman"
+      },
+      {
+        "canonicalId": "ranger_sue",
+        "changeType": "added",
+        "name": "Ranger Sue"
+      },
+      {
+        "canonicalId": "goodman_jr",
+        "changeType": "added",
+        "name": "Goodman Jr."
+      },
+      {
+        "canonicalId": "chester",
+        "changeType": "added",
+        "name": "Chester"
+      },
+      {
+        "canonicalId": "santa_claus",
+        "changeType": "added",
+        "name": "Santa Claus"
+      },
+      {
+        "canonicalId": "santa_2020",
+        "changeType": "added",
+        "name": "Santa 2020"
+      },
+      {
+        "canonicalId": "violet_evergreen",
+        "changeType": "added",
+        "name": "Violet Evergreen"
+      },
+      {
+        "canonicalId": "jade_kim",
+        "changeType": "added",
+        "name": "Jade Kim"
+      },
+      {
+        "canonicalId": "rabbid_blingsley",
+        "changeType": "added",
+        "name": "Rabbid Blingsley"
+      },
+      {
+        "canonicalId": "queen_aurora",
+        "changeType": "added",
+        "name": "Queen Aurora"
+      },
+      {
+        "canonicalId": "wolfgang_clawson",
+        "changeType": "added",
+        "name": "Wolfgang Clawson"
+      },
+      {
+        "canonicalId": "ezio_auditore",
+        "changeType": "added",
+        "name": "Ezio Auditore"
+      },
+      {
+        "canonicalId": "al_titude",
+        "changeType": "added",
+        "name": "Al Titude"
+      },
+      {
+        "canonicalId": "sojo",
+        "changeType": "added",
+        "name": "Sojo"
+      },
+      {
+        "canonicalId": "chris_cappella",
+        "changeType": "added",
+        "name": "Chris Cappella"
+      },
+      {
+        "canonicalId": "zi_glavani",
+        "changeType": "added",
+        "name": "Zi Glavani"
+      },
+      {
+        "canonicalId": "damian_jones",
+        "changeType": "added",
+        "name": "Damian Jones"
+      }
+    ],
+    "changed": [],
+    "removed": [],
+    "unresolved": []
+  },
+  "generatedAt": "2026-07-17T22:23:51.755Z",
+  "previousCatalogVersion": null,
+  "schemaVersion": "1.0.0",
+  "summary": {
+    "abilitiesChanged": 0,
+    "identifiersChanged": 0,
+    "managersAdded": 31,
+    "managersChanged": 0,
+    "managersRemoved": 0,
+    "spritesChanged": 0,
+    "unresolvedObjects": 0,
+    "warnings": 0
+  }
+}

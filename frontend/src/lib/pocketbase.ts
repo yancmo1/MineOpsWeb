@@ -216,16 +216,19 @@ export async function pullLatestSnapshot(): Promise<PlayerSnapshotRecord | null>
 
 async function listOwnSnapshots(ownerId: string, perPage: number): Promise<PlayerSnapshotRecord[]> {
   const pb = getClient();
+  let page;
   try {
-    const page = await pb
+    // Fetch without sort to avoid 400 on PB setups that reject sort by
+    // system fields (e.g. created). We sort client-side by revision.
+    page = await pb
       .collection("player_snapshots")
-      .getList<PlayerSnapshotRecord>(1, perPage, {
-        sort: "-created",
-      });
-    return page.items.filter((item) => item.owner === ownerId);
+      .getList<PlayerSnapshotRecord>(1, perPage);
   } catch {
     return [];
   }
+  return page.items
+    .filter((item) => item.owner === ownerId)
+    .sort((a, b) => (b.revision ?? 0) - (a.revision ?? 0));
 }
 
 // ---------------------------------------------------------------------------

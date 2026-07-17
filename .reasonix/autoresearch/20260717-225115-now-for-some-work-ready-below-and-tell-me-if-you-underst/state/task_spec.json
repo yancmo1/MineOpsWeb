@@ -1,0 +1,25 @@
+{
+  "task_id": "20260717-225115-now-for-some-work-ready-below-and-tell-me-if-you-underst",
+  "goal": "Now for some work. Ready below and tell me if you understand the request. You'll need memory from previous chat sessions.\n\n[Pasted text #1 · 69 lines]\n\n--- Begin [Pasted text #1 · 69 lines] ---\n# Direction Change — Pause Frontend Expansion and Finish APK Extraction\r\rPause the current canonical-schema and frontend catalog expansion work.\r\rThe immediate priority is now the UbuntuMac APK extraction pipeline.\r\rThe current findings show that the remaining manager metadata is likely stored in IL2CPP-backed MonoBehaviours and that `global-metadata.dat` is present in the APK. The next milestone is therefore not to formalize incomplete anonymous records, but to recover enough Unity/IL2CPP type information to extract a complete manager record.\r\r## Immediate Objective\r\rDemonstrate one manager extracted end to end from APK data with:\r\r- game ID\r- display name\r- rarity\r- role\r- element\r- active ability\r- passive abilities\r- sprite reference\r- source paths\r- evidence/provenance\r\rDo not proceed with broad frontend integration or finalize the canonical manager contract until this proof is complete.\r\r## Required Work on UbuntuMac\r\r1. Install the tooling needed for IL2CPP analysis.\r2. Recover type/class information from:\r   - `global-metadata.dat`\r   - the game native binary\r3. Inspect and deserialize relevant MonoBehaviours.\r4. Identify the manager definition class or classes.\r5. Extract one known manager completely.\r6. Document:\r   - class names\r   - field names\r   - source assets\r   - relationships between manager IDs, localization, abilities, rarity, role, and sprites\r7. Only after the proof succeeds, generalize the extractor for all managers.\r\r## Tooling Order\r\rPrefer this sequence:\r\r1. Il2CppDumper or Cpp2IL on UbuntuMac\r2. AssetRipper if needed for validation or easier inspection\r3. UnityPy with recovered type trees\r4. Runtime capture only if static extraction still leaves unresolved references\r\r## Important Constraints\r\r- Do not accept Option D as the production architecture.\r- Do not merge legacy named records with APK IDs without a verified crosswalk.\r- Do not finalize a large canonical schema around unknown/null fields.\r- Do not continue treating the legacy manager database as the long-term source of truth.\r- Do not wait for a future APK update before exhausting the current APK's IL2CPP metadata.\r\r## Deliverables Before Returning to Frontend Work\r\r- A written extraction report\r- One complete manager JSON record\r- The recovered Unity/IL2CPP class layout used\r- A repeatable extraction command or script\r- A mapping diagram showing:\r  `superManagerId -\u003e manager definition -\u003e localization/name -\u003e abilities -\u003e sprite`\r- A recommendation for the generalized M5/M8 extraction pipeline\r\rOnce this proof is complete, resume canonical-contract design and frontend activation using fields confirmed by actual APK extraction.\n--- End [Pasted text #1 · 69 lines] ---",
+  "scope": null,
+  "non_goals": null,
+  "allowed_operations": {
+    "write": true,
+    "network": false,
+    "publish": false
+  },
+  "success_criteria": [
+    {
+      "id": "objective_evidence",
+      "description": "The goal outcome is supported by direct evidence, such as inspected code, reproduced behavior, source material, or concrete findings.",
+      "required": true,
+      "evidence_ids": null
+    },
+    {
+      "id": "verification",
+      "description": "The result has relevant verification evidence, such as tests, commands, benchmarks, manual checks, or a documented reason why verification is not applicable.",
+      "required": true,
+      "evidence_ids": null
+    }
+  ]
+}

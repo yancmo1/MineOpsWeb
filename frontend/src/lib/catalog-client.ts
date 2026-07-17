@@ -112,6 +112,7 @@ export interface CatalogClientState {
 
 const SUPPORTED_MANIFEST_MAJOR = 2;
 const BOOTSTRAP_PATH = "/catalog/bootstrap/manifest.json";
+const TEST_FIXTURE_PATH = "/catalog/test-fixture/manifest.json";
 /** Bump when the verification logic changes — older cached entries will be revalidated. */
 const CLIENT_VERSION = "0.2.0";
 const VERIFICATION_VERSION = 1;
@@ -250,26 +251,43 @@ export function createCatalogClient(): CatalogClientState {
   async function fetchPublicationMetadata(): Promise<PublicationMetadata | null> {
     setState({ phase: "checking_publication" });
 
-    try {
-      const pb = getClient();
-      const result = await pb.collection("catalog_publication").getList(1, 1);
-      if (result.items.length === 0) return null;
+    // Use fetch directly instead of the PocketBase SDK to avoid SDK-internal
+    // console.error logging for expected 404s (collection may not exist yet).
+    const baseUrl = getBaseUrl().replace(/\/+$/, "");
+    const url = `${baseUrl}/api/collections/catalog_publication/records?page=1&perPage=1`;
 
-      const record = result.items[0];
-      const activeId = (record as Record<string, unknown>).activeReleaseId as string;
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) {
+        // 404 means the collection hasn't been deployed yet — expected fallback state.
+        // Keep this out of the warning channel; unexpected statuses remain actionable.
+        if (response.status === 404) {
+          console.debug("[catalog-client] catalog_publication collection unavailable; using cached/bootstrap catalog");
+        } else {
+          console.warn("[catalog-client] catalog_publication request failed:", response.status);
+        }
+        return null;
+      }
+      const body = (await response.json()) as { items: Array<Record<string, unknown>> };
+      if (!body.items || body.items.length === 0) return null;
+
+      const record = body.items[0];
+      const activeId = record.activeReleaseId as string;
 
       if (!activeId || activeId.length === 0) return null;
 
       return {
         activeReleaseId: activeId,
-        manifestHash: (record as Record<string, unknown>).manifestSha256 as string,
-        activatedAt: (record as Record<string, unknown>).activatedAt as string,
-        activatedBy: (record as Record<string, unknown>).activatedBy as string,
-        previousReleaseId: (record as Record<string, unknown>).previousReleaseId as string,
-        notes: (record as Record<string, unknown>).notes as string,
+        manifestHash: record.manifestSha256 as string,
+        activatedAt: record.activatedAt as string,
+        activatedBy: record.activatedBy as string,
+        previousReleaseId: record.previousReleaseId as string,
+        notes: record.notes as string,
       };
     } catch (err) {
-      // PocketBase unreachable — will fall through to cache/bootstrap
+      // Network error or timeout — will fall through to cache/bootstrap
       console.warn("[catalog-client] Cannot reach PocketBase for publication metadata:", err);
       return null;
     }
@@ -539,10 +557,90 @@ export function createCatalogClient(): CatalogClientState {
   }
 
   // -----------------------------------------------------------------------
+  // Test fixture package (dev-only fallback for frontend development)
+  // -----------------------------------------------------------------------
+
+  async function loadTestFixturePackage(): Promise<CachedCatalogPackage | null> {
+    try {
+      const manifestRaw = await (await fetch(TEST_FIXTURE_PATH)).text();
+      const manifest = JSON.parse(manifestRaw) as CatalogManifest;
+      const manifestHash = await sha256(manifestRaw);
+
+      // Check if already cached
+      const existing = await getPackage(manifest.releaseId, manifestHash);
+      if (existing) return existing;
+
+      // Load all artifacts from test-fixture directory
+      const artifacts: Record<string, CatalogArtifact> = {};
+      let totalBytes = 0;
+
+      for (const entry of manifest.artifacts) {
+        try {
+          const artifactUrl = `/catalog/test-fixture/${entry.path}`;
+          const raw = await (await fetch(artifactUrl)).text();
+          const actualHash = await sha256(raw);
+          const actualBytes = new TextEncoder().encode(raw).length;
+
+          if (actualHash !== entry.sha256 || actualBytes !== entry.bytes) {
+            console.warn(`[catalog-client] Test fixture artifact verification failed: ${entry.filename}`);
+            if (entry.required) return null;
+            continue;
+          }
+
+          artifacts[entry.filename] = {
+            filename: entry.filename,
+            content: JSON.parse(raw),
+            sha256: actualHash,
+            bytes: actualBytes,
+            schemaVersion: entry.schemaVersion,
+          };
+          totalBytes += entry.bytes;
+        } catch {
+          if (entry.required) {
+            console.error(`[catalog-client] Failed to load required test-fixture artifact: ${entry.filename}`);
+            return null;
+          }
+        }
+      }
+
+      const pkg: CachedCatalogPackage = {
+        id: `${manifest.releaseId}::${manifestHash}`,
+        releaseId: manifest.releaseId,
+        manifestHash,
+        catalogVersion: manifest.catalogVersion,
+        gameVersion: manifest.gameVersion,
+        gameVersionCode: manifest.gameVersionCode,
+        manifestSchemaVersion: manifest.manifestSchemaVersion,
+        cachedAt: new Date().toISOString(),
+        verifiedAt: new Date().toISOString(),
+        clientVersion: CLIENT_VERSION,
+        verificationVersion: VERIFICATION_VERSION,
+        storageBaseUrl: "/catalog/test-fixture/",
+        artifacts,
+        totalBytes,
+        isActive: false,
+        isPendingActivation: false,
+        isBootstrap: false,
+        source: "bootstrap",
+        verificationState: "verified",
+        warnings: [],
+      };
+
+      await storePackage(pkg);
+      return pkg;
+    } catch (err) {
+      console.debug("[catalog-client] Test fixture package not available (expected in production):", err);
+      return null;
+    }
+  }
+
+  // -----------------------------------------------------------------------
   // Main load flow
   // -----------------------------------------------------------------------
 
-  async function loadActiveCatalog(): Promise<void> {
+  let activeLoad: Promise<void> | null = null;
+
+  async function loadActiveCatalogImpl(): Promise<void> {
     try {
       // 1. Try to get publication metadata from PocketBase
       const pub = await fetchPublicationMetadata();
@@ -679,7 +777,23 @@ export function createCatalogClient(): CatalogClientState {
         return;
       }
 
-      // No publication metadata — try cache, then bootstrap
+      // No publication metadata — try test fixture (dev), then cache, then bootstrap
+      if (import.meta.env.DEV) {
+        const testFixture = await loadTestFixturePackage();
+        if (testFixture) {
+          await safeActivate(testFixture.releaseId, testFixture.manifestHash);
+          await refreshCacheStatus();
+          setState({
+            phase: "active",
+            releaseId: testFixture.releaseId,
+            manifestHash: testFixture.manifestHash,
+            catalogVersion: testFixture.catalogVersion,
+          });
+          return;
+        }
+      }
+
+      // Try cached active package
       const active = await getActivePackage();
       if (active) {
         setState({
@@ -722,6 +836,14 @@ export function createCatalogClient(): CatalogClientState {
       }
       setState({ phase: "error", error: `Unexpected error: ${err}`, code: "UNEXPECTED_ERROR" });
     }
+  }
+
+  async function loadActiveCatalog(): Promise<void> {
+    // React Strict Mode intentionally mounts effects twice in development.
+    // Share the in-flight load so that it does not duplicate PB/storage requests.
+    if (activeLoad) return activeLoad;
+    activeLoad = loadActiveCatalogImpl().finally(() => { activeLoad = null; });
+    return activeLoad;
   }
 
   async function reloadCatalog(): Promise<void> {
