@@ -1,599 +1,992 @@
 {
-  "aliases": [
-    {
-      "alias": "Sir Henry",
-      "canonicalId": "sir_henry",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "sir henry",
-      "canonicalId": "sir_henry",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Sir Lorenzo",
-      "canonicalId": "sir_lorenzo",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "sir lorenzo",
-      "canonicalId": "sir_lorenzo",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Luna & Stella",
-      "canonicalId": "luna_stella",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "luna & stella",
-      "canonicalId": "luna_stella",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Professor Impossible",
-      "canonicalId": "professor_impossible",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "professor impossible",
-      "canonicalId": "professor_impossible",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Samantha Reiss",
-      "canonicalId": "samantha_reiss",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "samantha reiss",
-      "canonicalId": "samantha_reiss",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Ut'ux",
-      "canonicalId": "utux",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "ut'ux",
-      "canonicalId": "utux",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Dr. Lilly",
-      "canonicalId": "dr_lilly",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "dr. lilly",
-      "canonicalId": "dr_lilly",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Blingsley",
-      "canonicalId": "blingsley",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "blingsley",
-      "canonicalId": "blingsley",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Mr. Goodman",
-      "canonicalId": "mr_goodman",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "mr. goodman",
-      "canonicalId": "mr_goodman",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Mr. Turner",
-      "canonicalId": "mr_turner",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "mr. turner",
-      "canonicalId": "mr_turner",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Dr. Steiner",
-      "canonicalId": "dr_steiner",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "dr. steiner",
-      "canonicalId": "dr_steiner",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Mark",
-      "canonicalId": "mark",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "mark",
-      "canonicalId": "mark",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Gordon",
-      "canonicalId": "gordon",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "gordon",
-      "canonicalId": "gordon",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Lee Vatori",
-      "canonicalId": "lee_vatori",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "lee vatori",
-      "canonicalId": "lee_vatori",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Mrs. Goodman",
-      "canonicalId": "mrs_goodman",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "mrs. goodman",
-      "canonicalId": "mrs_goodman",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Ranger Sue",
-      "canonicalId": "ranger_sue",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "ranger sue",
-      "canonicalId": "ranger_sue",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Goodman Jr.",
-      "canonicalId": "goodman_jr",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "goodman jr.",
-      "canonicalId": "goodman_jr",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Chester",
-      "canonicalId": "chester",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "chester",
-      "canonicalId": "chester",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Santa Claus",
-      "canonicalId": "santa_claus",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "santa claus",
-      "canonicalId": "santa_claus",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Santa 2020",
-      "canonicalId": "santa_2020",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "santa 2020",
-      "canonicalId": "santa_2020",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Violet Evergreen",
-      "canonicalId": "violet_evergreen",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "violet evergreen",
-      "canonicalId": "violet_evergreen",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Jade Kim",
-      "canonicalId": "jade_kim",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "jade kim",
-      "canonicalId": "jade_kim",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Rabbid Blingsley",
-      "canonicalId": "rabbid_blingsley",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "rabbid blingsley",
-      "canonicalId": "rabbid_blingsley",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Queen Aurora",
-      "canonicalId": "queen_aurora",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "queen aurora",
-      "canonicalId": "queen_aurora",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Wolfgang Clawson",
-      "canonicalId": "wolfgang_clawson",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "wolfgang clawson",
-      "canonicalId": "wolfgang_clawson",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Ezio Auditore",
-      "canonicalId": "ezio_auditore",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "ezio auditore",
-      "canonicalId": "ezio_auditore",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Al Titude",
-      "canonicalId": "al_titude",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "al titude",
-      "canonicalId": "al_titude",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Sojo",
-      "canonicalId": "sojo",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "sojo",
-      "canonicalId": "sojo",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Chris Cappella",
-      "canonicalId": "chris_cappella",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "chris cappella",
-      "canonicalId": "chris_cappella",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Zi Glavani",
-      "canonicalId": "zi_glavani",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "zi glavani",
-      "canonicalId": "zi_glavani",
-      "extensions": {},
-      "kind": "display_name_lower"
-    },
-    {
-      "alias": "Damian Jones",
-      "canonicalId": "damian_jones",
-      "extensions": {},
-      "kind": "display_name"
-    },
-    {
-      "alias": "damian jones",
-      "canonicalId": "damian_jones",
-      "extensions": {},
-      "kind": "display_name_lower"
-    }
-  ],
-  "catalogVersion": "4.42.1-test-fixture",
-  "generatedAt": "2026-07-17T22:23:51.755Z",
+  "catalogVersion": "5.59.0_96449_0716T143539Z",
+  "generatedAt": "2026-07-18T00:20:41.677739Z",
   "idMappings": [
     {
-      "canonicalId": "sir_henry",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "sir_henry"
+      "canonicalId": "sm-10001",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10001"
     },
     {
-      "canonicalId": "sir_lorenzo",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "sir_lorenzo"
+      "canonicalId": "sm-10002",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10002"
     },
     {
-      "canonicalId": "luna_stella",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "luna_stella"
+      "canonicalId": "sm-10003",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10003"
     },
     {
-      "canonicalId": "professor_impossible",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "professor_impossible"
+      "canonicalId": "sm-10004",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10004"
     },
     {
-      "canonicalId": "samantha_reiss",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "samantha_reiss"
+      "canonicalId": "sm-10005",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10005"
     },
     {
-      "canonicalId": "utux",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "utux"
+      "canonicalId": "sm-10006",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10006"
     },
     {
-      "canonicalId": "dr_lilly",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "dr_lilly"
+      "canonicalId": "sm-10007",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10007"
     },
     {
-      "canonicalId": "blingsley",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "blingsley"
+      "canonicalId": "sm-10008",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10008"
     },
     {
-      "canonicalId": "mr_goodman",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "mr_goodman"
+      "canonicalId": "sm-10009",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10009"
     },
     {
-      "canonicalId": "mr_turner",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "mr_turner"
+      "canonicalId": "sm-10010",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10010"
     },
     {
-      "canonicalId": "dr_steiner",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "dr_steiner"
+      "canonicalId": "sm-10011",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10011"
     },
     {
-      "canonicalId": "mark",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "mark"
+      "canonicalId": "sm-10012",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10012"
     },
     {
-      "canonicalId": "gordon",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "gordon"
+      "canonicalId": "sm-10013",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10013"
     },
     {
-      "canonicalId": "lee_vatori",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "lee_vatori"
+      "canonicalId": "sm-10014",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10014"
     },
     {
-      "canonicalId": "mrs_goodman",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "mrs_goodman"
+      "canonicalId": "sm-10015",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10015"
     },
     {
-      "canonicalId": "ranger_sue",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "ranger_sue"
+      "canonicalId": "sm-10016",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10016"
     },
     {
-      "canonicalId": "goodman_jr",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "goodman_jr"
+      "canonicalId": "sm-10017",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10017"
     },
     {
-      "canonicalId": "chester",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "chester"
+      "canonicalId": "sm-10018",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10018"
     },
     {
-      "canonicalId": "santa_claus",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "santa_claus"
+      "canonicalId": "sm-10019",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10019"
     },
     {
-      "canonicalId": "santa_2020",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "santa_2020"
+      "canonicalId": "sm-10020",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10020"
     },
     {
-      "canonicalId": "violet_evergreen",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "violet_evergreen"
+      "canonicalId": "sm-10021",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10021"
     },
     {
-      "canonicalId": "jade_kim",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "jade_kim"
+      "canonicalId": "sm-10022",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10022"
     },
     {
-      "canonicalId": "rabbid_blingsley",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "rabbid_blingsley"
+      "canonicalId": "sm-10023",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10023"
     },
     {
-      "canonicalId": "queen_aurora",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "queen_aurora"
+      "canonicalId": "sm-10024",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10024"
     },
     {
-      "canonicalId": "wolfgang_clawson",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "wolfgang_clawson"
+      "canonicalId": "sm-10025",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10025"
     },
     {
-      "canonicalId": "ezio_auditore",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "ezio_auditore"
+      "canonicalId": "sm-10026",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10026"
     },
     {
-      "canonicalId": "al_titude",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "al_titude"
+      "canonicalId": "sm-10027",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10027"
     },
     {
-      "canonicalId": "sojo",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "sojo"
+      "canonicalId": "sm-10028",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10028"
     },
     {
-      "canonicalId": "chris_cappella",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "chris_cappella"
+      "canonicalId": "sm-10029",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10029"
     },
     {
-      "canonicalId": "zi_glavani",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "zi_glavani"
+      "canonicalId": "sm-10030",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10030"
     },
     {
-      "canonicalId": "damian_jones",
-      "confidence": "verified",
-      "extensions": {},
-      "kind": "legacy_id",
-      "sourceValue": "damian_jones"
+      "canonicalId": "sm-10031",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10031"
+    },
+    {
+      "canonicalId": "sm-10032",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10032"
+    },
+    {
+      "canonicalId": "sm-10033",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10033"
+    },
+    {
+      "canonicalId": "sm-10034",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10034"
+    },
+    {
+      "canonicalId": "sm-10035",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10035"
+    },
+    {
+      "canonicalId": "sm-10036",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10036"
+    },
+    {
+      "canonicalId": "sm-10037",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10037"
+    },
+    {
+      "canonicalId": "sm-10038",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10038"
+    },
+    {
+      "canonicalId": "sm-10039",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10039"
+    },
+    {
+      "canonicalId": "sm-10040",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10040"
+    },
+    {
+      "canonicalId": "sm-10041",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10041"
+    },
+    {
+      "canonicalId": "sm-10042",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10042"
+    },
+    {
+      "canonicalId": "sm-10043",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10043"
+    },
+    {
+      "canonicalId": "sm-10044",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10044"
+    },
+    {
+      "canonicalId": "sm-10045",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10045"
+    },
+    {
+      "canonicalId": "sm-10046",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10046"
+    },
+    {
+      "canonicalId": "sm-10047",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10047"
+    },
+    {
+      "canonicalId": "sm-10048",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10048"
+    },
+    {
+      "canonicalId": "sm-10049",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10049"
+    },
+    {
+      "canonicalId": "sm-10050",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10050"
+    },
+    {
+      "canonicalId": "sm-10051",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10051"
+    },
+    {
+      "canonicalId": "sm-10052",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10052"
+    },
+    {
+      "canonicalId": "sm-10053",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10053"
+    },
+    {
+      "canonicalId": "sm-10054",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10054"
+    },
+    {
+      "canonicalId": "sm-10055",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10055"
+    },
+    {
+      "canonicalId": "sm-10056",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10056"
+    },
+    {
+      "canonicalId": "sm-10057",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10057"
+    },
+    {
+      "canonicalId": "sm-10058",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10058"
+    },
+    {
+      "canonicalId": "sm-10059",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10059"
+    },
+    {
+      "canonicalId": "sm-10060",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10060"
+    },
+    {
+      "canonicalId": "sm-10061",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10061"
+    },
+    {
+      "canonicalId": "sm-10062",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10062"
+    },
+    {
+      "canonicalId": "sm-10063",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10063"
+    },
+    {
+      "canonicalId": "sm-10064",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10064"
+    },
+    {
+      "canonicalId": "sm-10065",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10065"
+    },
+    {
+      "canonicalId": "sm-10066",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10066"
+    },
+    {
+      "canonicalId": "sm-10067",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10067"
+    },
+    {
+      "canonicalId": "sm-10068",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10068"
+    },
+    {
+      "canonicalId": "sm-10069",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10069"
+    },
+    {
+      "canonicalId": "sm-10070",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10070"
+    },
+    {
+      "canonicalId": "sm-10071",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10071"
+    },
+    {
+      "canonicalId": "sm-10072",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10072"
+    },
+    {
+      "canonicalId": "sm-10073",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10073"
+    },
+    {
+      "canonicalId": "sm-10074",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10074"
+    },
+    {
+      "canonicalId": "sm-10075",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10075"
+    },
+    {
+      "canonicalId": "sm-10076",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10076"
+    },
+    {
+      "canonicalId": "sm-10077",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10077"
+    },
+    {
+      "canonicalId": "sm-10078",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10078"
+    },
+    {
+      "canonicalId": "sm-10079",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10079"
+    },
+    {
+      "canonicalId": "sm-10080",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10080"
+    },
+    {
+      "canonicalId": "sm-10081",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10081"
+    },
+    {
+      "canonicalId": "sm-10082",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10082"
+    },
+    {
+      "canonicalId": "sm-10001",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_LeeVatori"
+    },
+    {
+      "canonicalId": "sm-10002",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Mr.Goodman"
+    },
+    {
+      "canonicalId": "sm-10003",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Dr.Steiner"
+    },
+    {
+      "canonicalId": "sm-10004",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Gordon"
+    },
+    {
+      "canonicalId": "sm-10005",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Blingsley"
+    },
+    {
+      "canonicalId": "sm-10006",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Mr.Turner"
+    },
+    {
+      "canonicalId": "sm-10007",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Mark"
+    },
+    {
+      "canonicalId": "sm-10008",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Dr.Lilly"
+    },
+    {
+      "canonicalId": "sm-10009",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Mrs.Goodman"
+    },
+    {
+      "canonicalId": "sm-10010",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_RangerSue"
+    },
+    {
+      "canonicalId": "sm-10011",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_SirHenry"
+    },
+    {
+      "canonicalId": "sm-10012",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_GoodmanJr"
+    },
+    {
+      "canonicalId": "sm-10013",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_SirLorenzo"
+    },
+    {
+      "canonicalId": "sm-10014",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Chester"
+    },
+    {
+      "canonicalId": "sm-10015",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_LunaAndStella"
+    },
+    {
+      "canonicalId": "sm-10016",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_SantaClaus"
+    },
+    {
+      "canonicalId": "sm-10017",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_ProfessorImpossible"
+    },
+    {
+      "canonicalId": "sm-10018",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Santa2020"
+    },
+    {
+      "canonicalId": "sm-10019",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_EzioAuditore"
+    },
+    {
+      "canonicalId": "sm-10020",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_ProfessorImpossible"
+    },
+    {
+      "canonicalId": "sm-10021",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Blingsley"
+    },
+    {
+      "canonicalId": "sm-10022",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_EzioAuditore"
+    },
+    {
+      "canonicalId": "sm-10023",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Dr.Steiner"
+    },
+    {
+      "canonicalId": "sm-10024",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Wolfgang"
+    },
+    {
+      "canonicalId": "sm-10025",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_RabbidBlingsley"
+    },
+    {
+      "canonicalId": "sm-10026",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_QueenAurora"
+    },
+    {
+      "canonicalId": "sm-10027",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_QueenAurora"
+    },
+    {
+      "canonicalId": "sm-10028",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_RabbidBlingsley"
+    },
+    {
+      "canonicalId": "sm-10029",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_DamianJones"
+    },
+    {
+      "canonicalId": "sm-10030",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_JadeKim"
+    },
+    {
+      "canonicalId": "sm-10031",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_VioletEvergreen"
+    },
+    {
+      "canonicalId": "sm-10032",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_DrNova"
+    },
+    {
+      "canonicalId": "sm-10033",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_ProfMaple"
+    },
+    {
+      "canonicalId": "sm-10034",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_GreenIdler"
+    },
+    {
+      "canonicalId": "sm-10035",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_ZiGalvani"
+    },
+    {
+      "canonicalId": "sm-10036",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_OctaviaDeVere"
+    },
+    {
+      "canonicalId": "sm-10037",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_FloatingAgatha"
+    },
+    {
+      "canonicalId": "sm-10038",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_SamanthaReiss"
+    },
+    {
+      "canonicalId": "sm-10039",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Luxario"
+    },
+    {
+      "canonicalId": "sm-10040",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Beiro"
+    },
+    {
+      "canonicalId": "sm-10041",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_SamFisher"
+    },
+    {
+      "canonicalId": "sm-10042",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Utux"
+    },
+    {
+      "canonicalId": "sm-10043",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Marrena"
+    },
+    {
+      "canonicalId": "sm-10044",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_MelodyRivers"
+    },
+    {
+      "canonicalId": "sm-10045",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_ChrisCapella"
+    },
+    {
+      "canonicalId": "sm-10046",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Glimmer"
+    },
+    {
+      "canonicalId": "sm-10047",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Pebble"
+    },
+    {
+      "canonicalId": "sm-10048",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Sojo"
+    },
+    {
+      "canonicalId": "sm-10049",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Rayman"
+    },
+    {
+      "canonicalId": "sm-10050",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_UlaGalvani"
+    },
+    {
+      "canonicalId": "sm-10051",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_DarkBeiro"
+    },
+    {
+      "canonicalId": "sm-10052",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Zephyria"
+    },
+    {
+      "canonicalId": "sm-10053",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Afi"
+    },
+    {
+      "canonicalId": "sm-10054",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Robot"
+    },
+    {
+      "canonicalId": "sm-10055",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Ember"
+    },
+    {
+      "canonicalId": "sm-10056",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_CliffWalker"
+    },
+    {
+      "canonicalId": "sm-10057",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Jackal"
+    },
+    {
+      "canonicalId": "sm-10058",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_EricaQuill"
+    },
+    {
+      "canonicalId": "sm-10059",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_MadEyeDrake"
+    },
+    {
+      "canonicalId": "sm-10060",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Urca"
+    },
+    {
+      "canonicalId": "sm-10061",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Asterion"
+    },
+    {
+      "canonicalId": "sm-10062",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Thalia"
+    },
+    {
+      "canonicalId": "sm-10063",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Krampus"
+    },
+    {
+      "canonicalId": "sm-10064",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Minergirl"
+    },
+    {
+      "canonicalId": "sm-10065",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Cupid"
+    },
+    {
+      "canonicalId": "sm-10066",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Altitude"
+    },
+    {
+      "canonicalId": "sm-10067",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Lavender"
+    },
+    {
+      "canonicalId": "sm-10068",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_RabbitMech"
+    },
+    {
+      "canonicalId": "sm-10069",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Eternity"
+    },
+    {
+      "canonicalId": "sm-10070",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Fishman"
+    },
+    {
+      "canonicalId": "sm-10071",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Ore-Sama_Daichi"
+    },
+    {
+      "canonicalId": "sm-10072",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Gelato_Glaciara"
+    },
+    {
+      "canonicalId": "sm-10073",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Ray_Rift"
+    },
+    {
+      "canonicalId": "sm-10074",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Poseidon"
+    },
+    {
+      "canonicalId": "sm-10075",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Freesia"
+    },
+    {
+      "canonicalId": "sm-10076",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Dave_Riptide"
+    },
+    {
+      "canonicalId": "sm-10077",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Omnix"
+    },
+    {
+      "canonicalId": "sm-10078",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Abeo"
+    },
+    {
+      "canonicalId": "sm-10079",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_PhineasCogsmith"
+    },
+    {
+      "canonicalId": "sm-10080",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_WhiskerTwirl"
+    },
+    {
+      "canonicalId": "sm-10081",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_BamBam"
+    },
+    {
+      "canonicalId": "sm-10082",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_CountLucius"
     }
   ],
-  "releaseId": "test-fixture-20260717",
+  "releaseId": "5.59.0_96449_20260716T143539Z",
   "schemaVersion": "1.0.0"
 }

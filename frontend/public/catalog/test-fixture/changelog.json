@@ -1,178 +1,94 @@
 {
-  "catalogVersion": "4.42.1-test-fixture",
+  "catalogVersion": "5.59.0_96449_0716T143539Z",
   "changes": {
     "added": [
-      {
-        "canonicalId": "sir_henry",
-        "changeType": "added",
-        "name": "Sir Henry"
-      },
-      {
-        "canonicalId": "sir_lorenzo",
-        "changeType": "added",
-        "name": "Sir Lorenzo"
-      },
-      {
-        "canonicalId": "luna_stella",
-        "changeType": "added",
-        "name": "Luna & Stella"
-      },
-      {
-        "canonicalId": "professor_impossible",
-        "changeType": "added",
-        "name": "Professor Impossible"
-      },
-      {
-        "canonicalId": "samantha_reiss",
-        "changeType": "added",
-        "name": "Samantha Reiss"
-      },
-      {
-        "canonicalId": "utux",
-        "changeType": "added",
-        "name": "Ut'ux"
-      },
-      {
-        "canonicalId": "dr_lilly",
-        "changeType": "added",
-        "name": "Dr. Lilly"
-      },
-      {
-        "canonicalId": "blingsley",
-        "changeType": "added",
-        "name": "Blingsley"
-      },
-      {
-        "canonicalId": "mr_goodman",
-        "changeType": "added",
-        "name": "Mr. Goodman"
-      },
-      {
-        "canonicalId": "mr_turner",
-        "changeType": "added",
-        "name": "Mr. Turner"
-      },
-      {
-        "canonicalId": "dr_steiner",
-        "changeType": "added",
-        "name": "Dr. Steiner"
-      },
-      {
-        "canonicalId": "mark",
-        "changeType": "added",
-        "name": "Mark"
-      },
-      {
-        "canonicalId": "gordon",
-        "changeType": "added",
-        "name": "Gordon"
-      },
-      {
-        "canonicalId": "lee_vatori",
-        "changeType": "added",
-        "name": "Lee Vatori"
-      },
-      {
-        "canonicalId": "mrs_goodman",
-        "changeType": "added",
-        "name": "Mrs. Goodman"
-      },
-      {
-        "canonicalId": "ranger_sue",
-        "changeType": "added",
-        "name": "Ranger Sue"
-      },
-      {
-        "canonicalId": "goodman_jr",
-        "changeType": "added",
-        "name": "Goodman Jr."
-      },
-      {
-        "canonicalId": "chester",
-        "changeType": "added",
-        "name": "Chester"
-      },
-      {
-        "canonicalId": "santa_claus",
-        "changeType": "added",
-        "name": "Santa Claus"
-      },
-      {
-        "canonicalId": "santa_2020",
-        "changeType": "added",
-        "name": "Santa 2020"
-      },
-      {
-        "canonicalId": "violet_evergreen",
-        "changeType": "added",
-        "name": "Violet Evergreen"
-      },
-      {
-        "canonicalId": "jade_kim",
-        "changeType": "added",
-        "name": "Jade Kim"
-      },
-      {
-        "canonicalId": "rabbid_blingsley",
-        "changeType": "added",
-        "name": "Rabbid Blingsley"
-      },
-      {
-        "canonicalId": "queen_aurora",
-        "changeType": "added",
-        "name": "Queen Aurora"
-      },
-      {
-        "canonicalId": "wolfgang_clawson",
-        "changeType": "added",
-        "name": "Wolfgang Clawson"
-      },
-      {
-        "canonicalId": "ezio_auditore",
-        "changeType": "added",
-        "name": "Ezio Auditore"
-      },
-      {
-        "canonicalId": "al_titude",
-        "changeType": "added",
-        "name": "Al Titude"
-      },
-      {
-        "canonicalId": "sojo",
-        "changeType": "added",
-        "name": "Sojo"
-      },
-      {
-        "canonicalId": "chris_cappella",
-        "changeType": "added",
-        "name": "Chris Cappella"
-      },
-      {
-        "canonicalId": "zi_glavani",
-        "changeType": "added",
-        "name": "Zi Glavani"
-      },
-      {
-        "canonicalId": "damian_jones",
-        "changeType": "added",
-        "name": "Damian Jones"
-      }
+      "sm-10001",
+      "sm-10002",
+      "sm-10003",
+      "sm-10004",
+      "sm-10005",
+      "sm-10006",
+      "sm-10007",
+      "sm-10008",
+      "sm-10009",
+      "sm-10010",
+      "sm-10011",
+      "sm-10012",
+      "sm-10013",
+      "sm-10014",
+      "sm-10015",
+      "sm-10016",
+      "sm-10017",
+      "sm-10018",
+      "sm-10019",
+      "sm-10020",
+      "sm-10021",
+      "sm-10022",
+      "sm-10023",
+      "sm-10024",
+      "sm-10025",
+      "sm-10026",
+      "sm-10027",
+      "sm-10028",
+      "sm-10029",
+      "sm-10030",
+      "sm-10031",
+      "sm-10032",
+      "sm-10033",
+      "sm-10034",
+      "sm-10035",
+      "sm-10036",
+      "sm-10037",
+      "sm-10038",
+      "sm-10039",
+      "sm-10040",
+      "sm-10041",
+      "sm-10042",
+      "sm-10043",
+      "sm-10044",
+      "sm-10045",
+      "sm-10046",
+      "sm-10047",
+      "sm-10048",
+      "sm-10049",
+      "sm-10050",
+      "sm-10051",
+      "sm-10052",
+      "sm-10053",
+      "sm-10054",
+      "sm-10055",
+      "sm-10056",
+      "sm-10057",
+      "sm-10058",
+      "sm-10059",
+      "sm-10060",
+      "sm-10061",
+      "sm-10062",
+      "sm-10063",
+      "sm-10064",
+      "sm-10065",
+      "sm-10066",
+      "sm-10067",
+      "sm-10068",
+      "sm-10069",
+      "sm-10070",
+      "sm-10071",
+      "sm-10072",
+      "sm-10073",
+      "sm-10074",
+      "sm-10075",
+      "sm-10076",
+      "sm-10077",
+      "sm-10078",
+      "sm-10079",
+      "sm-10080",
+      "sm-10081",
+      "sm-10082"
     ],
-    "changed": [],
-    "removed": [],
-    "unresolved": []
+    "modified": [],
+    "removed": []
   },
-  "generatedAt": "2026-07-17T22:23:51.755Z",
+  "generatedAt": "2026-07-18T00:20:41.677739Z",
   "previousCatalogVersion": null,
-  "schemaVersion": "1.0.0",
-  "summary": {
-    "abilitiesChanged": 0,
-    "identifiersChanged": 0,
-    "managersAdded": 31,
-    "managersChanged": 0,
-    "managersRemoved": 0,
-    "spritesChanged": 0,
-    "unresolvedObjects": 0,
-    "warnings": 0
-  }
+  "schemaVersion": "1.0.0"
 }

@@ -1,98 +1,98 @@
 {
   "artifacts": [
     {
-      "bytes": 52712,
+      "bytes": 276886,
       "contentType": "application/json",
       "filename": "catalog-core.json",
       "path": "catalog-core.json",
-      "recordCount": 31,
+      "recordCount": 82,
       "required": true,
       "schemaVersion": "1.0.0",
-      "sha256": "1434ac0edd48a44059deb7cc9dd942109fe17d533185e9b3ed7618697bada976"
+      "sha256": "b31137aae81f327a5775163134edfac4c9d898a1af011b799b9ddf97bfbd2b21"
     },
     {
-      "bytes": 1955,
+      "bytes": 386,
       "contentType": "application/json",
       "filename": "validation-report.json",
       "path": "validation-report.json",
-      "recordCount": 10,
+      "recordCount": 2,
       "required": true,
       "schemaVersion": "1.0.0",
-      "sha256": "68c854784c694108d19f2b53d99f069e72a0fc2be6b5cf511c4c37e4b74c43a5"
+      "sha256": "2ab614ef62a16deb23354535704ccea846cd80e05886a35deea330af2bdc4a0b"
     },
     {
-      "bytes": 182,
+      "bytes": 199,
       "contentType": "application/json",
       "filename": "relationships.json",
       "path": "relationships.json",
       "recordCount": 0,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "b05c54014b08af0dfd2b96bb16e5f8d449bf5e16b8c22f187890709125567a31"
+      "sha256": "eec891c8a5abec2acf7d56b53e85a10ddabfef57b5b5e1a557e3987f944abc18"
     },
     {
-      "bytes": 13663,
+      "bytes": 22354,
       "contentType": "application/json",
       "filename": "mappings.json",
       "path": "mappings.json",
-      "recordCount": 31,
+      "recordCount": 164,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "9ec73d19a4f698d72d9cb22953c2d1c82571ad14f91cb539b5509ff2899e2aac"
+      "sha256": "3e9b7c318fe5d74c1b249bd3769d26cbd5e6275cc80a361a2ab6bc48843402f7"
     },
     {
-      "bytes": 1225,
+      "bytes": 14397,
       "contentType": "application/json",
       "filename": "localization.json",
       "path": "localization.json",
-      "recordCount": 31,
+      "recordCount": 82,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "4281febce33f07cedd3cc45028de5be0e20c3815045b0e4a4d8ef5464c510c7a"
+      "sha256": "30f7b9de2020295f47628101ad864d7972a9e03e26eae62a6970bf97b84e4957"
     },
     {
-      "bytes": 175,
+      "bytes": 192,
       "contentType": "application/json",
       "filename": "assets.json",
       "path": "assets.json",
       "recordCount": 0,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "bd7b9937a5ce4f3395cb018d130e93d2cdff4f23f4b4411b9900dd6c67575e1e"
+      "sha256": "691e59c027e9805c4f7145de5d256c0c4859680d9532cdc4900a1807801d42e4"
     },
     {
-      "bytes": 4048,
+      "bytes": 1717,
       "contentType": "application/json",
       "filename": "changelog.json",
       "path": "changelog.json",
-      "recordCount": 31,
+      "recordCount": 82,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "bd0e7c5980739401811c86cd066a7537f183f1c5c14dabee1ab9110ab1601d6f"
+      "sha256": "f04147c91b34938f10533347affec454a71aa3fa569d0964e605e6b18abc6e10"
     }
   ],
-  "catalogVersion": "4.42.1-test-fixture",
+  "catalogVersion": "5.59.0_96449_0716T143539Z",
   "counts": {
     "artifacts": 0,
     "collectibles": 0,
     "equipment": 0,
-    "managers": 31,
+    "managers": 82,
     "mines": 0,
     "relationships": 0,
     "research": 0,
     "unresolvedObjects": 0
   },
-  "gameVersion": "4.42.1",
-  "gameVersionCode": 999999,
-  "generatedAt": "2026-07-17T22:23:51.755Z",
+  "gameVersion": "5.59.0",
+  "gameVersionCode": 96449,
+  "generatedAt": "2026-07-18T00:20:41.677739Z",
   "generator": {
-    "name": "MineOpsWeb",
-    "version": "0.1.0"
+    "name": "MineOpsDataEngine M7",
+    "version": "1.0.0"
   },
   "manifestSchemaVersion": "2.0.0",
   "previousCatalogVersion": null,
-  "releaseId": "test-fixture-20260717",
-  "status": "test-fixture",
+  "releaseId": "5.59.0_96449_20260716T143539Z",
+  "status": "candidate",
   "storage": {
     "baseUrl": "./",
     "cdnUrl": null
