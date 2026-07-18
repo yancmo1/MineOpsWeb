@@ -97,6 +97,21 @@ def load_bundle(release_dir: Path | str) -> Any:
     return UnityPy.load(str(bundles[0]))
 
 
+def load_all_bundles(release_dir: Path | str) -> dict[str, Any]:
+    """Load ALL Unity bundles and return a dict of bundle_name -> env."""
+    import UnityPy
+    release_dir = Path(release_dir)
+    bundle_dir = release_dir / "extracted/base.apk/assets/Addressables/Android"
+    result: dict[str, Any] = {}
+    for bp in sorted(bundle_dir.glob("*.bundle")):
+        try:
+            env = UnityPy.load(str(bp))
+            result[bp.name] = env
+        except Exception as e:
+            pass
+    return result
+
+
 def discover_manager_ids(env: Any) -> set[int]:
     """Scan all MonoBehaviours for SuperManagersData assets and extract IDs."""
     ids: set[int] = set()
@@ -105,6 +120,18 @@ def discover_manager_ids(env: Any) -> set[int]:
         m = pattern.search(key)
         if m:
             ids.add(int(m.group(1)))
+    return ids
+
+
+def discover_all_manager_ids(all_bundles: dict[str, Any]) -> set[int]:
+    """Scan ALL bundles for SuperManagers.asset and collect all IDs."""
+    ids: set[int] = set()
+    pattern = re.compile(r"/(\d+)_SuperManagers\.asset$")
+    for bname, env in all_bundles.items():
+        for key in env.container:
+            m = pattern.search(key)
+            if m:
+                ids.add(int(m.group(1)))
     return ids
 
 
@@ -140,8 +167,8 @@ def _read_simple_attrs(data: Any) -> dict[str, Any]:
     return attrs
 
 
-def extract_manager(env: Any, manager_id: int) -> ExtractedManager:
-    """Extract all assets for a single manager ID."""
+def extract_manager(env: Any, manager_id: int, all_bundles: dict[str, Any] | None = None) -> ExtractedManager:
+    """Extract all assets for a single manager ID. Searches across all bundles if all_bundles provided."""
     warnings: list[str] = []
     assets_found: list[str] = []
     assets_missing: list[str] = []
@@ -149,38 +176,41 @@ def extract_manager(env: Any, manager_id: int) -> ExtractedManager:
     fields: dict[str, ExtractedField] = {}
 
     id_str = str(manager_id)
+    envs_to_search = list(all_bundles.values()) if all_bundles else [env]
 
-    for key, pptr in env.container.items():
-        if ".asset" not in key or id_str not in key:
-            continue
-        try:
-            if pptr.type.name != "MonoBehaviour":
+    for search_env in envs_to_search:
+        for key, pptr in search_env.container.items():
+            if ".asset" not in key or id_str not in key:
                 continue
-        except:
-            continue
+            try:
+                if pptr.type.name != "MonoBehaviour":
+                    continue
+            except:
+                continue
 
-        entry_name = key.split("/")[-1]
-        data = pptr.read()
-        assets_found.append(entry_name)
-        raw_data[entry_name] = {"raw_type": type(data).__name__, "key": key}
+            entry_name = key.split("/")[-1]
+            data = pptr.read()
+            if entry_name not in assets_found:
+                assets_found.append(entry_name)
+            raw_data[entry_name] = {"raw_type": type(data).__name__, "key": key}
 
-        if hasattr(data, "Params") and isinstance(data.Params, list):
-            params = _read_params(data)
-            raw_data[entry_name]["params"] = params
-            if params:
-                # Flatten single-param assets
-                p = params[0]
-                for k, v in p.items():
-                    src_field = f"{entry_name}.{k}"
-                    fields[src_field] = ExtractedField(
+            if hasattr(data, "Params") and isinstance(data.Params, list):
+                params = _read_params(data)
+                raw_data[entry_name]["params"] = params
+                if params:
+                    # Flatten single-param assets
+                    p = params[0]
+                    for k, v in p.items():
+                        src_field = f"{entry_name}.{k}"
+                        fields[src_field] = ExtractedField(
                         field_name=k,
                         raw_value=v,
                         source_asset=entry_name,
                         provenance="direct",
                     )
-        else:
-            attrs = _read_simple_attrs(data)
-            raw_data[entry_name]["attrs"] = attrs
+            else:
+                attrs = _read_simple_attrs(data)
+                raw_data[entry_name]["attrs"] = attrs
 
     # Check for expected asset types
     for asset_type in EXPECTED_ASSET_TYPES:
@@ -245,8 +275,8 @@ def run_batch(release_dir: Path | str) -> tuple[list[ExtractedManager], BatchRep
     """Extract all discoverable managers and produce a report."""
     import UnityPy  # noqa: F811
     release_dir = Path(release_dir)
-    env = load_bundle(release_dir)
-    all_ids = discover_manager_ids(env)
+    all_bundles = load_all_bundles(release_dir)
+    all_ids = discover_all_manager_ids(all_bundles)
     all_ids_sorted = sorted(all_ids)
 
     release_id = release_dir.name
@@ -256,11 +286,11 @@ def run_batch(release_dir: Path | str) -> tuple[list[ExtractedManager], BatchRep
     partial_count = 0
     failed_count = 0
 
-    print(f"Discovered {len(all_ids_sorted)} manager IDs")
+    print(f"Discovered {len(all_ids_sorted)} manager IDs across {len(all_bundles)} bundles")
 
     for mid in all_ids_sorted:
         try:
-            mgr = extract_manager(env, mid)
+            mgr = extract_manager(None, mid, all_bundles=all_bundles)
             managers.append(mgr)
 
             if mgr.assets_missing:

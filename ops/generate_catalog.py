@@ -57,22 +57,25 @@ def _read_params(data):
         results.append(entry)
     return results
 
-def load_manager_assets(env, manager_id):
-    """Load all ScriptableObject assets for a manager from the Unity bundle."""
+def load_manager_assets(env, manager_id, all_bundles=None):
+    """Load all ScriptableObject assets for a manager from the Unity bundle(s)."""
     id_str = str(manager_id)
     assets = {}
-    for key, pptr in env.container.items():
-        if ".asset" not in key or id_str not in key:
-            continue
-        try:
-            if pptr.type.name != "MonoBehaviour":
+    envs = list(all_bundles.values()) if all_bundles else [env]
+    for search_env in envs:
+        for key, pptr in search_env.container.items():
+            if ".asset" not in key or id_str not in key:
                 continue
-        except:
-            continue
-        data = pptr.read()
-        entry_name = key.split("/")[-1]
-        params = _read_params(data)
-        assets[entry_name] = params
+            try:
+                if pptr.type.name != "MonoBehaviour":
+                    continue
+            except:
+                continue
+            data = pptr.read()
+            entry_name = key.split("/")[-1]
+            if entry_name not in assets:
+                params = _read_params(data)
+                assets[entry_name] = params
     return assets
 
 def build_manager_record(manager_id, assets, elemental_by_id):
@@ -188,20 +191,24 @@ def generate_catalog(release_dir, game_version="5.59.0", game_version_code=96449
     release_dir = Path(release_dir)
     release_id = release_dir.name
     bundle_dir = release_dir / "extracted/base.apk/assets/Addressables/Android"
-    bp = list(bundle_dir.glob("configfiles-supermanagers_assets_all_*.bundle"))
-    if not bp:
-        raise FileNotFoundError("configfiles-supermanagers bundle not found")
-    env = UnityPy.load(str(bp[0]))
-
-    # Discover all manager IDs
+    
+    # Load ALL bundles to discover all manager IDs (config bundle + sprite bundles)
     import re
+    all_bundles = {}
+    for bp in sorted(bundle_dir.glob("*.bundle")):
+        try:
+            all_bundles[bp.name] = UnityPy.load(str(bp))
+        except:
+            pass
+    
     ids = set()
-    for key in env.container:
-        m = re.search(r"/(\d+)_SuperManagers\.asset$", key)
-        if m:
-            ids.add(int(m.group(1)))
+    for bname, env in all_bundles.items():
+        for key in env.container:
+            m = re.search(r"/(\d{5})_SuperManagers\.asset$", key)
+            if m:
+                ids.add(int(m.group(1)))
     all_ids = sorted(ids)
-    print(f"Discovered {len(all_ids)} manager IDs: {all_ids[0]}..{all_ids[-1]}")
+    print(f"Discovered {len(all_ids)} manager IDs across {len(all_bundles)} bundles: {all_ids[0]}..{all_ids[-1]}")
 
     # Load elemental configs
     elemental_by_id = {}
@@ -219,7 +226,7 @@ def generate_catalog(release_dir, game_version="5.59.0", game_version_code=96449
 
     manager_records = []
     for mid in all_ids:
-        assets = load_manager_assets(env, mid)
+        assets = load_manager_assets(None, mid, all_bundles=all_bundles)
         rec = build_manager_record(mid, assets, elemental_by_id)
         manager_records.append(rec)
 

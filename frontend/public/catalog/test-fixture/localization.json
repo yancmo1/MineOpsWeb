@@ -574,9 +574,261 @@
       "displayNameSource": "unknown",
       "key": "SM_CountLucius",
       "locale": "en"
+    },
+    "sm-10083": {
+      "canonicalId": "sm-10083",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Hatori",
+      "locale": "en"
+    },
+    "sm-10084": {
+      "canonicalId": "sm-10084",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_KingOrekk",
+      "locale": "en"
+    },
+    "sm-10085": {
+      "canonicalId": "sm-10085",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_IggyIgnite",
+      "locale": "en"
+    },
+    "sm-10086": {
+      "canonicalId": "sm-10086",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_BelleSnowdrop",
+      "locale": "en"
+    },
+    "sm-10087": {
+      "canonicalId": "sm-10087",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_LilaStarborne",
+      "locale": "en"
+    },
+    "sm-10088": {
+      "canonicalId": "sm-10088",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_LeiNa",
+      "locale": "en"
+    },
+    "sm-10089": {
+      "canonicalId": "sm-10089",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_H4V0C",
+      "locale": "en"
+    },
+    "sm-10090": {
+      "canonicalId": "sm-10090",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_MrEdmund",
+      "locale": "en"
+    },
+    "sm-10091": {
+      "canonicalId": "sm-10091",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Eivor",
+      "locale": "en"
+    },
+    "sm-10092": {
+      "canonicalId": "sm-10092",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Sigurd",
+      "locale": "en"
+    },
+    "sm-10093": {
+      "canonicalId": "sm-10093",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_AstraAndCurt",
+      "locale": "en"
+    },
+    "sm-10094": {
+      "canonicalId": "sm-10094",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_LaverniaPascal",
+      "locale": "en"
+    },
+    "sm-10095": {
+      "canonicalId": "sm-10095",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Vulcan",
+      "locale": "en"
+    },
+    "sm-10096": {
+      "canonicalId": "sm-10096",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Lauany",
+      "locale": "en"
+    },
+    "sm-10097": {
+      "canonicalId": "sm-10097",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_EverettBloomfield",
+      "locale": "en"
+    },
+    "sm-10098": {
+      "canonicalId": "sm-10098",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Zenthor",
+      "locale": "en"
+    },
+    "sm-10099": {
+      "canonicalId": "sm-10099",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_AricSwiftstrike",
+      "locale": "en"
+    },
+    "sm-10100": {
+      "canonicalId": "sm-10100",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Lorelei",
+      "locale": "en"
+    },
+    "sm-10101": {
+      "canonicalId": "sm-10101",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Naoe",
+      "locale": "en"
+    },
+    "sm-10102": {
+      "canonicalId": "sm-10102",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Yasuke",
+      "locale": "en"
+    },
+    "sm-10103": {
+      "canonicalId": "sm-10103",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Archibald",
+      "locale": "en"
+    },
+    "sm-10104": {
+      "canonicalId": "sm-10104",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_WyattEarn",
+      "locale": "en"
+    },
+    "sm-10105": {
+      "canonicalId": "sm-10105",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_SelenaAmanita",
+      "locale": "en"
+    },
+    "sm-10106": {
+      "canonicalId": "sm-10106",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_SirAxiom",
+      "locale": "en"
+    },
+    "sm-10107": {
+      "canonicalId": "sm-10107",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Adamantus",
+      "locale": "en"
+    },
+    "sm-10108": {
+      "canonicalId": "sm-10108",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Drethos",
+      "locale": "en"
+    },
+    "sm-10109": {
+      "canonicalId": "sm-10109",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Cervina",
+      "locale": "en"
+    },
+    "sm-10110": {
+      "canonicalId": "sm-10110",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_ChefBearnard",
+      "locale": "en"
+    },
+    "sm-10111": {
+      "canonicalId": "sm-10111",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_RemedyRose",
+      "locale": "en"
+    },
+    "sm-10112": {
+      "canonicalId": "sm-10112",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Sporewick",
+      "locale": "en"
+    },
+    "sm-10113": {
+      "canonicalId": "sm-10113",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_ChanceGoldshell",
+      "locale": "en"
+    },
+    "sm-10114": {
+      "canonicalId": "sm-10114",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Harumi",
+      "locale": "en"
+    },
+    "sm-10115": {
+      "canonicalId": "sm-10115",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_DonEmiliano",
+      "locale": "en"
+    },
+    "sm-10116": {
+      "canonicalId": "sm-10116",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Celestia",
+      "locale": "en"
+    },
+    "sm-10117": {
+      "canonicalId": "sm-10117",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Meridia",
+      "locale": "en"
+    },
+    "sm-10118": {
+      "canonicalId": "sm-10118",
+      "displayName": null,
+      "displayNameSource": "unknown",
+      "key": "SM_Sirocco",
+      "locale": "en"
     }
   },
-  "generatedAt": "2026-07-18T00:20:41.677739Z",
+  "generatedAt": "2026-07-18T00:41:05.080167Z",
   "releaseId": "5.59.0_96449_20260716T143539Z",
   "schemaVersion": "1.0.0"
 }

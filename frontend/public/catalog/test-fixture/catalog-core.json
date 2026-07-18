@@ -3,7 +3,7 @@
   "catalogVersion": "5.59.0_96449_0716T143539Z",
   "collectibles": [],
   "equipment": [],
-  "generatedAt": "2026-07-18T00:20:41.677739Z",
+  "generatedAt": "2026-07-18T00:41:05.080167Z",
   "managers": [
     {
       "abilities": [
@@ -11709,6 +11709,4182 @@
       "sourceIdentifiers": {
         "nameKey": "SM_CountLucius",
         "superManagerId": "10082"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10083",
+          "cooldown": 1800.0,
+          "description": "Active: SM_Hatori",
+          "extensions": {
+            "baseStrength": 7.59,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10083",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 120.0,
+        "fragmentId": 900083,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Hatori",
+        "superManagerId": 10083
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 4,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 9,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1001,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Hatori",
+        "superManagerId": "10083"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10084",
+          "cooldown": 900.0,
+          "description": "Active: SM_KingOrekk",
+          "extensions": {
+            "baseStrength": 6.5,
+            "duration": 90.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10084",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 90.0,
+        "fragmentId": 900083,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_KingOrekk",
+        "superManagerId": 10084
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1006,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_KingOrekk",
+        "superManagerId": "10084"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10085",
+          "cooldown": 210.0,
+          "description": "Active: SM_IggyIgnite",
+          "extensions": {
+            "baseStrength": 1.3,
+            "duration": 40.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10085",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 210.0,
+        "duration": 40.0,
+        "fragmentId": 900085,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_IggyIgnite",
+        "superManagerId": 10085
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 6,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 8,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1001,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_IggyIgnite",
+        "superManagerId": "10085"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10086",
+          "cooldown": 300.0,
+          "description": "Active: SM_BelleSnowdrop",
+          "extensions": {
+            "baseStrength": 0.25,
+            "duration": 60.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10086",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 300.0,
+        "duration": 60.0,
+        "fragmentId": 900085,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_BelleSnowdrop",
+        "superManagerId": 10086
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 9,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1005,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_BelleSnowdrop",
+        "superManagerId": "10086"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10087",
+          "cooldown": 1200.0,
+          "description": "Active: SM_LilaStarborne",
+          "extensions": {
+            "baseStrength": 1.95,
+            "duration": 74.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10087",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 1200.0,
+        "duration": 74.0,
+        "fragmentId": 900087,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_LilaStarborne",
+        "superManagerId": 10087
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 6,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 8,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_LilaStarborne",
+        "superManagerId": "10087"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10088",
+          "cooldown": 900.0,
+          "description": "Active: SM_LeiNa",
+          "extensions": {
+            "baseStrength": 0.19,
+            "duration": 150.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10088",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 150.0,
+        "fragmentId": 900088,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_LeiNa",
+        "superManagerId": 10088
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 6,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 8,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1001,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_LeiNa",
+        "superManagerId": "10088"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10089",
+          "cooldown": 1800.0,
+          "description": "Active: SM_H4V0C",
+          "extensions": {
+            "baseStrength": 30.0,
+            "duration": 180.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10089",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 180.0,
+        "fragmentId": 900089,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_H4V0C",
+        "superManagerId": 10089
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 1006,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 3,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1001,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_H4V0C",
+        "superManagerId": "10089"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10090",
+          "cooldown": 900.0,
+          "description": "Active: SM_MrEdmund",
+          "extensions": {
+            "baseStrength": 3.3,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10090",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 120.0,
+        "fragmentId": 900090,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_MrEdmund",
+        "superManagerId": 10090
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 4,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 9,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_MrEdmund",
+        "superManagerId": "10090"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10091",
+          "cooldown": 60.0,
+          "description": "Active: SM_Eivor",
+          "extensions": {
+            "baseStrength": 12.5,
+            "duration": 30.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10091",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 60.0,
+        "duration": 30.0,
+        "fragmentId": 900091,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Eivor",
+        "superManagerId": 10091
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1006,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Eivor",
+        "superManagerId": "10091"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10092",
+          "cooldown": 900.0,
+          "description": "Active: SM_Sigurd",
+          "extensions": {
+            "baseStrength": 2.5,
+            "duration": 90.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10092",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 90.0,
+        "fragmentId": 900092,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Sigurd",
+        "superManagerId": 10092
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 1200.0,
+          "level": 10,
+          "passiveId": 9,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 176000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8820000.0,
+          "level": 30,
+          "passiveId": 1001,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1320000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 291000000000.0,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 9190000000000000.0,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.29e+20,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 5.23e+26,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 2.37e+33,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 7.89e+40,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "rare",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Sigurd",
+        "superManagerId": "10092"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10093",
+          "cooldown": 1800.0,
+          "description": "Active: SM_AstraAndCurt",
+          "extensions": {
+            "baseStrength": 24.0,
+            "duration": 300.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10093",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 300.0,
+        "fragmentId": 900093,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_AstraAndCurt",
+        "superManagerId": 10093
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 5,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 7,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_AstraAndCurt",
+        "superManagerId": "10093"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10094",
+          "cooldown": 600.0,
+          "description": "Active: SM_LaverniaPascal",
+          "extensions": {
+            "baseStrength": 3.8,
+            "duration": 300.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10094",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 600.0,
+        "duration": 300.0,
+        "fragmentId": 900094,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_LaverniaPascal",
+        "superManagerId": 10094
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 1006,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1001,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_LaverniaPascal",
+        "superManagerId": "10094"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10095",
+          "cooldown": 900.0,
+          "description": "Active: SM_Vulcan",
+          "extensions": {
+            "baseStrength": 7.5,
+            "duration": 60.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10095",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 60.0,
+        "fragmentId": 900095,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Vulcan",
+        "superManagerId": 10095
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 4,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1005,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Vulcan",
+        "superManagerId": "10095"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10096",
+          "cooldown": 1800.0,
+          "description": "Active: SM_Lauany",
+          "extensions": {
+            "baseStrength": 6.5,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10096",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 120.0,
+        "fragmentId": 900096,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Lauany",
+        "superManagerId": 10096
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 9,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 4,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Lauany",
+        "superManagerId": "10096"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10097",
+          "cooldown": 1200.0,
+          "description": "Active: SM_EverettBloomfield",
+          "extensions": {
+            "baseStrength": 1.5,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10097",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 1200.0,
+        "duration": 120.0,
+        "fragmentId": 900097,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_EverettBloomfield",
+        "superManagerId": 10097
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 6,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 8,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1005,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_EverettBloomfield",
+        "superManagerId": "10097"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10098",
+          "cooldown": 900.0,
+          "description": "Active: SM_Zenthor",
+          "extensions": {
+            "baseStrength": 41.0,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10098",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 120.0,
+        "fragmentId": 900098,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Zenthor",
+        "superManagerId": 10098
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1006,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Zenthor",
+        "superManagerId": "10098"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10099",
+          "cooldown": 1200.0,
+          "description": "Active: SM_AricSwiftstrike",
+          "extensions": {
+            "baseStrength": 3.3,
+            "duration": 30.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10099",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 1200.0,
+        "duration": 30.0,
+        "fragmentId": 900099,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_AricSwiftstrike",
+        "superManagerId": 10099
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 5,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_AricSwiftstrike",
+        "superManagerId": "10099"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10100",
+          "cooldown": 1200.0,
+          "description": "Active: SM_Lorelei",
+          "extensions": {
+            "baseStrength": 6.1,
+            "duration": 150.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10100",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 1200.0,
+        "duration": 150.0,
+        "fragmentId": 900100,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Lorelei",
+        "superManagerId": 10100
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 8,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 6,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Lorelei",
+        "superManagerId": "10100"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10101",
+          "cooldown": 900.0,
+          "description": "Active: SM_Naoe",
+          "extensions": {
+            "baseStrength": 8.0,
+            "duration": 180.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10101",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 180.0,
+        "fragmentId": 900101,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Naoe",
+        "superManagerId": 10101
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 1001,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Naoe",
+        "superManagerId": "10101"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10102",
+          "cooldown": 1800.0,
+          "description": "Active: SM_Yasuke",
+          "extensions": {
+            "baseStrength": 5.1,
+            "duration": 45.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10102",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 45.0,
+        "fragmentId": 900102,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Yasuke",
+        "superManagerId": 10102
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 9,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 4,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Yasuke",
+        "superManagerId": "10102"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10103",
+          "cooldown": 900.0,
+          "description": "Active: SM_Archibald",
+          "extensions": {
+            "baseStrength": 5.4,
+            "duration": 70.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10103",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 70.0,
+        "fragmentId": 900103,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Archibald",
+        "superManagerId": 10103
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 1005,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 1001,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Archibald",
+        "superManagerId": "10103"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10104",
+          "cooldown": 900.0,
+          "description": "Active: SM_WyattEarn",
+          "extensions": {
+            "baseStrength": 14.0,
+            "duration": 300.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10104",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 300.0,
+        "fragmentId": 900104,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_WyattEarn",
+        "superManagerId": 10104
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 6,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 8,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1009,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_WyattEarn",
+        "superManagerId": "10104"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10105",
+          "cooldown": 1200.0,
+          "description": "Active: SM_SelenaAmanita",
+          "extensions": {
+            "baseStrength": 37.0,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10105",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 1200.0,
+        "duration": 120.0,
+        "fragmentId": 900105,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_SelenaAmanita",
+        "superManagerId": 10105
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1006,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_SelenaAmanita",
+        "superManagerId": "10105"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10106",
+          "cooldown": 600.0,
+          "description": "Active: SM_SirAxiom",
+          "extensions": {
+            "baseStrength": 4.0,
+            "duration": 180.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10106",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 600.0,
+        "duration": 180.0,
+        "fragmentId": 900106,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_SirAxiom",
+        "superManagerId": 10106
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 6,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1001,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_SirAxiom",
+        "superManagerId": "10106"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10107",
+          "cooldown": 1800.0,
+          "description": "Active: SM_Adamantus",
+          "extensions": {
+            "baseStrength": 3.0,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10107",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 120.0,
+        "fragmentId": 900107,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Adamantus",
+        "superManagerId": 10107
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 1,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 8,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1001,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Adamantus",
+        "superManagerId": "10107"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10108",
+          "cooldown": 600.0,
+          "description": "Active: SM_Drethos",
+          "extensions": {
+            "baseStrength": 0.22,
+            "duration": 30.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10108",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 600.0,
+        "duration": 30.0,
+        "fragmentId": 900108,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Drethos",
+        "superManagerId": 10108
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 9,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1005,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Drethos",
+        "superManagerId": "10108"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10109",
+          "cooldown": 600.0,
+          "description": "Active: SM_Cervina",
+          "extensions": {
+            "baseStrength": 5.0,
+            "duration": 90.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10109",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 600.0,
+        "duration": 90.0,
+        "fragmentId": 900109,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Cervina",
+        "superManagerId": 10109
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 5,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Cervina",
+        "superManagerId": "10109"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10110",
+          "cooldown": 1800.0,
+          "description": "Active: SM_ChefBearnard",
+          "extensions": {
+            "baseStrength": 21.0,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10110",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 120.0,
+        "fragmentId": 900110,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_ChefBearnard",
+        "superManagerId": 10110
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 1006,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 5,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1005,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_ChefBearnard",
+        "superManagerId": "10110"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10111",
+          "cooldown": 1800.0,
+          "description": "Active: SM_RemedyRose",
+          "extensions": {
+            "baseStrength": 0.35,
+            "duration": 60.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10111",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 60.0,
+        "fragmentId": 900111,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_RemedyRose",
+        "superManagerId": 10111
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1006,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_RemedyRose",
+        "superManagerId": "10111"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10112",
+          "cooldown": 1800.0,
+          "description": "Active: SM_Sporewick",
+          "extensions": {
+            "baseStrength": 2.6,
+            "duration": 180.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10112",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 180.0,
+        "fragmentId": 900112,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Sporewick",
+        "superManagerId": 10112
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 1005,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1006,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Sporewick",
+        "superManagerId": "10112"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10113",
+          "cooldown": 1800.0,
+          "description": "Active: SM_ChanceGoldshell",
+          "extensions": {
+            "baseStrength": 6.61,
+            "duration": 180.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10113",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 180.0,
+        "fragmentId": 900113,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_ChanceGoldshell",
+        "superManagerId": 10113
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 6,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 8,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1001,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_ChanceGoldshell",
+        "superManagerId": "10113"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10114",
+          "cooldown": 900.0,
+          "description": "Active: SM_Harumi",
+          "extensions": {
+            "baseStrength": 10.0,
+            "duration": 65.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10114",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 900.0,
+        "duration": 65.0,
+        "fragmentId": 900114,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Harumi",
+        "superManagerId": 10114
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 9,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1005,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Harumi",
+        "superManagerId": "10114"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10115",
+          "cooldown": 1800.0,
+          "description": "Active: SM_DonEmiliano",
+          "extensions": {
+            "baseStrength": 13.25,
+            "duration": 120.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10115",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 1800.0,
+        "duration": 120.0,
+        "fragmentId": 900115,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_DonEmiliano",
+        "superManagerId": 10115
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 10000.0,
+          "level": 10,
+          "passiveId": 5,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 5040000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 110000000000.0,
+          "level": 30,
+          "passiveId": 7,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 55400000000000.0,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 4.99e+17,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 3.51e+31,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.06e+44,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.1e+59,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.41e+78,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.56e+100,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "epic",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_DonEmiliano",
+        "superManagerId": "10115"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10116",
+          "cooldown": 1200.0,
+          "description": "Active: SM_Celestia",
+          "extensions": {
+            "baseStrength": 5.0,
+            "duration": 180.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10116",
+      "element": null,
+      "extensions": {
+        "areaId": 2,
+        "category": 4,
+        "cooldown": 1200.0,
+        "duration": 180.0,
+        "fragmentId": 900116,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Celestia",
+        "superManagerId": 10116
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 9,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 4,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1010,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Warehouse",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Celestia",
+        "superManagerId": "10116"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10117",
+          "cooldown": 1200.0,
+          "description": "Active: SM_Meridia",
+          "extensions": {
+            "baseStrength": 6.3,
+            "duration": 150.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10117",
+      "element": null,
+      "extensions": {
+        "areaId": 3,
+        "category": 4,
+        "cooldown": 1200.0,
+        "duration": 150.0,
+        "fragmentId": 900117,
+        "gender": 1,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Meridia",
+        "superManagerId": 10117
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 8,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1005,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Elevator",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Meridia",
+        "superManagerId": "10117"
+      },
+      "sourceVersionBounds": {
+        "max": null,
+        "min": null
+      },
+      "spriteRefs": []
+    },
+    {
+      "abilities": [
+        {
+          "canonicalId": "ab-sm-10118",
+          "cooldown": 600.0,
+          "description": "Active: SM_Sirocco",
+          "extensions": {
+            "baseStrength": 30.0,
+            "duration": 180.0
+          },
+          "name": "Active Ability",
+          "target": null,
+          "type": "active"
+        }
+      ],
+      "canonicalId": "sm-10118",
+      "element": null,
+      "extensions": {
+        "areaId": 1,
+        "category": 4,
+        "cooldown": 600.0,
+        "duration": 180.0,
+        "fragmentId": 900118,
+        "gender": 0,
+        "maxLevel": 50,
+        "maxPromotions": 5,
+        "nameKey": "SM_Sirocco",
+        "superManagerId": 10118
+      },
+      "name": null,
+      "nameSource": "unknown",
+      "passives": [],
+      "progression": [
+        {
+          "cost": 20000.0,
+          "level": 10,
+          "passiveId": 7,
+          "promotion": 1,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 8350000.0,
+          "level": 20,
+          "passiveId": 0,
+          "promotion": 2,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8350000000000.0,
+          "level": 30,
+          "passiveId": 1006,
+          "promotion": 3,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 1.42e+16,
+          "level": 40,
+          "passiveId": 0,
+          "promotion": 4,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.13e+20,
+          "level": 50,
+          "passiveId": 1007,
+          "promotion": 5,
+          "unlocksPassive": true
+        },
+        {
+          "cost": 7.09e+36,
+          "level": 60,
+          "passiveId": 0,
+          "promotion": 6,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 3.2e+52,
+          "level": 70,
+          "passiveId": 0,
+          "promotion": 7,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.53e+72,
+          "level": 80,
+          "passiveId": 0,
+          "promotion": 8,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 1.66e+96,
+          "level": 90,
+          "passiveId": 0,
+          "promotion": 9,
+          "unlocksPassive": false
+        },
+        {
+          "cost": 8.69e+124,
+          "level": 100,
+          "passiveId": 0,
+          "promotion": 10,
+          "unlocksPassive": false
+        }
+      ],
+      "rarity": "legendary",
+      "role": "Mine Shaft",
+      "sourceIdentifiers": {
+        "nameKey": "SM_Sirocco",
+        "superManagerId": "10118"
       },
       "sourceVersionBounds": {
         "max": null,

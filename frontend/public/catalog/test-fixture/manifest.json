@@ -1,24 +1,24 @@
 {
   "artifacts": [
     {
-      "bytes": 276886,
+      "bytes": 373741,
       "contentType": "application/json",
       "filename": "catalog-core.json",
       "path": "catalog-core.json",
-      "recordCount": 82,
+      "recordCount": 118,
       "required": true,
       "schemaVersion": "1.0.0",
-      "sha256": "b31137aae81f327a5775163134edfac4c9d898a1af011b799b9ddf97bfbd2b21"
+      "sha256": "c2dd96bbfce6f8ac3aec30596cdbc3775b07b0a7a0ecd64c2347bccd45502d96"
     },
     {
-      "bytes": 386,
+      "bytes": 387,
       "contentType": "application/json",
       "filename": "validation-report.json",
       "path": "validation-report.json",
       "recordCount": 2,
       "required": true,
       "schemaVersion": "1.0.0",
-      "sha256": "2ab614ef62a16deb23354535704ccea846cd80e05886a35deea330af2bdc4a0b"
+      "sha256": "b0aa257d686e218f2829e337163e88222aea7b7e158b5584dd86c9696a039482"
     },
     {
       "bytes": 199,
@@ -28,27 +28,27 @@
       "recordCount": 0,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "eec891c8a5abec2acf7d56b53e85a10ddabfef57b5b5e1a557e3987f944abc18"
+      "sha256": "d96cbda94540fa23a8b6e649d0c5f55f34c021c681b08636edda527f36ef1327"
     },
     {
-      "bytes": 22354,
+      "bytes": 32071,
       "contentType": "application/json",
       "filename": "mappings.json",
       "path": "mappings.json",
-      "recordCount": 164,
+      "recordCount": 236,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "3e9b7c318fe5d74c1b249bd3769d26cbd5e6275cc80a361a2ab6bc48843402f7"
+      "sha256": "390f62b67fd2fc10d0438de173565068f4f73425865c532c89a030e5d62bfde2"
     },
     {
-      "bytes": 14397,
+      "bytes": 20622,
       "contentType": "application/json",
       "filename": "localization.json",
       "path": "localization.json",
-      "recordCount": 82,
+      "recordCount": 118,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "30f7b9de2020295f47628101ad864d7972a9e03e26eae62a6970bf97b84e4957"
+      "sha256": "a32ccbb4af5d76389eb65de9bf120e552f3199262efd799079fb6577fd12e28a"
     },
     {
       "bytes": 192,
@@ -58,17 +58,17 @@
       "recordCount": 0,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "691e59c027e9805c4f7145de5d256c0c4859680d9532cdc4900a1807801d42e4"
+      "sha256": "e8a7f3e8473653918ac8a2afcd811f5a07417711539d654d7972b1e4990269df"
     },
     {
-      "bytes": 1717,
+      "bytes": 2365,
       "contentType": "application/json",
       "filename": "changelog.json",
       "path": "changelog.json",
-      "recordCount": 82,
+      "recordCount": 118,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "f04147c91b34938f10533347affec454a71aa3fa569d0964e605e6b18abc6e10"
+      "sha256": "2d5fa1f63d2c17925b1b184366865dd5a9d22d2660bb59c627b66bbcbfc80b9e"
     }
   ],
   "catalogVersion": "5.59.0_96449_0716T143539Z",
@@ -76,7 +76,7 @@
     "artifacts": 0,
     "collectibles": 0,
     "equipment": 0,
-    "managers": 82,
+    "managers": 118,
     "mines": 0,
     "relationships": 0,
     "research": 0,
@@ -84,7 +84,7 @@
   },
   "gameVersion": "5.59.0",
   "gameVersionCode": 96449,
-  "generatedAt": "2026-07-18T00:20:41.677739Z",
+  "generatedAt": "2026-07-18T00:41:05.080167Z",
   "generator": {
     "name": "MineOpsDataEngine M7",
     "version": "1.0.0"

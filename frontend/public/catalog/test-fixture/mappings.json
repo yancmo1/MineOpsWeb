@@ -1,6 +1,6 @@
 {
   "catalogVersion": "5.59.0_96449_0716T143539Z",
-  "generatedAt": "2026-07-18T00:20:41.677739Z",
+  "generatedAt": "2026-07-18T00:41:05.080167Z",
   "idMappings": [
     {
       "canonicalId": "sm-10001",
@@ -495,6 +495,222 @@
       "sourceId": "10082"
     },
     {
+      "canonicalId": "sm-10083",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10083"
+    },
+    {
+      "canonicalId": "sm-10084",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10084"
+    },
+    {
+      "canonicalId": "sm-10085",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10085"
+    },
+    {
+      "canonicalId": "sm-10086",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10086"
+    },
+    {
+      "canonicalId": "sm-10087",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10087"
+    },
+    {
+      "canonicalId": "sm-10088",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10088"
+    },
+    {
+      "canonicalId": "sm-10089",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10089"
+    },
+    {
+      "canonicalId": "sm-10090",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10090"
+    },
+    {
+      "canonicalId": "sm-10091",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10091"
+    },
+    {
+      "canonicalId": "sm-10092",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10092"
+    },
+    {
+      "canonicalId": "sm-10093",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10093"
+    },
+    {
+      "canonicalId": "sm-10094",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10094"
+    },
+    {
+      "canonicalId": "sm-10095",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10095"
+    },
+    {
+      "canonicalId": "sm-10096",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10096"
+    },
+    {
+      "canonicalId": "sm-10097",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10097"
+    },
+    {
+      "canonicalId": "sm-10098",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10098"
+    },
+    {
+      "canonicalId": "sm-10099",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10099"
+    },
+    {
+      "canonicalId": "sm-10100",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10100"
+    },
+    {
+      "canonicalId": "sm-10101",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10101"
+    },
+    {
+      "canonicalId": "sm-10102",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10102"
+    },
+    {
+      "canonicalId": "sm-10103",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10103"
+    },
+    {
+      "canonicalId": "sm-10104",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10104"
+    },
+    {
+      "canonicalId": "sm-10105",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10105"
+    },
+    {
+      "canonicalId": "sm-10106",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10106"
+    },
+    {
+      "canonicalId": "sm-10107",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10107"
+    },
+    {
+      "canonicalId": "sm-10108",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10108"
+    },
+    {
+      "canonicalId": "sm-10109",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10109"
+    },
+    {
+      "canonicalId": "sm-10110",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10110"
+    },
+    {
+      "canonicalId": "sm-10111",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10111"
+    },
+    {
+      "canonicalId": "sm-10112",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10112"
+    },
+    {
+      "canonicalId": "sm-10113",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10113"
+    },
+    {
+      "canonicalId": "sm-10114",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10114"
+    },
+    {
+      "canonicalId": "sm-10115",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10115"
+    },
+    {
+      "canonicalId": "sm-10116",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10116"
+    },
+    {
+      "canonicalId": "sm-10117",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10117"
+    },
+    {
+      "canonicalId": "sm-10118",
+      "confidence": 1.0,
+      "source": "apk_superManagerId",
+      "sourceId": "10118"
+    },
+    {
       "canonicalId": "sm-10001",
       "confidence": 1.0,
       "source": "apk_nameKey",
@@ -985,6 +1201,222 @@
       "confidence": 1.0,
       "source": "apk_nameKey",
       "sourceId": "SM_CountLucius"
+    },
+    {
+      "canonicalId": "sm-10083",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Hatori"
+    },
+    {
+      "canonicalId": "sm-10084",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_KingOrekk"
+    },
+    {
+      "canonicalId": "sm-10085",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_IggyIgnite"
+    },
+    {
+      "canonicalId": "sm-10086",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_BelleSnowdrop"
+    },
+    {
+      "canonicalId": "sm-10087",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_LilaStarborne"
+    },
+    {
+      "canonicalId": "sm-10088",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_LeiNa"
+    },
+    {
+      "canonicalId": "sm-10089",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_H4V0C"
+    },
+    {
+      "canonicalId": "sm-10090",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_MrEdmund"
+    },
+    {
+      "canonicalId": "sm-10091",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Eivor"
+    },
+    {
+      "canonicalId": "sm-10092",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Sigurd"
+    },
+    {
+      "canonicalId": "sm-10093",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_AstraAndCurt"
+    },
+    {
+      "canonicalId": "sm-10094",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_LaverniaPascal"
+    },
+    {
+      "canonicalId": "sm-10095",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Vulcan"
+    },
+    {
+      "canonicalId": "sm-10096",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Lauany"
+    },
+    {
+      "canonicalId": "sm-10097",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_EverettBloomfield"
+    },
+    {
+      "canonicalId": "sm-10098",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Zenthor"
+    },
+    {
+      "canonicalId": "sm-10099",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_AricSwiftstrike"
+    },
+    {
+      "canonicalId": "sm-10100",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Lorelei"
+    },
+    {
+      "canonicalId": "sm-10101",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Naoe"
+    },
+    {
+      "canonicalId": "sm-10102",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Yasuke"
+    },
+    {
+      "canonicalId": "sm-10103",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Archibald"
+    },
+    {
+      "canonicalId": "sm-10104",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_WyattEarn"
+    },
+    {
+      "canonicalId": "sm-10105",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_SelenaAmanita"
+    },
+    {
+      "canonicalId": "sm-10106",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_SirAxiom"
+    },
+    {
+      "canonicalId": "sm-10107",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Adamantus"
+    },
+    {
+      "canonicalId": "sm-10108",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Drethos"
+    },
+    {
+      "canonicalId": "sm-10109",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Cervina"
+    },
+    {
+      "canonicalId": "sm-10110",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_ChefBearnard"
+    },
+    {
+      "canonicalId": "sm-10111",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_RemedyRose"
+    },
+    {
+      "canonicalId": "sm-10112",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Sporewick"
+    },
+    {
+      "canonicalId": "sm-10113",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_ChanceGoldshell"
+    },
+    {
+      "canonicalId": "sm-10114",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Harumi"
+    },
+    {
+      "canonicalId": "sm-10115",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_DonEmiliano"
+    },
+    {
+      "canonicalId": "sm-10116",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Celestia"
+    },
+    {
+      "canonicalId": "sm-10117",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Meridia"
+    },
+    {
+      "canonicalId": "sm-10118",
+      "confidence": 1.0,
+      "source": "apk_nameKey",
+      "sourceId": "SM_Sirocco"
     }
   ],
   "releaseId": "5.59.0_96449_20260716T143539Z",
