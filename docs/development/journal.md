@@ -1,6 +1,31 @@
 # Development journal
 
-## 2026-07-17 — Batch APK manager extraction (82/82 all managers)
+## 2026-07-17 — Extraction schema v1, cross-validation, handoff
+
+**Goal:** Freeze the extraction format, cross-validate against the legacy iOS catalog, and confirm all 82 managers are clean.
+
+**Extraction Schema v1** (`shared/schemas/extraction_v1.schema.json`):
+- Defines the canonical manager record format with all field types, enums, and required fields
+- Includes `SuperManagerPassiveType`, `SuperManagerRarity`, `ManagerRegion`, `SuperManagerCategory`, and `Gender` enum definitions
+- All 82 managers validated against the schema
+
+**Cross-validation passed (15/15):**
+Every manager in the legacy `sm_complete_database.json` that has a matching NameKey was verified:
+- ✅ Name matches (SM_LeeVatori → Lee Vatori, SM_SirLorenzo → Sir Lorenzo, etc.)
+- ✅ Rarity matches (Common, Rare, Epic, Legendary)
+- ✅ Area matches (Corridor=MineShaft, Ground=Warehouse, Elevator=Elevator)
+- Passive ability types confirmed against SuperManagerPassiveType enum
+
+**ID confirmation:**
+- 82 extracted, 82 unique managerIds, 82 unique SuperManagerIds
+- All managerIds == SuperManagerIds
+- Zero unknown passive IDs
+- 6 partial managers (missing same 3 optional assets) retained with warnings
+
+**Known limitations:**
+- Localized display names are compiled into IL2CPP binary (NameKey is present but actual display string needs runtime capture)
+- Element ID→name mapping (4100000-4100007) is stored in IL2CPP code, not in extractable assets
+- 6 early managers lack ActiveEffectFactorType, RankEffectsValues, ToFragments assets
 
 **Goal:** Generalize the single-manager extraction proof to cover all 82 discoverable managers, integrate into the Data Engine CLI, and produce validation targets.
 
