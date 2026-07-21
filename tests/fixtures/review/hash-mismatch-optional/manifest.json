@@ -1,0 +1,100 @@
+{
+  "artifacts": [
+    {
+      "bytes": 480,
+      "contentType": "application/json",
+      "filename": "catalog-core.json",
+      "path": "catalog-core.json",
+      "recordCount": 1,
+      "required": true,
+      "schemaVersion": "1.0.0",
+      "sha256": "cc17d9cf48449d3dfcbf6f3a7cf8e79c0799a1ca6854dec7835235ac7840b3e7"
+    },
+    {
+      "bytes": 2018,
+      "contentType": "application/json",
+      "filename": "validation-report.json",
+      "path": "validation-report.json",
+      "recordCount": 0,
+      "required": true,
+      "schemaVersion": "1.0.0",
+      "sha256": "7cdadb9ab066a6c2ae61e9eb3266058f2bf05537609f31a2adf50545f7165bfc"
+    },
+    {
+      "bytes": 470,
+      "contentType": "application/json",
+      "filename": "changelog.json",
+      "path": "changelog.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "9638fa26f917562301a5bc5a0928bcb924db4b20d40e7e7faa92e8e8848f076d"
+    },
+    {
+      "bytes": 185,
+      "contentType": "application/json",
+      "filename": "mappings.json",
+      "path": "mappings.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "ecfbcda8a936f57dc5ce414b01e48e1aacb74b2b167a30983eecc8b7d64dd3ff"
+    },
+    {
+      "bytes": 164,
+      "contentType": "application/json",
+      "filename": "assets.json",
+      "path": "assets.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "f1721b8f42ead78e87991d3ab0d7c98f2af358c553d61ce16a565af75d77a182"
+    },
+    {
+      "bytes": 183,
+      "contentType": "application/json",
+      "filename": "localization.json",
+      "path": "localization.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "bf41affc37709a6466e2668662baaedb3382bb721c973ca226409aea5227e520"
+    },
+    {
+      "bytes": 171,
+      "contentType": "application/json",
+      "filename": "relationships.json",
+      "path": "relationships.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "7b12ac945b67819cfe6c2cf78b556152989ba8ac0732e27d33d30cc634074306"
+    }
+  ],
+  "catalogVersion": "1.0.0-100000-test",
+  "counts": {
+    "artifacts": 0,
+    "collectibles": 0,
+    "equipment": 0,
+    "managers": 1,
+    "mines": 0,
+    "relationships": 0,
+    "research": 0,
+    "unresolvedObjects": 0
+  },
+  "gameVersion": "1.0.0",
+  "gameVersionCode": 100000,
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "generator": {
+    "name": "TestGenerator",
+    "version": "0.1.0"
+  },
+  "manifestSchemaVersion": "2.0.0",
+  "previousCatalogVersion": null,
+  "releaseId": "test-release",
+  "status": "candidate",
+  "storage": {
+    "baseUrl": "./",
+    "cdnUrl": null
+  }
+}

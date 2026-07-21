@@ -1,4 +1,4 @@
-import { type SyncMetadata, type AppSettings, saveSettings } from "../lib/db";
+import { db, type SyncMetadata, type AppSettings, type PlayerManager, saveSettings } from "../lib/db";
 import { type KolibriCredentials, type KolibriDiagnostics } from "../lib/kolibri";
 import {
   getAuthStatus,
@@ -8,7 +8,12 @@ import {
   type AuthStatus,
 } from "../lib/pocketbase";
 import { type CaptureStatus } from "../lib/capture";
-import { useState } from "react";
+import { catalogClient, type CatalogClientState } from "../lib/catalog-client";
+import type { CachedCatalogPackage } from "../lib/catalog-cache";
+import { listImportRecords } from "../lib/import-history";
+import type { ImportRecord } from "../lib/kolibri-fixtures";
+import { describeCache, describeCatalogStatus, redactDiagnostic } from "../lib/operational-status";
+import { useEffect, useState, type ReactNode } from "react";
 
 interface MorePageProps {
   credentials: KolibriCredentials;
@@ -25,6 +30,42 @@ interface MorePageProps {
   onOpenSnapshotHistory: () => void;
   captureStatus: CaptureStatus;
   onRefreshCaptureStatus: () => void;
+}
+
+function CollapsibleSection({
+  title,
+  defaultOpen = false,
+  ariaLive,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  ariaLive?: "polite" | "assertive" | "off";
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="card-container" {...(ariaLive ? { "aria-live": ariaLive } : {})}>
+      <h2
+        className="card-title"
+        onClick={() => setOpen(!open)}
+        style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+      >
+        <span>{title}</span>
+        <span
+          style={{
+            fontSize: "0.75rem",
+            color: "var(--text-secondary)",
+            transition: "transform 0.2s",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          ▼
+        </span>
+      </h2>
+      {open && <div className="collapsible-content">{children}</div>}
+    </section>
+  );
 }
 
 export function MorePage({
@@ -47,6 +88,21 @@ export function MorePage({
   const [pbPassword, setPbPassword] = useState("");
   const [pbError, setPbError] = useState<string | null>(null);
   const [pbBusy, setPbBusy] = useState(false);
+  const [catalogState, setCatalogState] = useState<CatalogClientState>(() => ({ ...catalogClient }));
+  const [packages, setPackages] = useState<CachedCatalogPackage[]>([]);
+  const [imports, setImports] = useState<ImportRecord[]>([]);
+  const [progress, setProgress] = useState<PlayerManager[]>([]);
+
+  useEffect(() => {
+    const refresh = async () => {
+      setCatalogState({ ...catalogClient });
+      setPackages(await catalogClient.getCachedPackages());
+      setImports(await listImportRecords());
+      setProgress(await db.progress.toArray());
+    };
+    void refresh();
+    return catalogClient.subscribe(() => { void refresh(); });
+  }, []);
 
   async function handlePbSignIn() {
     setPbBusy(true);
@@ -73,11 +129,12 @@ export function MorePage({
     onSettingsChange(newSettings);
     await saveSettings(newSettings);
   }
+  const catalogStatus = describeCatalogStatus(catalogState.loadState);
+  const cacheDetail = describeCache(catalogState.cacheStatus, packages);
+  const activePackage = packages.find((pkg) => pkg.isActive);
   return (
     <div className="more-page">
-      {/* PocketBase Account Section */}
-      <section className="card-container">
-        <h2 className="card-title">PocketBase Account</h2>
+      <CollapsibleSection title="PocketBase Account">
         <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
           Server: {getBaseUrl()}
         </p>
@@ -107,7 +164,7 @@ export function MorePage({
             </button>
           </div>
         ) : (
-          <div>
+          <form onSubmit={(event) => { event.preventDefault(); void handlePbSignIn(); }}>
             <div
               style={{
                 display: "flex",
@@ -125,6 +182,8 @@ export function MorePage({
               <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Email</span>
               <input
                 type="email"
+                name="email"
+                autoComplete="username"
                 value={pbEmail}
                 onChange={(e) => setPbEmail(e.target.value)}
                 placeholder="admin@mineops.yancmo.xyz"
@@ -134,6 +193,8 @@ export function MorePage({
               <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Password</span>
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 value={pbPassword}
                 onChange={(e) => setPbPassword(e.target.value)}
                 placeholder="••••••••"
@@ -151,19 +212,17 @@ export function MorePage({
               </p>
             )}
             <button
-              onClick={handlePbSignIn}
+              type="submit"
               disabled={pbBusy || !pbEmail || !pbPassword}
               style={{ width: "100%" }}
             >
               {pbBusy ? "Signing in…" : "Sign In"}
             </button>
-          </div>
+          </form>
         )}
-      </section>
+      </CollapsibleSection>
 
-      {/* Sync Settings Section */}
-      <section className="card-container">
-        <h2 className="card-title">Sync Settings</h2>
+      <CollapsibleSection title="Sync Settings">
         <label
           style={{
             display: "flex",
@@ -192,11 +251,9 @@ export function MorePage({
             </div>
           </div>
         </label>
-      </section>
+      </CollapsibleSection>
 
-      {/* Kolibri Sync Section */}
-      <section className="card-container">
-        <h2 className="card-title">Kolibri Sync</h2>
+      <CollapsibleSection title="Kolibri Sync">
 
         {/* Sync Status */}
         <div
@@ -228,7 +285,7 @@ export function MorePage({
                 color: "var(--accent-orange)",
               }}
             >
-              <strong>Error:</strong> {metadata.error}
+              <strong>Error:</strong> {redactDiagnostic(metadata.error)}
             </p>
           )}
           <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
@@ -243,6 +300,7 @@ export function MorePage({
           </p>
         </div>
 
+        <form onSubmit={(event) => { event.preventDefault(); if (!syncing) onSyncNow(); }}>
         {/* Credentials */}
         <label style={{ display: "grid", gap: "0.5rem", marginBottom: "1rem" }}>
           <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>
@@ -261,6 +319,8 @@ export function MorePage({
           <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Auth token</span>
           <input
             type="password"
+            name="authToken"
+            autoComplete="current-password"
             value={credentials.authToken}
             onChange={(e) =>
               onCredentialsChange({ ...credentials, authToken: e.target.value })
@@ -272,6 +332,9 @@ export function MorePage({
         <label style={{ display: "grid", gap: "0.5rem", marginBottom: "1rem" }}>
           <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Save game key</span>
           <input
+            type="password"
+            name="saveGameKey"
+            autoComplete="off"
             value={credentials.saveGameKey}
             onChange={(e) =>
               onCredentialsChange({ ...credentials, saveGameKey: e.target.value })
@@ -281,7 +344,7 @@ export function MorePage({
         </label>
 
         {/* Sync Button */}
-        <button onClick={() => onSyncNow()} disabled={syncing} style={{ width: "100%" }}>
+        <button type="submit" disabled={syncing} style={{ width: "100%" }}>
           {syncing ? "Syncing…" : "Sync Now"}
         </button>
 
@@ -293,24 +356,133 @@ export function MorePage({
           >
             {diagnostics.managerCount} managers received · {diagnostics.payloadFormat} ·{" "}
             {diagnostics.unknownManagerCount} unmatched catalog IDs
+            {diagnostics.unresolvedSampleIds && diagnostics.unresolvedSampleIds.length > 0 && (
+              <span style={{ display: "block", fontSize: "0.75rem", marginTop: "0.25rem", color: "var(--text-muted)" }}>
+                Sample IDs: {diagnostics.unresolvedSampleIds.join(", ")}
+              </span>
+            )}
           </p>
         )}
-      </section>
+        </form>
+      </CollapsibleSection>
 
-      {/* Snapshot History */}
-      <section className="card-container">
-        <h2 className="card-title">Snapshot History</h2>
+      <CollapsibleSection title="Catalog package" ariaLive="polite">
+        <p style={{ marginTop: "-0.5rem", fontSize: "0.875rem" }}><strong>{catalogStatus.label}</strong></p>
+        <p className="muted" style={{ fontSize: "0.8rem" }}>{catalogStatus.detail}</p>
+        <div style={{ padding: "0.75rem", background: "var(--bg-secondary)", borderRadius: "0.5rem", fontSize: "0.8rem" }}>
+          <p style={{ margin: 0 }}><strong>Active release:</strong> {activePackage?.releaseId ?? "None"}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Manifest:</strong> {activePackage?.manifestHash ?? "Not available"}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Schema:</strong> {activePackage?.manifestSchemaVersion ?? "Not available"}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Cache:</strong> {catalogState.cacheStatus.packageCount} package(s), {cacheDetail.size}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Last-known-good:</strong> {cacheDetail.lastKnownGood}</p>
+        </div>
+        {activePackage && <div style={{ marginTop: "0.75rem", fontSize: "0.8rem" }}>
+          <strong>Artifact verification</strong>
+          {Object.values(activePackage.artifacts).map((artifact) => <p className="muted" key={artifact.filename} style={{ margin: "0.3rem 0" }}>✓ {artifact.filename} · {artifact.schemaVersion} · {artifact.bytes.toLocaleString()} bytes</p>)}
+          {activePackage.warnings.map((warning) => <p key={warning} style={{ color: "var(--accent-orange)", margin: "0.3rem 0" }}>{redactDiagnostic(warning)}</p>)}
+        </div>}
+        {/* Catalog diagnostics */}
+        {activePackage && progress && (() => {
+          const coreContent = activePackage.artifacts["catalog-core.json"]?.content as { releaseId?: string; managers?: Array<{ canonicalId?: string; id?: string }> } | undefined;
+          const managers = coreContent?.managers ?? [];
+          const catalogManagerIds = new Set(
+            managers.map((m) => m.canonicalId ?? m.id ?? "").filter(Boolean),
+          );
+          const progressManagerIds = progress.map((p) => p.managerId);
+          const absentFromCatalog = progressManagerIds.filter(
+            (id) => id && !catalogManagerIds.has(id),
+          );
+
+          // Source state
+          let sourceLabel: string;
+          const phase = catalogState.loadState.phase;
+          if (phase === "bootstrap_fallback") {
+            sourceLabel = "Bootstrap (fallback)";
+          } else if (phase === "offline_cached") {
+            sourceLabel = "Cached (offline)";
+          } else if (phase === "active_stale") {
+            sourceLabel = "Published (stale)";
+          } else if (activePackage.storageBaseUrl?.includes("test-fixture")) {
+            sourceLabel = "Test fixture";
+          } else if (activePackage.source === "published") {
+            sourceLabel = "Published";
+          } else if (activePackage.source === "bootstrap") {
+            sourceLabel = "Bootstrap";
+          } else {
+            sourceLabel = activePackage.source;
+          }
+
+          // Release identity cross-check
+          const manifestReleaseId = activePackage.releaseId;
+          const coreReleaseId = coreContent?.releaseId;
+          const identityMismatch =
+            coreReleaseId && manifestReleaseId !== coreReleaseId;
+
+          return (
+            <div
+              style={{
+                marginTop: "0.75rem",
+                fontSize: "0.8rem",
+                borderTop:
+                  "1px solid var(--border-color, rgba(255,255,255,0.08))",
+                paddingTop: "0.5rem",
+              }}
+            >
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                Catalog diagnostics
+              </p>
+              <p className="muted" style={{ margin: "0.3rem 0" }}>
+                <strong>Managers:</strong> {catalogManagerIds.size} in catalog,{" "}
+                {progressManagerIds.length} with progress
+              </p>
+              {absentFromCatalog.length > 0 && (
+                <p
+                  style={{
+                    color: "var(--accent-orange)",
+                    margin: "0.3rem 0",
+                  }}
+                >
+                  <strong>
+                    Orphaned progress IDs ({absentFromCatalog.length}):
+                  </strong>{" "}
+                  {absentFromCatalog.slice(0, 5).join(", ")}
+                  {absentFromCatalog.length > 5
+                    ? `…(+${absentFromCatalog.length - 5})`
+                    : ""}
+                </p>
+              )}
+              {identityMismatch && (
+                <p
+                  style={{
+                    color: "var(--accent-orange)",
+                    margin: "0.3rem 0",
+                  }}
+                >
+                  <strong>Release ID mismatch:</strong> manifest{" "}
+                  {manifestReleaseId} ≠ core {coreReleaseId}
+                </p>
+              )}
+              <p className="muted" style={{ margin: "0.3rem 0" }}>
+                <strong>Source:</strong> {sourceLabel} ·{" "}
+                {activePackage.verificationState}
+              </p>
+            </div>
+          );
+        })()}
+        <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.75rem" }}>{catalogStatus.recovery}</p>
+        <button onClick={() => void catalogClient.reloadCatalog()} style={{ width: "100%" }}>Refresh catalog safely</button>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Snapshot History">
         <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
           Review changes between Kolibri syncs and restore previous game states.
         </p>
         <button onClick={onOpenSnapshotHistory} style={{ width: "100%" }}>
           View Snapshots
         </button>
-      </section>
+      </CollapsibleSection>
 
-      {/* Capture Status */}
-      <section className="card-container">
-        <h2 className="card-title">Capture Status</h2>
+      <CollapsibleSection title="Capture Status">
         <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
           APK extraction pipeline from ubuntumac. Refresh to check for new releases.
         </p>
@@ -340,7 +512,7 @@ export function MorePage({
               )}
               {captureStatus.lastSource && (
                 <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                  <strong>Source:</strong> {captureStatus.lastSource}
+                  <strong>Source:</strong> {redactDiagnostic(captureStatus.lastSource)}
                 </p>
               )}
               {captureStatus.lastObjectCount !== undefined && (
@@ -362,7 +534,7 @@ export function MorePage({
                   </p>
                   <div style={{ display: "grid", gap: "0.25rem", marginTop: "0.25rem" }}>
                     {captureStatus.recentReleases.slice(0, 5).map((release, idx) => (
-                      <div key={`${release.releaseId}-${release.ingestedAt}`} style={{ 
+                      <div key={`${release.releaseId}-${release.ingestedAt}-${idx}`} style={{
                         display: "flex", 
                         justifyContent: "space-between",
                         alignItems: "center",
@@ -438,7 +610,7 @@ export function MorePage({
               </p>
               {captureStatus.error && (
                 <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem", color: "var(--accent-orange)" }}>
-                  {captureStatus.error}
+                  {redactDiagnostic(captureStatus.error)}
                 </p>
               )}
               <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
@@ -450,16 +622,18 @@ export function MorePage({
         <button onClick={onRefreshCaptureStatus} style={{ width: "100%" }}>
           Refresh
         </button>
-      </section>
+      </CollapsibleSection>
 
-      {/* About Section */}
-      <section className="card-container">
-        <h2 className="card-title">About this build</h2>
+      <CollapsibleSection title="Player import history">
+        {imports.length ? imports.slice(0, 5).map((record) => <p key={record.id ?? record.importedAt} className="muted" style={{ fontSize: "0.8rem" }}>{new Date(record.importedAt).toLocaleString()} · {record.source} · {record.resolvedCount} resolved / {record.unresolvedCount} unresolved · {record.catalogVersion ?? "no catalog reference"}</p>) : <p className="muted" style={{ fontSize: "0.8rem" }}>No local player imports recorded yet.</p>}
+      </CollapsibleSection>
+
+      <CollapsibleSection title="About this build">
         <p style={{ marginBottom: 0, fontSize: "0.875rem" }}>
           MineOpsWeb uses the verified Idle Miner Tycoon manager catalog ({catalogCount || "…"}{" "}
           records) and keeps catalog definitions separate from player state.
         </p>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

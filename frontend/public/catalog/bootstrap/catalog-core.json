@@ -1,0 +1,19 @@
+{
+  "artifacts": [],
+  "catalogVersion": "4.90.0-123456-example",
+  "collectibles": [],
+  "equipment": [],
+  "generatedAt": "2026-07-16T12:00:00.000Z",
+  "managers": [],
+  "mines": [],
+  "releaseId": "fixture-release-id",
+  "research": [],
+  "schemaVersion": "1.0.0",
+  "source": {
+    "apkHashes": {},
+    "kind": "fixture",
+    "parserVersion": "0.1.0",
+    "versionCode": 123456,
+    "versionName": "4.90.0"
+  }
+}

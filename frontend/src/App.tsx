@@ -3,9 +3,12 @@ import { getSyncMetadata, loadProgress, rankThreshold, saveProgress, setSyncMeta
 import { fetchKolibri, type KolibriCredentials, type KolibriDiagnostics } from "./lib/kolibri";
 import { type Tab, navigationItems, getTabLabel } from "./lib/navigation";
 import { restoreAuth, getAuthStatus, onAuthChange, getClient, getBaseUrl, type AuthStatus } from "./lib/pocketbase";
-import { pushStateToPB, pullNewerFromPB } from "./lib/sync";
+import { pushStateToPB, pullNewerFromPB, getLocalRevision, updateSyncMetadata } from "./lib/sync";
 import { saveSnapshot } from "./lib/snapshot";
+import { saveImportRecord } from "./lib/import-history";
 import { fetchCaptureStatus, type CaptureStatus } from "./lib/capture";
+import { catalogClient, type LoadState } from "./lib/catalog-client";
+import { managersFromVerifiedPackage } from "./lib/strategy";
 import { TodayPage } from "./pages/TodayPage";
 import { SnapshotHistory } from "./pages/SnapshotHistory";
 import { StrategyPage } from "./pages/StrategyPage";
@@ -37,10 +40,6 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: "levelHighToLow", label: "Level (high→low)" },
   { value: "levelLowToHigh", label: "Level (low→high)" },
 ];
-
-type RemoteMaster = { id: string; name: string; rarity: string; area: string; gameId: number; sprite?: string; elements?: Array<{ element: string; effectiveness: string; rankReq: number }>; passives?: Array<{ type: string; value?: number; promoReq: number }>; activeL1?: number; activeL100?: number; cooldown?: number; duration?: number; descriptionLong?: string; descriptionShort?: string };
-const areaName = (area: string) => ({ mineshaft: "Mine Shaft", elevator: "Elevator", warehouse: "Warehouse" }[area.toLowerCase()] ?? area);
-const normalizeMaster = (item: RemoteMaster): CatalogManager => ({ id: item.id, name: item.name, rarity: item.rarity, type: areaName(item.area), gameId: item.gameId, sprite: item.sprite, elements: (item.elements ?? []).map((element) => `${element.element} (${element.effectiveness})`), active: { description: item.descriptionLong ?? item.descriptionShort, multiplier: item.activeL1, multiplierAt100: item.activeL100, duration: item.duration?.toString(), cooldown: item.cooldown?.toString() }, passives: (item.passives ?? []).map((passive) => ({ type: passive.type, promoReq: passive.promoReq, multiplier: passive.value, description: passive.type })) });
 
 const departments: Department[] = ["All", "Mine Shaft", "Elevator", "Warehouse"];
 const rarities: string[] = ["legendary", "epic", "rare", "common"];
@@ -78,7 +77,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("overview");
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState<Department>("All");
-  const [ownership, setOwnership] = useState<Ownership>("unlocked");
+  const [ownership, setOwnership] = useState<Ownership>("all");
   const [sort, setSort] = useState<SortOption>("recommended");
   const [selectedRarities, setSelectedRarities] = useState<Set<string>>(new Set());
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -119,7 +118,7 @@ export default function App() {
       if (status.authenticated && progressRef.length > 0) {
         void (async () => {
           const loadedMetadata = await getSyncMetadata();
-          const pbSnapshot = await pullNewerFromPB(loadedMetadata.lastSuccessfulSyncAt);
+          const pbSnapshot = await pullNewerFromPB(getLocalRevision(loadedMetadata));
           if (pbSnapshot) {
             setProgress(pbSnapshot.progress);
             await saveProgress(pbSnapshot.progress);
@@ -132,16 +131,75 @@ export default function App() {
       }
     });
 
+    // Subscribe to catalogClient — when it activates, swap to verified package.
+    // Declared outside the async IIFE so cleanup can reach it.
+    let unsubCat: (() => void) | undefined;
+
+    // Immediately check if there's already an active catalog package
+    // (handles Strict Mode double-mount where first mount already loaded it)
     void (async () => {
-      const response = await fetch("/catalog/sm_complete_database.json");
-      const json = await response.json() as { managers: CatalogManager[] };
-      let managers = json.managers;
+      const existingPkg = await catalogClient.getActivePackage();
+      if (existingPkg) {
+        const existingManagers = managersFromVerifiedPackage(existingPkg);
+        if (existingManagers.length > 0) {
+          console.debug("[app] Using existing active package:", existingPkg.releaseId, existingPkg.catalogVersion);
+          setCatalog(existingManagers);
+          const localProgress = await loadProgress(existingManagers);
+          progressRef = localProgress;
+          setProgress(localProgress);
+        }
+      }
+    })();
+
+    void (async () => {
+      // --- Catalog loading: unified path ---
+      // The catalogClient is the single authority. It tries:
+      //   1. PocketBase publication → cache → activate
+      //   2. Test fixture (dev mode) → activates
+      //   3. Cached active package (from previous activation)
+      //   4. Bundled bootstrap (first-launch / offline)
+      //   5. Error state
+      //
+      // Legacy sm_complete_database.json has been removed from first-render
+      // authority. The catalogClient provides bootstrap via bundled files.
+
+      // Subscribe to catalogClient — when it activates, swap to verified package
+      // This handles: production publication, test fixture (dev), or cache.
+      unsubCat = catalogClient.subscribe((state) => {
+        const ls = state.loadState;
+        if (ls.phase === "active" || ls.phase === "active_current" || ls.phase === "active_stale" || ls.phase === "offline_cached" || ls.phase === "bootstrap_fallback") {
+          void (async () => {
+            const pkg = await catalogClient.getActivePackage();
+            if (!pkg) return;
+            console.debug("[app] Catalog activated:", pkg.releaseId, pkg.catalogVersion, pkg.source);
+            const verifiedManagers = managersFromVerifiedPackage(pkg);
+            if (verifiedManagers.length > 0) {
+              setCatalog(verifiedManagers);
+              const localProgress = await loadProgress(verifiedManagers);
+              progressRef = localProgress;
+              setProgress(localProgress);
+            } else {
+              console.warn("[app] Verified catalog has 0 managers — keeping initial bootstrap");
+            }
+          })();
+        }
+      });
+
+      // Start the async catalog load (doesn't block below; subscribe captures activation)
+      void catalogClient.loadActiveCatalog();
+
+      // Load initial catalog from catalogClient bootstrap (no legacy dependency)
+      let bootstrapManagers: CatalogManager[] = [];
       try {
-        const remote = await (await fetch("/master/api/sm-data")).json() as RemoteMaster[];
-        if (Array.isArray(remote) && remote.length) managers = remote.map(normalizeMaster);
-      } catch { /* bundled catalog remains usable offline */ }
-      setCatalog(managers);
-      const localProgress = await loadProgress(managers);
+        const pkg = await catalogClient.getActivePackage();
+        if (pkg && pkg.artifacts["catalog-core.json"]?.content) {
+          bootstrapManagers = managersFromVerifiedPackage(pkg);
+        }
+      } catch { /* bootstrap unavailable */ }
+
+      // Set initial catalog from bootstrap (if available), or empty
+      setCatalog(bootstrapManagers);
+      const localProgress = await loadProgress(bootstrapManagers.length > 0 ? bootstrapManagers : []);
       progressRef = localProgress;
       setProgress(localProgress);
       const loadedMetadata = await getSyncMetadata();
@@ -151,7 +209,7 @@ export default function App() {
 
       // Pull newer PB snapshot on launch (cross-device catch-up)
       if (getAuthStatus().authenticated) {
-        const pbSnapshot = await pullNewerFromPB(loadedMetadata.lastSuccessfulSyncAt);
+        const pbSnapshot = await pullNewerFromPB(getLocalRevision(loadedMetadata));
         if (pbSnapshot) {
           progressRef = pbSnapshot.progress;
           setProgress(pbSnapshot.progress);
@@ -165,7 +223,7 @@ export default function App() {
       void refreshCaptureStatus();
 
       // Auto-sync once on initial load if enabled and no previous sync
-      if (!hasAutoSynced.current && loadedSettings.autoSync && managers.length > 0 && credentials.kolibriId && credentials.authToken && !loadedMetadata.lastSuccessfulSyncAt) {
+      if (!hasAutoSynced.current && loadedSettings.autoSync && bootstrapManagers.length > 0 && credentials.kolibriId && credentials.authToken && !loadedMetadata.lastSuccessfulSyncAt) {
         hasAutoSynced.current = true;
         setTimeout(() => { void syncNow(); }, 100);
       }
@@ -183,6 +241,7 @@ export default function App() {
 
     return () => {
       unsub();
+      if (unsubCat) unsubCat();
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, []);
@@ -294,9 +353,26 @@ export default function App() {
     try {
       if (!navigator.onLine) throw new Error("Offline — connect to the internet before syncing Kolibri.");
       const result = await fetchKolibri(credentials, catalog);
-      await saveProgress(result.progress);
-      setProgress(result.progress);
+      // Merge with existing progress: preserve data for unresolved managers
+      // so a partial sync doesn't reset all progress to unlocked=false.
+      const existingProgress = await loadProgress(catalog);
+      const existingById = new Map(existingProgress.map((p) => [p.managerId, p]));
+      const mergedProgress = result.progress.map((p) => {
+        const existing = existingById.get(p.managerId);
+        // If the new progress has unlocked=false and the manager had existing
+        // progress with unlocked=true, keep the existing data (sync didn't touch it).
+        if (existing && !p.unlocked && existing.unlocked) return existing;
+        return p;
+      });
+      await saveProgress(mergedProgress);
+      setProgress(mergedProgress);
       setDiagnostics(result.diagnostics);
+
+      // Get active catalog metadata for import traceability
+      const pkg = await catalogClient.getActivePackage();
+      const catalogVersion = result.catalogVersion ?? pkg?.catalogVersion ?? null;
+      const manifestHash = pkg?.manifestHash ?? null;
+
       const next: SyncMetadata = {
         ...metadata,
         lastAttemptAt: attemptedAt,
@@ -308,11 +384,49 @@ export default function App() {
       await setSyncMetadata(next);
       setMetadata(next);
 
-      // Save local snapshot (with diff from previous)
-      void saveSnapshot(result.progress, next, "Kolibri Capsule", { nameMap: new Map(catalog.map((m) => [m.id, m.name])) });
+      // Save local snapshot with catalog metadata + unresolved IDs
+      const unresolvedIds = result.unresolved.length > 0
+        ? result.unresolved.map((u) => u.sourceValue)
+        : undefined;
+
+      const snapshot = await saveSnapshot(
+        result.progress,
+        next,
+        "Kolibri Capsule",
+        { nameMap: new Map(catalog.map((m) => [m.id, m.name])) },
+        catalogVersion,
+        unresolvedIds,
+      );
+
+      // Save sanitized import record (no credentials, no raw payloads)
+      const newlyUnlocked = snapshot.summary.includes("Unlocked")
+        ? parseInt(snapshot.summary.match(/\d+/)?.[0] ?? "0", 10)
+        : 0;
+      const importStatus = result.diagnostics.unknownManagerCount > 0 ? "partially_succeeded" : "succeeded";
+
+      await saveImportRecord({
+        importedAt: attemptedAt,
+        source: "kolibri",
+        status: importStatus,
+        managerCount: result.diagnostics.managerCount,
+        unresolvedCount: result.diagnostics.unknownManagerCount,
+        resolvedCount: result.diagnostics.managerCount - result.diagnostics.unknownManagerCount,
+        newlyUnlocked,
+        catalogVersion,
+        manifestHash,
+        snapshotId: snapshot.id ?? null,
+        diagnosticsSummary: `HTTP ${result.diagnostics.statusCode}, ${result.diagnostics.payloadFormat}, ${result.diagnostics.rawBytes}b`,
+      });
 
       // Push to PB (fire-and-forget — never blocks the user)
-      void pushStateToPB(result.progress, next);
+      void pushStateToPB(
+        result.progress,
+        next,
+        catalogVersion ?? undefined,
+        manifestHash ?? undefined,
+        unresolvedIds,
+        "kolibri",
+      );
     } catch (error) {
       const next: SyncMetadata = {
         ...metadata,
@@ -482,7 +596,7 @@ export default function App() {
           </section>
         </>
       )}
-      {tab === "strategy" && <StrategyPage catalog={catalog} progress={progress} />}
+      {tab === "strategy" && <StrategyPage progress={progress} />}
       {tab === "more" && (
         <MorePage
           credentials={credentials}

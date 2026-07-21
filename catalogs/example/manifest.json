@@ -1,0 +1,100 @@
+{
+  "artifacts": [
+    {
+      "bytes": 417,
+      "contentType": "application/json",
+      "filename": "catalog-core.json",
+      "path": "catalog-core.json",
+      "recordCount": 0,
+      "required": true,
+      "schemaVersion": "1.0.0",
+      "sha256": "494b19cdb377a963445c0c4d2bc982463b8d9b59c5254e8fa68b8c0be17a262d"
+    },
+    {
+      "bytes": 181,
+      "contentType": "application/json",
+      "filename": "relationships.json",
+      "path": "relationships.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "66d01fc7784ac70e1062880edb8a60ae00a5ee23e3a0fd67ff6d7d962504c2ac"
+    },
+    {
+      "bytes": 195,
+      "contentType": "application/json",
+      "filename": "mappings.json",
+      "path": "mappings.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "e941877888a40431312e172900435e81d88ad7256b5f03b8e70f79ddba5fa7d1"
+    },
+    {
+      "bytes": 193,
+      "contentType": "application/json",
+      "filename": "localization.json",
+      "path": "localization.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "66afc64f5a96c9c1eacb0fcf78753bf1705183b7fc37d9c3a74896d9e979cd44"
+    },
+    {
+      "bytes": 174,
+      "contentType": "application/json",
+      "filename": "assets.json",
+      "path": "assets.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "6fc40fdff3ff1c8ed7c9565307f80d4721b1f18f754b854fcf2ce62da3337ed3"
+    },
+    {
+      "bytes": 2369,
+      "contentType": "application/json",
+      "filename": "validation-report.json",
+      "path": "validation-report.json",
+      "recordCount": 0,
+      "required": true,
+      "schemaVersion": "1.0.0",
+      "sha256": "6559de3f4a1d3b0ee76716a7993f4ea04935f2aa34b6be6eebb665988d6dcf5c"
+    },
+    {
+      "bytes": 474,
+      "contentType": "application/json",
+      "filename": "changelog.json",
+      "path": "changelog.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "2a0f21b47759081a026794084f2eca9f0854ac0f237ee4a989dc8217122d5308"
+    }
+  ],
+  "catalogVersion": "4.90.0-123456-example",
+  "counts": {
+    "artifacts": 0,
+    "collectibles": 0,
+    "equipment": 0,
+    "managers": 0,
+    "mines": 0,
+    "relationships": 0,
+    "research": 0,
+    "unresolvedObjects": 0
+  },
+  "gameVersion": "4.90.0",
+  "gameVersionCode": 123456,
+  "generatedAt": "2026-07-16T12:00:00.000Z",
+  "generator": {
+    "name": "MineOpsDataEngine",
+    "version": "0.2.0"
+  },
+  "manifestSchemaVersion": "2.0.0",
+  "previousCatalogVersion": null,
+  "releaseId": "fixture-release-id",
+  "status": "candidate",
+  "storage": {
+    "baseUrl": "./",
+    "cdnUrl": null
+  }
+}

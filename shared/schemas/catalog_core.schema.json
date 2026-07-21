@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mineops.io/schemas/catalog_core.schema.json",
+  "title": "MineOps Catalog Core",
+  "description": "Immutable core entity catalog: managers, mines, equipment, research, collectibles, and artifacts. One artifact in the versioned JSON package.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "catalogVersion",
+    "releaseId",
+    "generatedAt",
+    "source",
+    "managers",
+    "mines",
+    "equipment",
+    "research",
+    "collectibles",
+    "artifacts"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Version of this catalog-core schema."
+    },
+    "catalogVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deterministic bundle version string matching the manifest."
+    },
+    "releaseId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source release identity from the capture envelope."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this artifact was generated."
+    },
+    "source": {
+      "$ref": "#/$defs/catalogSource"
+    },
+    "managers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/managerRecord" }
+    },
+    "mines": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "equipment": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "research": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "collectibles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entityRecord" }
+    }
+  },
+  "$defs": {
+    "catalogSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "versionName", "versionCode", "parserVersion"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["apk_capture", "fixture", "test-fixture", "manual", "external"],
+          "description": "Origin of the catalog data."
+        },
+        "versionName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable game version (e.g. 4.90.0)."
+        },
+        "versionCode": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Numeric version code from the APK."
+        },
+        "apkHashes": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "description": "SHA-256 hashes of source APK files."
+        },
+        "parserVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the parser that produced this catalog."
+        }
+      }
+    },
+    "managerRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId"],
+      "properties": {
+        "canonicalId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable MineOps canonical identifier."
+        },
+        "name": {
+          "type": ["string", "null"],
+          "description": "Verified display name from source data."
+        },
+        "nameSource": {
+          "type": "string",
+          "enum": ["verified", "inferred", "unknown"],
+          "default": "unknown",
+          "description": "Provenance of the display name."
+        },
+        "rarity": {
+          "type": ["string", "null"],
+          "enum": ["common", "uncommon", "rare", "epic", "legendary", null]
+        },
+        "role": { "type": ["string", "null"] },
+        "element": { "type": ["string", "null"] },
+        "abilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/abilityRecord" }
+        },
+        "passives": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/passiveRecord" }
+        },
+        "progression": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/progressionEntry" }
+        },
+        "spriteRefs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Asset references for this manager's sprites."
+        },
+        "sourceIdentifiers": {
+          "type": "object",
+          "additionalProperties": { "type": ["string", "null"] },
+          "description": "Source-system identifiers keyed by system name. Null values indicate the identifier was not found in the source."
+        },
+        "sourceVersionBounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min": { "type": ["string", "null"] },
+            "max": { "type": ["string", "null"] }
+          },
+          "description": "Game version range where this manager appears in source data."
+        },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Preserved source fields not yet modeled in the schema. Must not contain canonicalId or name."
+        }
+      }
+    },
+    "abilityRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId"],
+      "properties": {
+        "canonicalId": { "type": "string", "minLength": 1 },
+        "name": { "type": ["string", "null"] },
+        "description": { "type": ["string", "null"] },
+        "type": { "type": ["string", "null"] },
+        "target": { "type": ["string", "null"] },
+        "cooldown": { "type": ["number", "null"] },
+        "extensions": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "passiveRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId"],
+      "properties": {
+        "canonicalId": { "type": "string", "minLength": 1 },
+        "name": { "type": ["string", "null"] },
+        "description": { "type": ["string", "null"] },
+        "extensions": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "progressionEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level"],
+      "properties": {
+        "level": { "type": "integer", "minimum": 1 },
+        "value": { "type": ["number", "null"] },
+        "cost": { "type": ["number", "null"] },
+        "extensions": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "entityRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalId"],
+      "properties": {
+        "canonicalId": { "type": "string", "minLength": 1 },
+        "name": { "type": ["string", "null"] },
+        "nameSource": {
+          "type": "string",
+          "enum": ["verified", "inferred", "unknown"],
+          "default": "unknown"
+        },
+        "sourceIdentifiers": {
+          "type": "object",
+          "additionalProperties": { "type": ["string", "null"] }
+        },
+        "extensions": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "aliases": [
+    {
+      "alias": "Ghost Manager",
+      "canonicalId": "nonexistent-entity",
+      "kind": "historical_name"
+    }
+  ],
+  "catalogVersion": "1.0.0-100000-test",
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "idMappings": [],
+  "releaseId": "test-release",
+  "schemaVersion": "1.0.0"
+}

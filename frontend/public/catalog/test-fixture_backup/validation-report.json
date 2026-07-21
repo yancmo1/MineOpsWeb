@@ -1,0 +1,18 @@
+{
+  "catalogVersion": "5.59.0_96449_0716T143539Z",
+  "checks": [
+    {
+      "detail": "118 managers",
+      "name": "managers.count",
+      "status": "pass"
+    },
+    {
+      "detail": "All canonicalIds present",
+      "name": "managers.no_null_ids",
+      "status": "pass"
+    }
+  ],
+  "generatedAt": "2026-07-18T00:41:05.080167Z",
+  "schemaVersion": "1.0.0",
+  "status": "passing"
+}

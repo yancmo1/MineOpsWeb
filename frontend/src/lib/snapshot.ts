@@ -27,6 +27,10 @@ export interface Snapshot {
   active: boolean;
   /** Human-readable summary of changes from previous snapshot */
   summary: string;
+  /** Catalog release version used to interpret this snapshot's source IDs */
+  catalogVersion: string | null;
+  /** JSON-serialized array of unresolved source IDs from the import */
+  unresolvedSourceIds: string | null;
 }
 
 export interface SnapshotDiff {
@@ -79,6 +83,8 @@ export async function saveSnapshot(
   metadata: SyncMetadata,
   source: string,
   catalog?: { nameMap: Map<string, string> },
+  catalogVersion?: string | null,
+  unresolvedSourceIds?: string[] | null,
 ): Promise<Snapshot> {
   // Get previous active for diff
   const previous = await getActiveSnapshot();
@@ -104,6 +110,8 @@ export async function saveSnapshot(
     source,
     active: true,
     summary,
+    catalogVersion: catalogVersion ?? null,
+    unresolvedSourceIds: unresolvedSourceIds ? JSON.stringify(unresolvedSourceIds) : null,
   };
 
   const id = await snapshotDb.snapshots.add(snapshot);
@@ -239,4 +247,81 @@ export function computeDiff(
     changedCount,
     summary,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Catalog reinterpretation
+// ---------------------------------------------------------------------------
+
+/**
+ * Re-interpret old snapshot source IDs against a new catalog version.
+ * Returns the re-mapped progress with the new catalog's canonical IDs.
+ * Original source IDs in the snapshot are preserved — this creates a new
+ * interpretation, not a destructive migration.
+ *
+ * Unresolved IDs in the new catalog retain their last-known-good values
+ * from the previous interpretation. This prevents player data loss if
+ * a mapping was dropped between catalog versions.
+ */
+export async function reinterpretSnapshot(
+  snapshot: Snapshot,
+  previousProgress: PlayerManager[],
+): Promise<{ progress: PlayerManager[]; newlyResolved: string[]; stillUnresolved: string[] }> {
+  const { resolveIds, fetchOverrides, needsReinterpretation } = await import("./catalog-mapping");
+  const { catalogClient } = await import("./catalog-client");
+
+  if (!snapshot.catalogVersion) {
+    return { progress: JSON.parse(snapshot.progress) as PlayerManager[], newlyResolved: [], stillUnresolved: [] };
+  }
+
+  const pkg = await catalogClient.getActivePackage();
+  if (!pkg) {
+    return { progress: JSON.parse(snapshot.progress) as PlayerManager[], newlyResolved: [], stillUnresolved: [] };
+  }
+
+  const needsReinterpret = await needsReinterpretation(snapshot.catalogVersion);
+  if (!needsReinterpret) {
+    return { progress: JSON.parse(snapshot.progress) as PlayerManager[], newlyResolved: [], stillUnresolved: [] };
+  }
+
+  const unresolvedSourceIds: string[] = snapshot.unresolvedSourceIds
+    ? JSON.parse(snapshot.unresolvedSourceIds)
+    : [];
+
+  if (unresolvedSourceIds.length === 0) {
+    return { progress: JSON.parse(snapshot.progress) as PlayerManager[], newlyResolved: [], stillUnresolved: [] };
+  }
+
+  const overrides = pkg.releaseId ? await fetchOverrides(pkg.releaseId) : [];
+  const evidenceMap = await resolveIds(
+    unresolvedSourceIds.map((id) => ({ sourceValue: id, sourceKind: "kolibri_id" })),
+    overrides,
+  );
+
+  const currentProgress = JSON.parse(snapshot.progress) as PlayerManager[];
+  const currentByManagerId = new Map(currentProgress.map((p) => [p.managerId, p]));
+  const newlyResolved: string[] = [];
+  const stillUnresolved: string[] = [];
+
+  for (const id of unresolvedSourceIds) {
+    const evidence = evidenceMap.get(id);
+    if (evidence?.canonicalId) {
+      if (!currentByManagerId.has(evidence.canonicalId)) {
+        newlyResolved.push(id);
+        currentProgress.push({
+          managerId: evidence.canonicalId,
+          level: 1,
+          rank: 0,
+          promoted: 0,
+          fragments: 0,
+          unlocked: false,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } else {
+      stillUnresolved.push(id);
+    }
+  }
+
+  return { progress: currentProgress, newlyResolved, stillUnresolved };
 }

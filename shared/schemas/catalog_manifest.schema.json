@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mineops.io/schemas/catalog_manifest.schema.json",
-  "title": "MineOps Catalog Manifest",
-  "description": "Immutable bundle descriptor for a versioned catalog artifact. Fetched first by the app to locate the full catalog, diff, and validation report.",
+  "title": "MineOps Catalog Release Manifest",
+  "description": "Immutable release manifest for a versioned catalog package. Lists every artifact with content-addressed integrity metadata. Fetched first by the app to locate, verify, and cache the full package.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,19 +13,17 @@
     "gameVersionCode",
     "generatedAt",
     "generator",
-    "catalogSchemaVersion",
     "status",
-    "artifact",
+    "artifacts",
     "counts",
     "previousCatalogVersion",
-    "diffPath",
-    "validationReportPath"
+    "storage"
   ],
   "properties": {
     "manifestSchemaVersion": {
       "type": "string",
       "description": "Version of this manifest schema.",
-      "const": "1.0.0"
+      "const": "2.0.0"
     },
     "catalogVersion": {
       "type": "string",
@@ -61,29 +59,16 @@
         "version": { "type": "string", "minLength": 1 }
       }
     },
-    "catalogSchemaVersion": {
-      "type": "string",
-      "description": "Version of the normalized catalog schema this bundle conforms to.",
-      "const": "1.0.0"
-    },
     "status": {
       "type": "string",
-      "enum": ["candidate", "review_required", "ready", "active", "superseded", "rejected"],
+      "enum": ["candidate", "review_required", "ready", "active", "superseded", "rejected", "test-fixture"],
       "description": "Lifecycle status. Only 'active' catalogs are consumed by the frontend."
     },
-    "artifact": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["path", "sha256", "bytes"],
-      "properties": {
-        "path": { "type": "string", "minLength": 1 },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$",
-          "description": "Lowercase SHA-256 of the exact UTF-8 bytes of catalog.json."
-        },
-        "bytes": { "type": "integer", "minimum": 0 }
-      }
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Every artifact in this release package. Each entry is content-addressed so the consumer can verify integrity independently.",
+      "items": { "$ref": "#/$defs/artifactEntry" }
     },
     "counts": {
       "$ref": "#/$defs/catalogCounts"
@@ -92,18 +77,73 @@
       "type": ["string", "null"],
       "description": "Catalog version this bundle was diffed against, or null for the first version."
     },
-    "diffPath": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Relative path to the diff artifact within this bundle directory."
-    },
-    "validationReportPath": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Relative path to the validation report within this bundle directory."
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseUrl"],
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base URL or path where artifacts can be fetched. May be a relative path for local bundles, or an absolute HTTPS URL for remote storage."
+        },
+        "cdnUrl": {
+          "type": ["string", "null"],
+          "description": "Optional CDN origin for production distribution."
+        }
+      }
     }
   },
   "$defs": {
+    "artifactEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "contentType", "sha256", "bytes", "schemaVersion", "required", "path"],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_\\-\\.]+\\.json$",
+          "description": "Artifact filename (e.g. 'catalog-core.json', 'relationships.json'). Must end with .json and contain only safe filename characters."
+        },
+        "contentType": {
+          "type": "string",
+          "const": "application/json",
+          "description": "MIME content type. All catalog artifacts are JSON."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 of the exact UTF-8 bytes of this artifact. Immutable once the release is accepted."
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes."
+        },
+        "schemaVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the JSON schema this artifact conforms to. Determines client compatibility."
+        },
+        "recordCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of top-level records. Zero means 'no records' (valid, empty artifact). Absence of the artifact file means 'artifact not produced' — these are distinct states."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "If true, the client MUST have this artifact to use the package. If false, the client may load the package with a warning when the artifact is missing or unreadable. catalog-core.json is always required."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-zA-Z0-9_\\-\\.]+(?:/[a-zA-Z0-9_\\-\\.]+)*\\.json$",
+          "description": "Safe relative path within the bundle directory. Must not start with / or ./, must not contain .. or \\, and must not use URL encoding. Resolved only within the immutable release directory."
+        }
+      }
+    },
     "catalogCounts": {
       "type": "object",
       "additionalProperties": false,

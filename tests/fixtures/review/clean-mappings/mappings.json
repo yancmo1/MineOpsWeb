@@ -1,0 +1,27 @@
+{
+  "aliases": [
+    {
+      "alias": "Test",
+      "canonicalId": "mgr-1",
+      "kind": "abbreviation"
+    }
+  ],
+  "catalogVersion": "1.0.0-100000-test",
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "idMappings": [
+    {
+      "canonicalId": "mgr-1",
+      "confidence": "verified",
+      "kind": "unity_guid",
+      "sourceValue": "abc123"
+    },
+    {
+      "canonicalId": "mgr-1",
+      "confidence": "inferred",
+      "kind": "kolibri_id",
+      "sourceValue": "k456"
+    }
+  ],
+  "releaseId": "test-release",
+  "schemaVersion": "1.0.0"
+}

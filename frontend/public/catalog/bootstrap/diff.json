@@ -1,0 +1,22 @@
+{
+  "diffSchemaVersion": "1.0.0",
+  "catalogVersion": "4.90.0-123456-example",
+  "previousCatalogVersion": null,
+  "generatedAt": "2026-07-16T12:00:00.000Z",
+  "summary": {
+    "managersAdded": 0,
+    "managersRemoved": 0,
+    "managersChanged": 0,
+    "identifiersChanged": 0,
+    "spritesChanged": 0,
+    "abilitiesChanged": 0,
+    "unresolvedObjects": 0,
+    "warnings": 0
+  },
+  "changes": {
+    "added": [],
+    "removed": [],
+    "changed": [],
+    "unresolved": []
+  }
+}

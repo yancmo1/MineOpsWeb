@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "APK Manager Extraction Schema v1",
+  "description": "Schema for managers extracted from Idle Miner Tycoon APK via IL2CPP/UnityPy pipeline. Freezes the extraction format so future game updates can be detected and handled explicitly.",
+  "$id": "mineops://schemas/extraction/v1",
+  "type": "object",
+  "properties": {
+    "managerId": {
+      "description": "Unique integer identifier for this manager (10001-10082). Matches SuperManagerId in the game data.",
+      "type": "integer",
+      "minimum": 10001,
+      "maximum": 10082
+    },
+    "canonical": {
+      "description": "Core manager record: all fields extracted from the SuperManagers ScriptableObject asset.",
+      "type": "object",
+      "properties": {
+        "SuperManagerId": { "type": "integer", "description": "Game entity ID. Always matches managerId." },
+        "NameKey": { "type": "string", "description": "Localization key for the display name (e.g. SM_Poseidon). Name table is compiled into IL2CPP binary." },
+        "Gender": { "type": "integer", "enum": [0, 1], "description": "0=Male, 1=Female." },
+        "AreaId": { "type": "integer", "enum": [1, 2, 3], "description": "1=Corridor(MineShaft), 2=Ground(Warehouse), 3=Elevator." },
+        "SuperManagerRarity": { "type": "integer", "enum": [1, 2, 3, 4], "description": "1=Common, 2=Rare, 3=Epic, 4=Legendary." },
+        "Category": { "type": "integer", "enum": [1, 2, 3, 4, 5], "description": "1=None, 2=Gems, 3=Iap, 4=Event, 5=ImpossibleMine." },
+        "Duration": { "type": "number", "description": "Active ability duration in seconds." },
+        "Cooldown": { "type": "number", "description": "Active ability cooldown in seconds." },
+        "CanBeBoughtWithGems": { "type": "integer", "enum": [0, 1] },
+        "IsRentable": { "type": "integer", "enum": [0, 1] },
+        "IsImpossibleIslandReward": { "type": "integer", "enum": [0, 1] },
+        "IsLocaEncrypted": { "type": "integer", "enum": [0, 1], "description": "Whether NameKey uses encrypted format." },
+        "MaxLevel": { "type": "integer", "description": "Maximum character level (typically 50 or 100)." },
+        "MaxPromotions": { "type": "integer", "description": "Maximum promotion rank (typically 5 or 10)." },
+        "Passive1": { "type": "integer", "description": "Passive ability ID 1. 0 = none. See SuperManagerPassiveType enum." },
+        "Passive2": { "type": "integer", "description": "Passive ability ID 2. 0 = none." },
+        "Passive3": { "type": "integer", "description": "Passive ability ID 3. 0 = none." }
+      },
+      "required": ["SuperManagerId", "NameKey", "Gender", "AreaId", "SuperManagerRarity", "Category", "Duration", "Cooldown", "MaxLevel", "MaxPromotions"]
+    },
+    "fields": {
+      "description": "Enriched fields with source asset provenance and enum labels.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "value": {},
+          "source": { "type": "string" },
+          "provenance": { "type": "string", "enum": ["direct", "computed", "mapped"] }
+        }
+      }
+    },
+    "assetsFound": {
+      "description": "List of ScriptableObject asset filenames successfully extracted for this manager.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "assetsMissing": {
+      "description": "Expected asset types that were not found for this manager.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "warnings": {
+      "description": "Human-readable warnings about data quality issues (missing assets, unexpected values).",
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["managerId", "canonical", "fields", "assetsFound", "assetsMissing", "warnings"],
+  "definitions": {
+    "SuperManagerPassiveType": {
+      "type": "integer",
+      "enum": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1001, 1005, 1006, 1007, 1008, 1009, 1010],
+      "enumDescriptions": [
+        "None", "ElevatorMovementSpeedBoost", "GroundWalkingSpeedBoost", "MiningSpeedBoost",
+        "WarehouseWalkingAndLoadingSpeed", "WalkingAndMiningSpeedBoost", "MovementAndLoadingSpeedBoost",
+        "ShaftUpgradeCostReduction", "ElevatorUpgradeCostReduction", "WarehouseUpgradeCostReduction",
+        "IdleCashBoost", "BarrierUnlockCostReduction", "ShaftUnlockCostReduction",
+        "MineIncomeBoost", "MineShaftBeam", "ElevatorBeam", "ContinentIncomeBoost"
+      ]
+    },
+    "SuperManagerRarity": {
+      "type": "integer",
+      "enum": [1, 2, 3, 4],
+      "enumDescriptions": ["Common", "Rare", "Epic", "Legendary"]
+    },
+    "ManagerRegion": {
+      "type": "integer",
+      "enum": [1, 2, 3],
+      "enumDescriptions": ["Corridor (Mine Shaft)", "Ground (Warehouse)", "Elevator"]
+    },
+    "SuperManagerCategory": {
+      "type": "integer",
+      "enum": [1, 2, 3, 4, 5],
+      "enumDescriptions": ["None", "Gems", "Iap", "Event", "ImpossibleMine"]
+    },
+    "Gender": {
+      "type": "integer",
+      "enum": [0, 1],
+      "enumDescriptions": ["Male", "Female"]
+    }
+  }
+}
