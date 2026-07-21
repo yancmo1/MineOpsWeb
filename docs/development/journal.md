@@ -1,5 +1,55 @@
 # Development journal
 
+## 2026-07-21 — Dev→main merge + CI/CD fix + production deploy
+
+**Goal:** Merge 8 commits of catalog v2 work from `dev` into `main` and deploy to production Oracle VM.
+
+### Merge preparation
+
+1. **Switched to `dev`** and ran full verification: all 184 tests pass (92 frontend vitest + 92 catalog node tests), TypeScript compiles cleanly, Vite production build succeeds.
+2. **Merge conflict check:** `git merge --no-commit --no-ff origin/dev` on `main` — automatic merge succeeded with zero conflicts.
+3. **Merge commit:** `aa4441c` — 326 files changed, 62,386 insertions, 403 deletions.
+
+### Merge content (8 commits from dev)
+
+| Area | Change |
+|---|---|
+| Catalog v2 | Manifest-driven multi-artifact packaging architecture (`catalogs/`, `shared/schemas/`) |
+| PB hooks | `catalog-publish.pb.js`, `catalog-review.pb.js` |
+| PB migrations | 8 new migration files for catalog collections (releases, publication, reviews, events, overrides, player_snapshots_v2) |
+| Frontend | Catalog client (`catalog-client.ts`), mapping (`catalog-mapping.ts`), operational status, import history, strategy/tests |
+| Tools | Extraction tools (IL2CPP, CLI fixtures, catalog generators), 17 utility scripts |
+| Tests | 92 catalog contract tests (package, publish, review) with 20+ fixture bundles |
+| Docs | Updated parity matrix, architecture docs, APK extraction report, journal |
+| Infra | `SERVER_MASTER_GUIDE.md` (symlink), reasonix config, `.gitignore` updates |
+
+### Git hygiene
+
+- **Unstaged noise:** `.reasonix/`, `.DS_Store`, `tsconfig.tsbuildinfo` — these were tracked in dev history but should not be in main. Unstaged before committing merge.
+- **`.gitignore` updated:** Added `.reasonix/` and `*.tsbuildinfo` patterns to prevent recurrence.
+
+### CI/CD fix
+
+- **Problem:** GitHub Actions verify job fails with `@rollup/rollup-linux-x64-gnu` MODULE_NOT_FOUND. This is a known npm optional-dependencies bug on newer runners (Node 24).
+- **Fix:** Changed `npm ci` to `npm ci --include=optional` in the frontend test step.
+- **Commit:** `9dd45e6`
+
+### Deploy status
+
+- Main pushed twice: merge commit (`aa4441c`) and CI fix (`9dd45e6`), each triggering the workflow.
+- Latest run (`29841823993`) is in progress with the `--include=optional` fix.
+- Deploy to Oracle VM runs automatically on successful build-and-push via the existing `main-deploy-oracle.yml` workflow.
+
+### What was NOT changed
+
+- **CI/CD workflow structure:** No new deploy steps needed — existing pipeline handles all new code (hooks/migrations are baked into Docker images via `COPY` directives in `pocketbase/Dockerfile`).
+- **Server-side state:** Oracle server manifest (`docs/deployment/oracle-server-manifest.md`) references remain accurate — hooks bind mount and `capture_clients` collection are unaffected by this deploy.
+- **No destructive migrations:** All 8 new PB migrations are additive (create new collections). Existing `raw_imports` and `catalog_versions` collections untouched.
+
+### Files changed
+- `.github/workflows/main-deploy-oracle.yml` — `npm ci --include=optional` fix
+- `.gitignore` — added `.reasonix/` and `*.tsbuildinfo`
+
 ## 2026-07-18 — DeepSeek agent powerhouse setup PRD
 
 **Goal:** Define a safe, domain-aware setup for using DeepSeek as the MineOps implementation agent.

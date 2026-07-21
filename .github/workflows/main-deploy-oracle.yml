@@ -40,7 +40,8 @@ jobs:
       - name: Frontend tests + typecheck + build
         run: |
           cd frontend
-          npm ci --include=optional
+          npm config set include-optional true
+          npm ci
           npx vitest run
           npx tsc --noEmit
           npx vite build
