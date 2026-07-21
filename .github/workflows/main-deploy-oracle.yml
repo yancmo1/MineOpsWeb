@@ -33,7 +33,11 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies (all workspaces)
-        run: npm ci --include-optional
+        run: |
+          npm ci
+          # Workaround for npm bug 4828: npm ci skips platform-specific
+          # optional deps like @rollup/rollup-linux-x64-gnu
+          npm install @rollup/rollup-linux-x64-gnu --no-save --ignore-scripts 2>/dev/null || true
 
       - name: Frontend tests + typecheck + build
         working-directory: ./frontend
