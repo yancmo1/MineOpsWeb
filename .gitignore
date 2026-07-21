@@ -13,3 +13,5 @@ uploads/
 docs/server-guide
 mineops-web.code-workspace
 .DS_Store
+.reasonix/
+*.tsbuildinfo

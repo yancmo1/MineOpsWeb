@@ -30,18 +30,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            frontend/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (all workspaces)
+        run: npm ci --include-optional
 
       - name: Frontend tests + typecheck + build
+        working-directory: ./frontend
         run: |
-          cd frontend
-          npm config set include-optional true
-          npm ci
           npx vitest run
           npx tsc --noEmit
           npx vite build

@@ -30,9 +30,12 @@
 
 ### CI/CD fix
 
-- **Problem:** GitHub Actions verify job fails with `@rollup/rollup-linux-x64-gnu` MODULE_NOT_FOUND. This is a known npm optional-dependencies bug on newer runners (Node 24).
-- **Fix:** Changed `npm ci` to `npm ci --include=optional` in the frontend test step.
-- **Commit:** `9dd45e6`
+- **Problem:** GitHub Actions verify job fails with `@rollup/rollup-linux-x64-gnu` MODULE_NOT_FOUND. This is a known npm optional-dependencies bug on newer runners (Node 24). Root cause: the project uses npm workspaces (from dev merge), and separate `cd frontend && npm ci` was wrong.
+- **Fix (workspace-aware install):**
+  - Removed the separate `cd frontend && npm ci` — root `npm ci --include-optional` now installs all workspaces.
+  - Simplified cache-dependency-path to root `package-lock.json` only (workspaces centralize lockfile in root).
+  - Used `working-directory: ./frontend` for test/typecheck/build steps.
+- **Commit:** `a042c14`
 
 ### Deploy status
 
@@ -47,8 +50,9 @@
 - **No destructive migrations:** All 8 new PB migrations are additive (create new collections). Existing `raw_imports` and `catalog_versions` collections untouched.
 
 ### Files changed
-- `.github/workflows/main-deploy-oracle.yml` — `npm ci --include=optional` fix
+- `.github/workflows/main-deploy-oracle.yml` — workspace-aware install (`npm ci --include-optional` at root, `working-directory: ./frontend`)
 - `.gitignore` — added `.reasonix/` and `*.tsbuildinfo`
+- `docs/development/journal.md` — this entry
 
 ## 2026-07-18 — DeepSeek agent powerhouse setup PRD
 
