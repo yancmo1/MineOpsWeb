@@ -251,10 +251,9 @@ export function createCatalogClient(): CatalogClientState {
   async function fetchPublicationMetadata(): Promise<PublicationMetadata | null> {
     setState({ phase: "checking_publication" });
 
-    // Use fetch directly instead of the PocketBase SDK to avoid SDK-internal
-    // console.error logging for expected 404s (collection may not exist yet).
     const baseUrl = getBaseUrl().replace(/\/+$/, "");
     const url = `${baseUrl}/api/collections/catalog_publication/records?page=1&perPage=1`;
+    console.log("[catalog] fetchPublicationMetadata URL:", url);
 
     try {
       const response = await fetch(url, {
@@ -303,12 +302,22 @@ export function createCatalogClient(): CatalogClientState {
   ): Promise<{ manifest: CatalogManifest; manifestRaw: string } | null> {
     setState({ phase: "fetching_manifest" });
 
-    const manifestUrl = `${storageBaseUrl.replace(/\/$/, "")}/manifest.json`;
+    const manifestUrl = storageBaseUrl.includes("mineops-pb.shepswork.com")
+      ? `${storageBaseUrl.replace(/\/$/, "")}?file=manifest.json`
+      : `${storageBaseUrl.replace(/\/$/, "")}/manifest.json`;
+    console.log("[catalog] manifest URL:", manifestUrl);
     let manifestRaw: string;
     try {
       const response = await fetch(manifestUrl);
+      console.log("[catalog] manifest fetch status:", response.status);
+      if (!response.ok) {
+        setState({ phase: "error", error: `Failed to fetch manifest: ${manifestUrl} status=${response.status}`, code: "MANIFEST_FETCH_FAILED" });
+        return null;
+      }
       manifestRaw = await response.text();
-    } catch {
+      console.log("[catalog] manifest body length:", manifestRaw.length);
+    } catch (e) {
+      console.log("[catalog] manifest fetch exception:", String(e));
       setState({ phase: "error", error: `Failed to fetch manifest: ${manifestUrl}`, code: "MANIFEST_FETCH_FAILED" });
       return null;
     }
@@ -371,7 +380,9 @@ export function createCatalogClient(): CatalogClientState {
 
     for (let i = 0; i < manifest.artifacts.length; i++) {
       const entry = manifest.artifacts[i];
-      const artifactUrl = `${storageBaseUrl.replace(/\/$/, "")}/${entry.path}`;
+      const artifactUrl = storageBaseUrl.includes("mineops-pb.shepswork.com")
+        ? `${storageBaseUrl.replace(/\/$/, "")}?file=${entry.path}`
+        : `${storageBaseUrl.replace(/\/$/, "")}/${entry.path}`;
 
       let raw: string;
       try {
@@ -641,13 +652,17 @@ export function createCatalogClient(): CatalogClientState {
   let activeLoad: Promise<void> | null = null;
 
   async function loadActiveCatalogImpl(): Promise<void> {
+    console.log("[catalog] loadActiveCatalogImpl started. PB_URL:", getBaseUrl(), "DEV:", import.meta.env.DEV);
     try {
       // 1. Try to get publication metadata from PocketBase
       const pub = await fetchPublicationMetadata();
+      console.log("[catalog] publication result:", pub ? `found: ${pub.activeReleaseId}` : "null");
 
       if (pub) {
         // 2. Check if already cached and verified
-        if (await isCached(pub.activeReleaseId, pub.manifestHash)) {
+        const cached_ = await isCached(pub.activeReleaseId, pub.manifestHash);
+        console.log("[catalog] isCached:", cached_);
+        if (cached_) {
           const cached = await getPackage(pub.activeReleaseId, pub.manifestHash);
           if (cached && cached.verificationState === "verified") {
             // Already have it — just activate
@@ -688,16 +703,17 @@ export function createCatalogClient(): CatalogClientState {
           const releaseResult = await pb.collection("catalog_releases").getList(1, 1, {
             filter: `releaseId = "${pub.activeReleaseId}"`,
           });
+          console.log("[catalog] storage release query:", releaseResult.items.length, "items");
           if (releaseResult.items.length > 0) {
             storageBaseUrl = (releaseResult.items[0] as Record<string, unknown>).storageBaseUrl as string || "";
+            console.log("[catalog] storageBaseUrl:", storageBaseUrl);
           }
-        } catch {
-          // Can't get storage URL — try the publication metadata's own path
+        } catch (e) {
+          console.log("[catalog] storage URL fetch failed:", String(e));
         }
 
         if (!storageBaseUrl) {
-          // If no storage URL in PocketBase, try fetching manifest directly from
-          // a known location. For now, fall back to bootstrap.
+          console.log("[catalog] No storage URL — falling back to bootstrap");
           setState({ phase: "bootstrap_fallback", releaseId: "", manifestHash: "", catalogVersion: "", reason: "No storage URL available for release " + pub.activeReleaseId });
           const bootstrap = await loadBootstrapPackage();
           if (bootstrap) {
@@ -716,13 +732,18 @@ export function createCatalogClient(): CatalogClientState {
         }
 
         // 4. Fetch and validate manifest
+        console.log("[catalog] Fetching manifest from storageBaseUrl:", storageBaseUrl);
         const manifestResult = await fetchAndValidateManifest(storageBaseUrl, pub.manifestHash);
+        console.log("[catalog] manifestResult:", manifestResult ? "success" : "null");
         if (!manifestResult) return; // Error state already set
 
         const { manifest } = manifestResult;
+        console.log("[catalog] Manifest loaded:", manifest.releaseId, manifest.status, "artifacts:", manifest.artifacts.length);
 
         // 5. Fetch and verify artifacts
+        console.log("[catalog] Fetching artifacts...");
         const artifacts = await fetchAndVerifyArtifacts(manifest, storageBaseUrl);
+        console.log("[catalog] artifacts result:", artifacts ? Object.keys(artifacts).length + " artifacts" : "null");
         if (!artifacts) return; // Error state already set
 
         // 6. Store in cache

@@ -160,9 +160,8 @@ export default function App() {
       //   4. Bundled bootstrap (first-launch / offline)
       //   5. Error state
       //
-      // Legacy sm_complete_database.json is retained only as an initial
-      // bootstrap for the first render. Once catalogClient resolves, the
-      // verified/test-fixture catalog replaces it transparently.
+      // Legacy sm_complete_database.json has been removed from first-render
+      // authority. The catalogClient provides bootstrap via bundled files.
 
       // Subscribe to catalogClient — when it activates, swap to verified package
       // This handles: production publication, test fixture (dev), or cache.
@@ -189,15 +188,16 @@ export default function App() {
       // Start the async catalog load (doesn't block below; subscribe captures activation)
       void catalogClient.loadActiveCatalog();
 
-      // Load legacy catalog as initial bootstrap for instant render
+      // Load initial catalog from catalogClient bootstrap (no legacy dependency)
       let bootstrapManagers: CatalogManager[] = [];
       try {
-        const response = await fetch("/catalog/sm_complete_database.json");
-        const json = await response.json() as { managers: CatalogManager[] };
-        if (Array.isArray(json.managers)) bootstrapManagers = json.managers;
-      } catch { /* legacy bootstrap unavailable */ }
+        const pkg = await catalogClient.getActivePackage();
+        if (pkg && pkg.artifacts["catalog-core.json"]?.content) {
+          bootstrapManagers = managersFromVerifiedPackage(pkg);
+        }
+      } catch { /* bootstrap unavailable */ }
 
-      // Set initial catalog from bootstrap (if available)
+      // Set initial catalog from bootstrap (if available), or empty
       setCatalog(bootstrapManagers);
       const localProgress = await loadProgress(bootstrapManagers.length > 0 ? bootstrapManagers : []);
       progressRef = localProgress;

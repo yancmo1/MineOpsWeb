@@ -1,0 +1,25 @@
+{
+  "task_id": "20260718-125050-pasted-text-1-59-lines-begin-pasted-text-1-59-lines-next",
+  "goal": "[Pasted text #1 · 59 lines]\n\n--- Begin [Pasted text #1 · 59 lines] ---\n# Next Direction — Production Catalog Activation First\r\rThe handoff comparison is accepted as a useful gap analysis, but do not implement every missing item mechanically.\r\rThe current priority is to prove the completed APK extraction and verified catalog architecture end to end using the 82 extracted managers.\r\r## Milestone 7A — Real Catalog Production Activation\r\r1. Generate a valid production candidate package from the 82 APK-extracted manager records.\r2. Include complete manifest hashes, provenance, extraction report, unresolved fields, and parity report.\r3. Upload immutable artifacts to Oracle nginx.\r4. Register the release in PocketBase.\r5. Exercise candidate review, approval, publication, activation, and rollback.\r6. Verify Managers, Today, Strategy, and Kolibri all consume the same active release identity.\r7. Remove `sm_complete_database.json` from the normal first-render catalog authority.\r8. Retain legacy data only as an explicit emergency or migration path, visibly labeled when active.\r9. Add assertions or diagnostics for:\r   - active package manager count versus rendered manager count;\r   - progress IDs missing from the package;\r   - Strategy package identity versus Managers package identity;\r   - fixture, bootstrap, cached, APK-derived, or legacy source state.\r\rDo not create `catalog-domain.ts` solely because the old handoff named that file. Create or consolidate a shared domain adapter only where current package interpretation is duplicated or inconsistent.\r\r## Milestone 7B — Fragment Integrity\r\rAfter production catalog activation:\r\r1. Capture multiple sanitized real Kolibri responses.\r2. Confirm the real fragment field path and data type.\r3. Add `fragmentValue`, `fragmentStatus`, and `fragmentSourcePath`.\r4. Migrate IndexedDB non-destructively.\r5. Distinguish verified positive, explicit zero, missing, invalid, legacy default, and max-rank UI states.\r6. Prevent fragment-based Today recommendations from using untrusted data.\r7. Add parser, migration, and component tests.\r\r## Milestone 7C — Diagnostics\r\rExpose in More:\r\r- active catalog release and source;\r- artifact verification;\r- package and rendered manager counts;\r- Kolibri resolution breakdown;\r- unresolved IDs;\r- progress IDs absent from catalog;\r- fragment quality breakdown;\r- Strategy/Managers catalog identity match;\r- legacy or fixture warnings;\r- catalog freshness.\r\r## Deferred Until After Correctness\r\r- Strategy v2 scaffolding\r- manager images\r- detail links\r- inline-style cleanup\r- advanced Today change notifications\r- cosmetic area-card restructuring\n--- End [Pasted text #1 · 59 lines] ---",
+  "scope": null,
+  "non_goals": null,
+  "allowed_operations": {
+    "write": true,
+    "network": false,
+    "publish": false
+  },
+  "success_criteria": [
+    {
+      "id": "objective_evidence",
+      "description": "The goal outcome is supported by direct evidence, such as inspected code, reproduced behavior, source material, or concrete findings.",
+      "required": true,
+      "evidence_ids": null
+    },
+    {
+      "id": "verification",
+      "description": "The result has relevant verification evidence, such as tests, commands, benchmarks, manual checks, or a documented reason why verification is not applicable.",
+      "required": true,
+      "evidence_ids": null
+    }
+  ]
+}

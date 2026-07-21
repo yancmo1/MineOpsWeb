@@ -1,4 +1,4 @@
-import { type SyncMetadata, type AppSettings, saveSettings } from "../lib/db";
+import { db, type SyncMetadata, type AppSettings, type PlayerManager, saveSettings } from "../lib/db";
 import { type KolibriCredentials, type KolibriDiagnostics } from "../lib/kolibri";
 import {
   getAuthStatus,
@@ -91,12 +91,14 @@ export function MorePage({
   const [catalogState, setCatalogState] = useState<CatalogClientState>(() => ({ ...catalogClient }));
   const [packages, setPackages] = useState<CachedCatalogPackage[]>([]);
   const [imports, setImports] = useState<ImportRecord[]>([]);
+  const [progress, setProgress] = useState<PlayerManager[]>([]);
 
   useEffect(() => {
     const refresh = async () => {
       setCatalogState({ ...catalogClient });
       setPackages(await catalogClient.getCachedPackages());
       setImports(await listImportRecords());
+      setProgress(await db.progress.toArray());
     };
     void refresh();
     return catalogClient.subscribe(() => { void refresh(); });
@@ -354,6 +356,11 @@ export function MorePage({
           >
             {diagnostics.managerCount} managers received · {diagnostics.payloadFormat} ·{" "}
             {diagnostics.unknownManagerCount} unmatched catalog IDs
+            {diagnostics.unresolvedSampleIds && diagnostics.unresolvedSampleIds.length > 0 && (
+              <span style={{ display: "block", fontSize: "0.75rem", marginTop: "0.25rem", color: "var(--text-muted)" }}>
+                Sample IDs: {diagnostics.unresolvedSampleIds.join(", ")}
+              </span>
+            )}
           </p>
         )}
         </form>
@@ -374,6 +381,94 @@ export function MorePage({
           {Object.values(activePackage.artifacts).map((artifact) => <p className="muted" key={artifact.filename} style={{ margin: "0.3rem 0" }}>✓ {artifact.filename} · {artifact.schemaVersion} · {artifact.bytes.toLocaleString()} bytes</p>)}
           {activePackage.warnings.map((warning) => <p key={warning} style={{ color: "var(--accent-orange)", margin: "0.3rem 0" }}>{redactDiagnostic(warning)}</p>)}
         </div>}
+        {/* Catalog diagnostics */}
+        {activePackage && progress && (() => {
+          const coreContent = activePackage.artifacts["catalog-core.json"]?.content as { releaseId?: string; managers?: Array<{ canonicalId?: string; id?: string }> } | undefined;
+          const managers = coreContent?.managers ?? [];
+          const catalogManagerIds = new Set(
+            managers.map((m) => m.canonicalId ?? m.id ?? "").filter(Boolean),
+          );
+          const progressManagerIds = progress.map((p) => p.managerId);
+          const absentFromCatalog = progressManagerIds.filter(
+            (id) => id && !catalogManagerIds.has(id),
+          );
+
+          // Source state
+          let sourceLabel: string;
+          const phase = catalogState.loadState.phase;
+          if (phase === "bootstrap_fallback") {
+            sourceLabel = "Bootstrap (fallback)";
+          } else if (phase === "offline_cached") {
+            sourceLabel = "Cached (offline)";
+          } else if (phase === "active_stale") {
+            sourceLabel = "Published (stale)";
+          } else if (activePackage.storageBaseUrl?.includes("test-fixture")) {
+            sourceLabel = "Test fixture";
+          } else if (activePackage.source === "published") {
+            sourceLabel = "Published";
+          } else if (activePackage.source === "bootstrap") {
+            sourceLabel = "Bootstrap";
+          } else {
+            sourceLabel = activePackage.source;
+          }
+
+          // Release identity cross-check
+          const manifestReleaseId = activePackage.releaseId;
+          const coreReleaseId = coreContent?.releaseId;
+          const identityMismatch =
+            coreReleaseId && manifestReleaseId !== coreReleaseId;
+
+          return (
+            <div
+              style={{
+                marginTop: "0.75rem",
+                fontSize: "0.8rem",
+                borderTop:
+                  "1px solid var(--border-color, rgba(255,255,255,0.08))",
+                paddingTop: "0.5rem",
+              }}
+            >
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                Catalog diagnostics
+              </p>
+              <p className="muted" style={{ margin: "0.3rem 0" }}>
+                <strong>Managers:</strong> {catalogManagerIds.size} in catalog,{" "}
+                {progressManagerIds.length} with progress
+              </p>
+              {absentFromCatalog.length > 0 && (
+                <p
+                  style={{
+                    color: "var(--accent-orange)",
+                    margin: "0.3rem 0",
+                  }}
+                >
+                  <strong>
+                    Orphaned progress IDs ({absentFromCatalog.length}):
+                  </strong>{" "}
+                  {absentFromCatalog.slice(0, 5).join(", ")}
+                  {absentFromCatalog.length > 5
+                    ? `…(+${absentFromCatalog.length - 5})`
+                    : ""}
+                </p>
+              )}
+              {identityMismatch && (
+                <p
+                  style={{
+                    color: "var(--accent-orange)",
+                    margin: "0.3rem 0",
+                  }}
+                >
+                  <strong>Release ID mismatch:</strong> manifest{" "}
+                  {manifestReleaseId} ≠ core {coreReleaseId}
+                </p>
+              )}
+              <p className="muted" style={{ margin: "0.3rem 0" }}>
+                <strong>Source:</strong> {sourceLabel} ·{" "}
+                {activePackage.verificationState}
+              </p>
+            </div>
+          );
+        })()}
         <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.75rem" }}>{catalogStatus.recovery}</p>
         <button onClick={() => void catalogClient.reloadCatalog()} style={{ width: "100%" }}>Refresh catalog safely</button>
       </CollapsibleSection>

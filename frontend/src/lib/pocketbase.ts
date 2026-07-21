@@ -17,7 +17,7 @@
 import PocketBase from "pocketbase";
 import type { RecordModel } from "pocketbase";
 
-const PB_URL = import.meta.env.VITE_POCKETBASE_URL ?? "http://localhost:8090";
+const PB_URL = import.meta.env.VITE_POCKETBASE_URL ?? "https://mineops-pb.shepswork.com";
 
 let _client: PocketBase | null = null;
 

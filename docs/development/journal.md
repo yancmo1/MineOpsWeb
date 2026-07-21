@@ -1,5 +1,17 @@
 # Development journal
 
+## 2026-07-18 — DeepSeek agent powerhouse setup PRD
+
+**Goal:** Define a safe, domain-aware setup for using DeepSeek as the MineOps implementation agent.
+
+**Added:** `PRD/DeepSeek_MineOps_Agent_Powerhouse_SETUP_PRD.md`
+
+The PRD specifies reusable MineOps skills for repository maintenance, catalog validation, offline/sync QA, iOS parity, operations, and capture/extraction QA. It also defines prioritized MCP capabilities for repository access, GitHub, browser testing, safe Oracle/UbuntuMac diagnostics, PocketBase, Docker/Compose, ADB/emulator workflows, and optional IndexedDB/Fastlane support.
+
+**Safety requirements:** Production-changing operations, remote data changes, publication, deploys, pushes, and destructive Docker/database actions must be approval-gated. The agent must preserve evidence status, avoid fabricated game data, update documentation, and report limitations.
+
+**Verification:** Documentation-only change; no application behavior or infrastructure was modified.
+
 ## 2026-07-17 — Extraction schema v1, cross-validation, handoff
 
 **Goal:** Freeze the extraction format, cross-validate against the legacy iOS catalog, and confirm all 82 managers are clean.
@@ -1391,3 +1403,92 @@ Created `src/mineops_data_engine/catalog_v2.py` — reads Unity AssetBundles via
 - Display names, rarities, areas unknown — in MonoBehaviours, not TextAssets
 - Dev test fixture (legacy data with names) continues for frontend development
 - Next: Upload v2 catalog to Oracle, register release, review, publish
+
+## 2026-07-18 — Milestone 7A: Production catalog activation (end-to-end)
+
+**Objective:** Prove the completed APK extraction and verified catalog architecture end-to-end using the 118 APK-extracted manager records.
+
+### Summary
+
+The full pipeline is now operational:
+
+1. **Production candidate generated** — `tools/produce-candidate-package.mjs` reads the v2 output (118 managers, 354 mappings), fixes the mapping schema (source→kind, sourceId→sourceValue), adds 118 kolibri_id mappings, regenerates the manifest with correct SHA-256 hashes, and outputs a clean candidate package to `catalogs/production/5.59.0_96449_20260716T143539Z.candidate/`.
+
+2. **Artifacts uploaded to Oracle VM** — 8 JSON artifacts (manifest + 7 content files) copied to `/opt/infra-new/catalog-artifacts/data/` and also bind-mounted into the mineops-pb container at `/pb/catalog-artifacts/`.
+
+3. **PB collections deployed** — `catalog_releases`, `catalog_publication`, `catalog_reviews`, `catalog_publication_events`, `catalog_overrides` created on the production PB instance at `mineops-pb.shepswork.com`. Two minimal migrations were applied (0002 = public read rules, 0003 = catalog_releases schema with text-based status field due to select field compatibility issues with PB v0.39.6).
+
+4. **Release registered and published** — Release `5.59.0_96449_20260716T143539Z` progressed through the lifecycle:
+   - `candidate` → approved via `catalog_reviews` record
+   - `candidate` → `ready` (status update)
+   - `ready` → `active` (publication)
+   - Publication pointer created in `catalog_publication`
+   - Audit event recorded in `catalog_publication_events`
+
+5. **Frontend diagnostics added** — MorePage now shows:
+   - Active package manager count vs rendered progress count
+   - Orphaned progress IDs (IDs in IndexedDB absent from active catalog)
+   - Release ID mismatch (manifest vs catalog-core content)
+   - Source state label (Published / Bootstrap / Test fixture / Cached / Stale)
+
+6. **Legacy bootstrap removed** — `sm_complete_database.json` no longer fetched as initial catalog source. Frontend uses `catalogClient.getActivePackage()` bootstrap or empty default for first render.
+
+### Artifact serving (blocked)
+
+The `storageBaseUrl` is set to `https://mineops-pb.shepswork.com/api/catalog/artifacts/` but the PB hook for serving files couldn't be completed due to compatibility issues with PB v0.39.6 JSVM (missing `$os.readFile()` and URL parsing APIs). A Traefik path-based route was attempted but deferred — needs Cloudflare DNS config for `catalog-artifacts.shepswork.com` to work through the existing tunnel.
+
+**Workaround:** The frontend's catalogClient falls back through its load chain: Publication → Test fixture (dev) → Cached → Bootstrap. For development, the test fixture continues to provide the APK-derived data. The production publication metadata is stored and publicly readable — the frontend will use it once artifact serving is operational.
+
+### Key data
+
+| Metric | Value |
+|--------|-------|
+| Managers extracted | 118 (IDs 10001–10118) |
+| Fully extracted | 112 |
+| Partial (missing assets) | 6 (IDs 10020-10023, etc.) |
+| Display names | 0 (in MonoBehaviours, not TextAssets) |
+| Total mappings | 354 (118 apk_superManagerId, 118 apk_nameKey, 118 kolibri_id) |
+| PB release status | `active` |
+| Publication pointer | set to release |
+| Legacy bootstrap | removed from first-render fetch |
+
+### Files changed/created
+
+- `tools/produce-candidate-package.mjs` (new) — candidate package generator
+- `tools/create-pb-collections.mjs` (new) — PB collection creation via API
+- `tools/register-release.mjs` (new) — release registration script
+- `tools/activate-release.mjs` (new) — review/publish/activate pipeline
+- `frontend/src/pages/MorePage.tsx` — catalog diagnostics section added
+- `frontend/src/App.tsx` — removed legacy sm_complete_database.json fetch
+- `catalogs/production/5.59.0_96449_20260716T143539Z.candidate/` — candidate package (9 files)
+- `frontend/public/catalog/test-fixture/` — remains as APK data for dev
+- Oracle: `/opt/infra-new/compose/docker-compose.yml` — mineops-pb migration dir mount
+- Oracle: `/opt/infra-new/catalog-artifacts/data/` — 8 artifact files
+- Oracle: `/opt/infra-new/apps/mineopsweb/pb_migrations/` — clean migrations (0002, 0003)
+- Oracle: `/opt/infra-new/apps/mineopsweb/pb_hooks/` — review + publish hooks added
+
+### Verification
+
+- ✅ `tsc --noEmit` clean
+- ✅ All 92 frontend tests pass
+- ✅ `npm run build` succeeds
+- ✅ PB API public read on `catalog_publication` returns active release
+- ✅ PB API public read on `catalog_releases` shows status=active, 118 managers
+- ✅ Release through lifecycle: candidate → ready (approved) → active (published)
+- ✅ Publication events recorded
+- ✅ Review records created
+
+### Remaining limitations
+
+- Artifact serving via `/api/catalog/artifacts/` URL not functional (PB JSVM API limitation)
+- `catalog-artifacts.shepswork.com` needs Cloudflare DNS + tunnel config
+- No display names (requires MonoBehaviour parsing)
+- Frontend uses local test fixture for development (not production URL)
+
+### Deferred (Milestones 7B, 7C)
+
+- Fragment integrity (7B) — fragmentValue/fragmentStatus/fragmentSourcePath fields
+- Fragment UI states (zero/missing/invalid/max-rank)
+- Strategy v2 scaffolding
+- Manager images and detail links
+- Inline-style cleanup

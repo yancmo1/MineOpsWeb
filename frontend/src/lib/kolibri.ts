@@ -3,7 +3,7 @@ import { resolveIds, fetchOverrides, type MappingEvidence } from "./catalog-mapp
 import { catalogClient } from "./catalog-client";
 
 export type KolibriCredentials = { kolibriId: string; authToken: string; saveGameKey: string };
-export type KolibriDiagnostics = { statusCode: number; payloadFormat: string; rawBytes: number; decodedBytes: number; managerCount: number; unknownManagerCount: number };
+export type KolibriDiagnostics = { statusCode: number; payloadFormat: string; rawBytes: number; decodedBytes: number; managerCount: number; unknownManagerCount: number; unresolvedSampleIds?: string[] };
 
 export interface KolibriResult {
   progress: PlayerManager[];
@@ -56,9 +56,32 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
   const managers = (((data.SuperManagers ?? {}) as Record<string, unknown>).Managers ?? []) as Array<Record<string, unknown>>;
 
   // Resolve all manager IDs through the mapping resolver
-  const pkg = await catalogClient.getActivePackage();
+  // Wait for catalog client to have an active package (sync may fire before load finishes)
+  let pkg = await catalogClient.getActivePackage();
+  if (!pkg) {
+    console.log("[kolibri] Waiting for catalog activation...");
+    for (let i = 0; i < 50; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      pkg = await catalogClient.getActivePackage();
+      if (pkg) {
+        console.log("[kolibri] Catalog activated after", (i + 1) * 200, "ms:", pkg.releaseId);
+        break;
+      }
+    }
+  }
+  if (!pkg) {
+    return {
+      progress: [],
+      diagnostics: { statusCode: 0, payloadFormat: "no-catalog", rawBytes: 0, decodedBytes: 0, managerCount: managers.length, unknownManagerCount: managers.length, unresolvedSampleIds: managers.map((r) => String(r.Id ?? "")).slice(0, 10) },
+      mappingEvidence: new Map(),
+      unresolved: managers.map((r) => ({ sourceValue: String(r.Id ?? ""), sourceKind: "kolibri_id", canonicalId: null, resolution: "unresolved" as const, confidence: null, catalogVersion: "", releaseId: "", displayName: null })),
+      catalogVersion: null,
+    };
+  }
   const catalogVersion = pkg?.catalogVersion ?? null;
   const releaseId = pkg?.releaseId ?? "";
+
+  // Gather overrides from PocketBase for the current release
 
   // Gather overrides from PocketBase for the current release
   const overrides = releaseId ? await fetchOverrides(releaseId) : [];
@@ -156,6 +179,9 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
       decodedBytes: decoded.json.byteLength,
       managerCount: managers.length,
       unknownManagerCount: unresolvedCount,
+      unresolvedSampleIds: unresolved.length > 0
+        ? unresolved.map((u) => u.sourceValue).slice(0, 10)
+        : undefined,
     },
     mappingEvidence: evidenceMap,
     unresolved,

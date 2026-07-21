@@ -87,6 +87,18 @@ export async function resolveId(
   if (mappings) {
     const idMappings = (mappings as Record<string, unknown>).idMappings as Array<Record<string, unknown>> | undefined;
     if (idMappings) {
+      // Debug: log first few mappings for inspection
+      const firstKolibri = idMappings.find((m: Record<string, unknown>) => m.kind === sourceKind);
+      if (firstKolibri) {
+        console.debug("[catalog-mapping] First kolibri_id mapping:", JSON.stringify(firstKolibri), "sourceKind:", sourceKind, "type:", typeof sourceKind);
+        console.debug("[catalog-mapping] Searching for:", JSON.stringify({ sourceValue, sourceKind }));
+        const candidate = idMappings.find((m: Record<string, unknown>) => m.sourceValue === sourceValue && m.kind === sourceKind);
+        if (candidate) {
+          console.debug("[catalog-mapping] MATCH FOUND:", JSON.stringify(candidate));
+        } else {
+          console.debug("[catalog-mapping] No match — checking types: sourceValue type=", typeof sourceValue, "mapping sourceValue type=", typeof (idMappings.find((m: Record<string, unknown>) => m.kind === sourceKind) as Record<string, unknown>)?.sourceValue);
+        }
+      }
       const match = idMappings.find(
         (m) => m.sourceValue === sourceValue && m.kind === sourceKind,
       );
