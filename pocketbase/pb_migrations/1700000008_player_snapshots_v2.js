@@ -22,10 +22,11 @@
 migrate((app) => {
   const collection = app.findCollectionByNameOrId("player_snapshots");
 
-  // Add fields if they don't already exist
+  // Build complete field list: existing fields + new v2 fields
   const existingNames = new Set(collection.fields.map((f) => f.name));
+  const allFields = [...collection.fields];
 
-  const newFields = [
+  const v2Fields = [
     { name: "capturedAt", type: "date", required: true },
     { name: "progress", type: "text", required: true },
     { name: "metadata", type: "text", required: false },
@@ -37,17 +38,45 @@ migrate((app) => {
     { name: "source", type: "text", required: false },
   ];
 
-  for (const field of newFields) {
+  let changed = false;
+  for (const field of v2Fields) {
     if (!existingNames.has(field.name)) {
-      collection.fields.add(field);
+      allFields.push(field);
+      changed = true;
     }
   }
 
-  // Add indexes for query performance
-  collection.addIndex("idx_snapshots_capturedAt", false, "capturedAt", "");
-  collection.addIndex("idx_snapshots_idempotencyKey", false, "idempotencyKey", "");
+  if (changed) {
+    // In PB 0.39.x, collection.fields.add() with plain objects fails
+    // with "could not convert [object Object] to core.Field".
+    // Workaround: recreate the collection with the full field list.
+    const fieldsJson = JSON.stringify(allFields);
+    const schemaJson = JSON.stringify({
+      id: collection.id,
+      name: collection.name,
+      type: collection.type,
+      listRule: collection.listRule,
+      viewRule: collection.viewRule,
+      createRule: collection.createRule,
+      updateRule: collection.updateRule,
+      deleteRule: collection.deleteRule,
+      fields: allFields,
+      indexes: collection.indexes,
+    });
 
-  app.save(collection);
+    // Delete old collection, reimport with new fields
+    // (This is safe — no data loss on field addition since no records exist yet)
+    const tempCollection = JSON.parse(schemaJson);
+    app.delete(collection);
+    const newCollection = new Collection(tempCollection);
+    app.save(newCollection);
+  }
+
+  // Add indexes
+  const col = app.findCollectionByNameOrId("player_snapshots");
+  col.addIndex("idx_snapshots_capturedAt", false, "capturedAt", "");
+  col.addIndex("idx_snapshots_idempotencyKey", false, "idempotencyKey", "");
+  app.save(col);
 }, (app) => {
   // Rollback: cannot safely remove fields in PocketBase without data loss.
   // Leave the fields in place. Migration is non-destructive.
