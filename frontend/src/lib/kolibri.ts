@@ -135,6 +135,11 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     item.rank = Math.max(0, Number(row.Rank ?? 0));
     item.promoted = Math.max(0, Number(row.Promotion ?? 0));
     item.fragments = Math.max(0, Number(row.Fragments ?? row.fragments ?? row.FragmentCount ?? 0));
+    // Debug: log fragment field discovery every time (low freq since this runs once per sync)
+    if (manager.id === catalog[0]?.id) {
+      console.log("[kolibri] Fragment field discovery for", manager.id, "→", item.fragments,
+        "raw keys:", Object.keys(row).filter(k => /frag/i.test(k)).join(","));
+    }
     item.updatedAt = new Date().toISOString();
   }
 
