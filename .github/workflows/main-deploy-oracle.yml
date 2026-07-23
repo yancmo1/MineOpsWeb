@@ -116,7 +116,7 @@ jobs:
       - name: Tailscale (reach Oracle VM on private tailnet)
         uses: tailscale/github-action@v3
         with:
-          auth-key: ${{ secrets.TAILSCALE_AUTH_KEY }}
+          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
 
       - name: Prepare SSH
         run: |
