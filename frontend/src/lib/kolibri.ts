@@ -111,6 +111,12 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     const evidence = evidenceMap.get(srcValue);
     let manager: CatalogManager | undefined;
 
+    // Debug: log raw fields from first manager row
+    if (managers.indexOf(row) === 0) {
+      console.log("[kolibri] First manager raw keys:", Object.keys(row).join(", "));
+      console.log("[kolibri] First manager raw values:", JSON.stringify(row, null, 2).slice(0, 500));
+    }
+
     if (evidence?.canonicalId) {
       // Primary path: mapping resolver
       manager = byCanonicalId.get(evidence.canonicalId);
