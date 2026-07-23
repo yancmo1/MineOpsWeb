@@ -382,6 +382,10 @@ export default function App() {
       });
       await saveProgress(mergedProgress);
       setProgress(mergedProgress);
+      // Debug: verify stats after sync
+      const unlocked = mergedProgress.filter(p => p.unlocked);
+      console.log("[sync] Sync complete:", unlocked.length, "unlocked managers. First 3:",
+        unlocked.slice(0, 3).map(p => `${p.managerId} Lv${p.level} R${p.rank} P${p.promoted}`).join(", "));
       setDiagnostics(result.diagnostics);
 
       // Get active catalog metadata for import traceability
