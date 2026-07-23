@@ -85,6 +85,8 @@ jobs:
           push: true
           tags: ${{ steps.meta_web.outputs.tags }}
           labels: ${{ steps.meta_web.outputs.labels }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
       - name: Docker metadata (pocketbase)
         id: meta_pb
@@ -104,6 +106,8 @@ jobs:
           push: true
           tags: ${{ steps.meta_pb.outputs.tags }}
           labels: ${{ steps.meta_pb.outputs.labels }}
+          cache-from: type=gha,scope=pb
+          cache-to: type=gha,mode=max,scope=pb
 
   deploy-oracle:
     runs-on: ubuntu-latest
