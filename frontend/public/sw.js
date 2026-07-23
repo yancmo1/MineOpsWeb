@@ -1,5 +1,42 @@
-const CACHE = "mineops-shell-v3";
-const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/catalog/sm_complete_database.json", "/icons/icon-192.svg", "/icons/icon-512.svg"];
-self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
-self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
-self.addEventListener("fetch", event => { if (event.request.method !== "GET") return; const path = new URL(event.request.url).pathname; if (path.startsWith("/src/") || path.startsWith("/@") || path.includes("node_modules")) return; event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => { const copy=response.clone(); caches.open(CACHE).then(cache=>cache.put(event.request,copy)); return response; }).catch(()=>caches.match("/index.html")))); });
+const CACHE = "mineops-shell-v4";
+const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+
+self.addEventListener("install", event =>
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(SHELL))
+      .then(() => self.skipWaiting())
+  )
+);
+
+self.addEventListener("activate", event =>
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(key => key !== CACHE).map(key => caches.delete(key))
+      )
+    ).then(() => self.clients.claim())
+  )
+);
+
+self.addEventListener("fetch", event => {
+  if (event.request.method !== "GET") return;
+  const path = new URL(event.request.url).pathname;
+  // Never cache source maps or dev URLs.
+  if (path.startsWith("/src/") || path.startsWith("/@") || path.includes("node_modules")) return;
+  // Only serve shell assets from cache. JS/CSS bundles always go to network
+  // so the latest deploy is reflected immediately (no stale bundle cache).
+  if (SHELL.includes(path)) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(event.request, copy));
+          return response;
+        });
+      }).catch(() => caches.match("/index.html"))
+    );
+  }
+  // Everything else goes directly to network (no cache-first).
+});
