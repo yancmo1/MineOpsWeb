@@ -113,6 +113,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Tailscale (reach Oracle VM on private tailnet)
+        uses: tailscale/github-action@v3
+        with:
+          auth-key: ${{ secrets.TAILSCALE_AUTH_KEY }}
+
       - name: Prepare SSH
         run: |
           mkdir -p ~/.ssh

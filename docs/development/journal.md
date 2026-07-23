@@ -32,16 +32,27 @@
 
 - **Problem:** GitHub Actions verify job fails with `@rollup/rollup-linux-x64-gnu` MODULE_NOT_FOUND. This is a known npm optional-dependencies bug on newer runners (Node 24). Root cause: the project uses npm workspaces (from dev merge), and separate `cd frontend && npm ci` was wrong.
 - **Fix (workspace-aware install):**
-  - Removed the separate `cd frontend && npm ci` — root `npm ci --include-optional` now installs all workspaces.
+  - Removed the separate `cd frontend && npm ci` — root `npm ci` now installs all workspaces, then manually installs the missing rollup binary as a workaround.
   - Simplified cache-dependency-path to root `package-lock.json` only (workspaces centralize lockfile in root).
   - Used `working-directory: ./frontend` for test/typecheck/build steps.
-- **Commit:** `a042c14`
+- **Commit:** `bfdaaf8`
+
+### Deploy connectivity fix — Tailscale GitHub Action
+
+- **Problem:** deploy-oracle step can't SSH to Oracle VM (`100.81.231.58`) because it's on a private Tailscale network, unreachable from GitHub Actions public runners.
+- **Fix:** Added `tailscale/github-action@v3` step to the deploy-oracle job. This joins the runner to the tailnet temporarily, allowing SSH to the Tailscale IP.
+- **New secret required:** `TAILSCALE_AUTH_KEY` — a Tailscale pre-auth key (ephemeral, reusable) created from the Tailscale admin console.
+- **Commit:** _(pending)_
 
 ### Deploy status
 
-- Main pushed twice: merge commit (`aa4441c`) and CI fix (`9dd45e6`), each triggering the workflow.
-- Latest run (`29841823993`) is in progress with the `--include=optional` fix.
-- Deploy to Oracle VM runs automatically on successful build-and-push via the existing `main-deploy-oracle.yml` workflow.
+- Main pushed with CI fix: commit `bfdaaf8`
+- **Verify ✅** — 92 tests pass, TypeScript clean, Vite build clean
+- **Build+Push ✅** — web and pocketbase images pushed to GHCR
+- **Deploy ❌** — GitHub Actions public runner can't reach Oracle VM (private IP `100.81.231.58`)
+  - Secrets are now configured correctly (masked as `***` in logs)
+  - Blocked by network: runner is on GitHub's public cloud, Oracle VM is on private Oracle Cloud network
+  - Resolution options: manual SSH deploy, self-hosted runner, or Cloudflare Tunnel SSH
 
 ### What was NOT changed
 
