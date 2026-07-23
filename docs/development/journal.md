@@ -1,8 +1,65 @@
 # Development journal
 
-## 2026-07-21 — Dev→main merge + CI/CD fix + production deploy
+## 2026-07-21 — Production deploy to Oracle VM via Watchtower auto-deploy
 
-**Goal:** Merge 8 commits of catalog v2 work from `dev` into `main` and deploy to production Oracle VM.
+**Goal:** Deploy MineOpsWeb to the Oracle VM with auto-update.
+
+### Result: ✅ Deployed and running
+
+All three containers healthy on Oracle VM, Watchtower auto-updating:
+
+```
+mineopsweb-web-1         Up  127.0.0.1:8081→80
+mineopsweb-pocketbase-1  Up  healthy  127.0.0.1:8090
+mineopsweb-watchtower-1  Up  healthy  (polls GHCR every 60s)
+```
+
+- `https://mineops-pb.shepswork.com/api/health` → 200
+- Web frontend → 200 on 8081
+
+### Deploy approach (inspired by gin-rummy-tracker)
+
+| Component | Where | What |
+|---|---|---|
+| CI | GitHub Actions | verify (92 tests) + build-and-push (multi-arch to GHCR) |
+| Deploy | Oracle VM | Watchtower polls GHCR every 60s, auto-restarts containers |
+| Reverse proxy | Cloudflare Tunnel | Routes `mineops-pb.shepswork.com` → localhost:8090 |
+
+**No CI SSH deploy** — dropped the Tailscale + SSH deploy-oracle job entirely. Watchtower handles image updates on the VM side, same pattern as cruisecast-api and coc-discord-bot.
+
+### Docker layer caching
+
+Added `cache-from: type=gha` / `cache-to: type=gha,mode=max` with separate scopes (`web`, `pb`). Cold build: ~4min. Warm build (migrations only): ~45s.
+
+### Migration fixes for PB 0.39.x
+
+The catalog v2 migrations were written for a newer PB version. PB 0.39.x has three incompatibilities:
+
+1. **`select` type rejected**: `type: "select"` with `values: [...]` fails with "values: cannot be blank". Fixed by changing to `type: "text"` in migrations 3, 5, 6, 7.
+2. **`fields.add()` rejected**: `collection.fields.add(plainObject)` fails with "could not convert [object Object] to core.Field". Fixed by merging `player_snapshots_v2` fields into the initial migration 0.
+3. **Duplicate v3 migration**: Both `1700000003_catalog_releases.js` and `_v3.js` existed, causing duplicate collection creation error. Removed stale `_v3.js`.
+
+### Port allocations on Oracle VM
+
+| Port | Service |
+|---|---|
+| 8090 | mineopsweb-pocketbase-1 |
+| 8081 | mineopsweb-web-1 |
+| 8091 | infra-new-mineops-pb-1 (existing capture bridge) |
+
+Port 8080 is used by Traefik dashboard — web was moved to 8081.
+
+### Files changed
+- `.github/workflows/main-deploy-oracle.yml` — removed deploy-oracle job, renamed to "Build and Push"
+- `deploy/oracle/docker-compose.prod.yml` — added Watchtower service, changed web to port 8081
+- `pocketbase/pb_migrations/1700000000_mineops.js` — added player_snapshots v2 fields
+- `pocketbase/pb_migrations/1700000003_catalog_releases.js` — select→text, removed v1/v2, renamed from v3
+- `pocketbase/pb_migrations/1700000005_catalog_reviews.js` — select→text
+- `pocketbase/pb_migrations/1700000006_catalog_publication_events.js` — select→text
+- `pocketbase/pb_migrations/1700000007_catalog_overrides.js` — select→text
+- `pocketbase/pb_migrations/1700000008_player_snapshots_v2.js` — **deleted** (merged into migration 0)
+- `pocketbase/pb_migrations/1700000003_catalog_releases_v*.js` — **deleted** (stale duplicates)
+- `scripts/deploy/oracle-deploy.sh` — added `docker stop slotpull-pocketbase`, down-before-up
 
 ### Merge preparation
 
