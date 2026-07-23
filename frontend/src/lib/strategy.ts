@@ -239,6 +239,10 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
           ? (item.extensions as Record<string, unknown>).active as Record<string, unknown>
           : undefined;
 
+    // Read abilities array (v2 APK-extracted format)
+    const abilities = Array.isArray(item.abilities) ? item.abilities as Array<Record<string, unknown>> : undefined;
+    const firstAbility = abilities?.[0];
+
     // Read elements from top-level array, extensions.elements, or derive from element field
     const elements: string[] = Array.isArray(item.elements)
       ? item.elements.filter((value): value is string => typeof value === "string")
@@ -247,6 +251,31 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
         : typeof item.element === "string"
           ? [item.element]
           : [];
+
+    // Read progression table (v2 APK-extracted)
+    const progression = Array.isArray(item.progression)
+      ? item.progression.map((p: Record<string, unknown>) => ({
+          level: typeof p.level === "number" ? p.level : undefined,
+          promotion: typeof p.promotion === "number" ? p.promotion : undefined,
+          cost: typeof p.cost === "number" ? p.cost : undefined,
+        })).filter(p => p.level != null)
+      : undefined;
+
+    // Read sprite refs
+    const spriteRefs = Array.isArray(item.spriteRefs)
+      ? item.spriteRefs.map((s: Record<string, unknown>) => ({
+          name: typeof s.name === "string" ? s.name : undefined,
+          filename: typeof s.filename === "string" ? s.filename : undefined,
+          type: typeof s.type === "string" ? s.type : undefined,
+        }))
+      : undefined;
+
+    // Read fragment IDs
+    const fragmentIds = Array.isArray(item.fragmentIds)
+      ? item.fragmentIds.map((f: Record<string, unknown>) => ({
+          fragmentId: typeof f.fragmentId === "number" ? f.fragmentId : undefined,
+        }))
+      : undefined;
 
     return [{
       id,
@@ -258,7 +287,23 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
         description: typeof active.description === "string" ? active.description : undefined,
         multiplier: typeof active.multiplier === "number" ? active.multiplier : undefined,
         multiplierAt100: typeof active.multiplierAt100 === "number" ? active.multiplierAt100 : undefined,
+      } : firstAbility ? {
+        multiplier: typeof firstAbility.multiplier === "number" ? firstAbility.multiplier : undefined,
+        multiplierAt100: typeof firstAbility.multiplierAt100 === "number" ? firstAbility.multiplierAt100 : undefined,
       } : undefined,
+      abilities: abilities ? abilities.map((a) => ({
+        multiplier: typeof a.multiplier === "number" ? a.multiplier : undefined,
+        multiplierAt100: typeof a.multiplierAt100 === "number" ? a.multiplierAt100 : undefined,
+        rankScaling: typeof a.rankScaling === "object" && a.rankScaling != null ? a.rankScaling as Record<string, { activeIncrease: number; passiveIncrease: number }> : undefined,
+        effectType: typeof a.effectType === "object" && a.effectType != null ? {
+          effectType: typeof (a.effectType as Record<string, unknown>).effectType === "number" ? (a.effectType as Record<string, unknown>).effectType as number : undefined,
+          effectDescType: typeof (a.effectType as Record<string, unknown>).effectDescType === "number" ? (a.effectType as Record<string, unknown>).effectDescType as number : undefined,
+          incremental: typeof (a.effectType as Record<string, unknown>).incremental === "number" ? (a.effectType as Record<string, unknown>).incremental as number : undefined,
+        } : undefined,
+      })) : undefined,
+      progression,
+      spriteRefs,
+      fragmentIds,
     }];
   });
 }
