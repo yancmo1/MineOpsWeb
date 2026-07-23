@@ -125,14 +125,150 @@ Recommended build platforms for this host:
 
 ## Reusable pattern for a new app on this same VM
 
-1. Add a new service in `/opt/infra-new/compose/docker-compose.yml`
-2. Use image from GHCR (avoid bind-mounting source code to app path)
-3. Attach service to `backend`; add `edge` + Traefik labels if public HTTP app
-4. Add required env vars to `/opt/infra-new/compose/.env`
-5. If auto-deploy needed, either:
-   - extend current Watchtower scope/target list, or
-   - run a second Watchtower container scoped to the new service
-6. Ensure CI publishes `arm64` image variant
+### The Golden Rule: Watchtower auto-deploy, not CI SSH
+
+**Do NOT try to SSH from GitHub Actions into the Oracle VM.** The VM is on Tailscale (`100.81.231.58`) which isn't reachable from public CI runners. Every project that's tried CI→SSH has burned hours on Tailscale auth keys, port conflicts, and network debugging.
+
+Instead, use the pattern that already works for `cruisecast-api`, `coc-discord-bot`, and `mineopsweb`:
+
+```
+CI (GitHub Actions)          Oracle VM
+─────────────────          ─────────
+build + push to GHCR  ──→  Watchtower polls GHCR
+                           every 60s, pulls new
+                           images, restarts containers
+```
+
+### Step-by-step: deploy a new app to the Oracle VM
+
+#### 1. Create a standalone `docker-compose.prod.yml` for the app
+
+Use `ghcr.io` images (never bind-mount source code to `/app`):
+
+```yaml
+services:
+  my-app:
+    image: ghcr.io/yancmo1/my-app:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:<choose-a-port>:<container-port>"
+    environment:
+      - KEY=${VALUE}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:<port>/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # Standard Watchtower — copy this verbatim, just change the container names
+  watchtower:
+    image: containrrr/watchtower:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - --interval=60
+      - --cleanup
+      - --rolling-restart
+      - my-app-container-name-1
+    environment:
+      - DOCKER_API_VERSION=1.53
+```
+
+#### 2. Choose a port that isn't already taken
+
+| Port | Used by |
+|------|---------|
+| 80, 443, 8080 | Traefik (reverse proxy) |
+| 8090 | mineopsweb-pocketbase |
+| 8091 | infra-new-mineops-pb-1 |
+| 8081 | mineopsweb-web |
+| 3000 | gin-rummy-server |
+| 5432 | PostgreSQL |
+| 9001 | Portainer agent |
+
+Check before deploying: `ssh oracle-vm "docker ps --format '{{.Ports}}'"`
+
+#### 3. CI workflow: build + push only
+
+```yaml
+# .github/workflows/build-and-push.yml
+name: Build and Push (main → GHCR)
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/yancmo1/my-app:latest
+          cache-from: type=gha,scope=my-app
+          cache-to: type=gha,mode=max,scope=my-app
+```
+
+- **Always** build for both `linux/amd64,linux/arm64` — the Oracle VM is ARM64.
+- **Always** add `cache-from`/`cache-to` with `type=gha` — warm builds take ~45s instead of 4min.
+
+#### 4. One-time manual deploy to kick things off
+
+```bash
+ssh oracle-vm "mkdir -p /opt/infra-new/apps/my-app"
+
+# Push compose + .env
+scp docker-compose.prod.yml oracle-vm:/opt/infra-new/apps/my-app/
+# Write your .env file somehow (manual copy, CI secret, etc.)
+
+# Start the stack
+ssh oracle-vm "cd /opt/infra-new/apps/my-app && \
+  docker login ghcr.io -u yancmo1 --password-stdin <<< \$GHCR_TOKEN && \
+  docker compose -f docker-compose.prod.yml pull && \
+  docker compose -f docker-compose.prod.yml up -d"
+```
+
+From this point on, Watchtower handles updates automatically — just push to main.
+
+#### 5. If the app needs public HTTP access
+
+Use **Cloudflare Tunnel** (already running on the VM) to route a domain → localhost port. Add a public hostname in the Cloudflare Zero Trust dashboard pointing to `http://localhost:<your-port>`.
+
+Alternatively, attach to Traefik with labels:
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.my-app.rule=Host(\`my-app.yancmo.xyz\`)"
+  - "traefik.http.routers.my-app.entrypoints=websecure"
+  - "traefik.http.routers.my-app.tls=true"
+```
+
+### Common pitfalls
+
+| Pitfall | Symptom | Fix |
+|---|---|---|
+| CI tries to SSH via Tailscale | `ssh-keyscan` timeout, exit 1 | Don't SSH from CI. Use Watchtower. |
+| Port already allocated | `Bind for 0.0.0.0:PORT failed` | Check `docker ps --format '{{.Ports}}'`, pick a free port |
+| PB 0.39.x migration fails | `fields: (N: (values: cannot be blank.))` | Change `type: "select"` → `type: "text"` in migration files |
+| PB `fields.add()` fails | `could not convert [object Object] to core.Field` | Don't modify collection fields in later migrations; put all fields in the initial migration |
+| Pull fails with "unauthorized" | `Error response from daemon: pull access denied` | `docker login ghcr.io` on the VM as user `ubuntu` |
+| Wrong arch image | `exec format error` | Build with `platforms: linux/amd64,linux/arm64` |
 
 ## Known pitfalls and fixes
 
