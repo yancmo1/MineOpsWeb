@@ -8,9 +8,6 @@
 		},
 		{
 			"path": "../mineops-data-engine"
-		},
-		{
-			"path": "../ShepsWork/apps/Gin-rummy-tracker"
 		}
 	],
 	"settings": {
