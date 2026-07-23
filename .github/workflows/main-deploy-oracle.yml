@@ -1,4 +1,4 @@
-name: Build and Deploy (main -> Oracle)
+name: Build and Push (main → GHCR)
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: mineopsweb-main-deploy
+  group: mineopsweb-main-build
   cancel-in-progress: true
 
 permissions:
@@ -108,49 +108,3 @@ jobs:
           labels: ${{ steps.meta_pb.outputs.labels }}
           cache-from: type=gha,scope=pb
           cache-to: type=gha,mode=max,scope=pb
-
-  deploy-oracle:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    environment: production
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Tailscale (reach Oracle VM on private tailnet)
-        uses: tailscale/github-action@v3
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
-
-      - name: Prepare SSH
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.ORACLE_VM_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.ORACLE_VM_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Push deployment files
-        run: |
-          APP_DIR="${{ secrets.ORACLE_APP_DIR }}"
-          if [ -z "$APP_DIR" ]; then APP_DIR="/opt/infra-new/apps/mineopsweb"; fi
-          ssh -i ~/.ssh/id_ed25519 "${{ secrets.ORACLE_VM_USER }}@${{ secrets.ORACLE_VM_HOST }}" "mkdir -p ${APP_DIR}"
-          scp -i ~/.ssh/id_ed25519 deploy/oracle/docker-compose.prod.yml "${{ secrets.ORACLE_VM_USER }}@${{ secrets.ORACLE_VM_HOST }}:${APP_DIR}/docker-compose.prod.yml"
-          scp -i ~/.ssh/id_ed25519 scripts/deploy/oracle-deploy.sh "${{ secrets.ORACLE_VM_USER }}@${{ secrets.ORACLE_VM_HOST }}:${APP_DIR}/oracle-deploy.sh"
-
-      - name: Write remote .env
-        run: |
-          APP_DIR="${{ secrets.ORACLE_APP_DIR }}"
-          if [ -z "$APP_DIR" ]; then APP_DIR="/opt/infra-new/apps/mineopsweb"; fi
-          printf '%s\n' "${{ secrets.MINEOPS_PROD_ENV }}" > /tmp/mineopsweb-prod.env
-          scp -i ~/.ssh/id_ed25519 /tmp/mineopsweb-prod.env "${{ secrets.ORACLE_VM_USER }}@${{ secrets.ORACLE_VM_HOST }}:${APP_DIR}/.env"
-          rm -f /tmp/mineopsweb-prod.env
-
-      - name: Deploy on Oracle
-        run: |
-          APP_DIR="${{ secrets.ORACLE_APP_DIR }}"
-          if [ -z "$APP_DIR" ]; then APP_DIR="/opt/infra-new/apps/mineopsweb"; fi
-          ssh -i ~/.ssh/id_ed25519 "${{ secrets.ORACLE_VM_USER }}@${{ secrets.ORACLE_VM_HOST }}" "set -euo pipefail
-            echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GHCR_USERNAME }}' --password-stdin
-            chmod +x ${APP_DIR}/oracle-deploy.sh
-            APP_DIR=${APP_DIR} ${APP_DIR}/oracle-deploy.sh
-          "

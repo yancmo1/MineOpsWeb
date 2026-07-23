@@ -28,7 +28,7 @@ The iOS project at `../mineops-companion` is the behavioral reference until the 
 - ✅ **UbuntuMac→Oracle data pipeline** — wired end-to-end with token auth, payload enrichment, and import history display.
 - ✅ **SSH alias `oracle-vm`** — configured in `~/.ssh/config` with RSA key. Agents should use this alias for all server operations.
 - ✅ **More page import history** — shows release lineage, latest-vs-previous diff, raw import preview, and asset type breakdown.
-- ✅ **VS Code tasks** — `UbuntuMac: Capture status`, `UbuntuMac: Check APK + upload latest release`, `Oracle: Verify capture ingest`.
+- ✅ **VS Code tasks** — `UbuntuMac: Capture status`, `UbuntuMac: Check APK + upload latest release`, `Oracle: Verify capture ingest`, `Oracle: Pull images + restart`.
 
 ## 🐳 Docker rules
 

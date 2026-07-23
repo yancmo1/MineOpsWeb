@@ -1557,3 +1557,16 @@ The `storageBaseUrl` is set to `https://mineops-pb.shepswork.com/api/catalog/art
 - Strategy v2 scaffolding
 - Manager images and detail links
 - Inline-style cleanup
+
+## 2026-07-22 — VS Code task: Oracle image update
+
+Added `Oracle: Git pull + update images` to `.vscode/tasks.json` — a manual deploy task that SSHs to `oracle-vm`, `git pull`s the latest code from `/opt/infra-new/apps/mineopsweb`, then runs the `oracle-deploy.sh` script to pull new GHCR images and restart containers.
+
+### Changed files
+- `.vscode/tasks.json` — added new task entry
+
+### Verification
+- ✅ `tasks.json` valid JSON (parsed by VS Code)
+- ✅ Uses existing `oracle-vm` SSH alias and `oracle-deploy.sh` script path
+- ✅ Follows same pattern as existing Oracle/UbuntuMac tasks
+
