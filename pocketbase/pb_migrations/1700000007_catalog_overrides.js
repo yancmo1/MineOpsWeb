@@ -50,11 +50,11 @@ migrate((app) => {
       },
       {
         name: "sourceKind",
-        type: "select",
+        type: "text",
         required: true,
         options: {
-          values: ["kolibri_id", "unity_guid", "display_name", "inferred"],
-          maxSelect: 1,
+          min: 1,
+          max: 50,
         },
       },
       {
@@ -77,11 +77,11 @@ migrate((app) => {
       },
       {
         name: "confidence",
-        type: "select",
+        type: "text",
         required: true,
         options: {
-          values: ["verified", "inferred", "manual"],
-          maxSelect: 1,
+          min: 1,
+          max: 50,
         },
       },
       {

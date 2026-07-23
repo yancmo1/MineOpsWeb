@@ -73,11 +73,11 @@ migrate((app) => {
       },
       {
         name: "decision",
-        type: "select",
+        type: "text",
         required: true,
         options: {
-          values: ["approved", "rejected", "quarantined"],
-          maxSelect: 1,
+          min: 1,
+          max: 50,
         },
       },
       {

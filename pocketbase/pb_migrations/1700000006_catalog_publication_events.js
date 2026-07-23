@@ -34,11 +34,11 @@ migrate((app) => {
     fields: [
       {
         name: "action",
-        type: "select",
+        type: "text",
         required: true,
         options: {
-          values: ["publish", "rollback"],
-          maxSelect: 1,
+          min: 1,
+          max: 50,
         },
       },
       {
