@@ -24,6 +24,8 @@ echo "[deploy] pull images"
 docker compose --env-file .env -f docker-compose.prod.yml pull
 
 echo "[deploy] stop existing containers (free up ports)"
+# slotpull-pocketbase holds port 8090 — stop it if running
+docker stop slotpull-pocketbase 2>/dev/null && docker rm slotpull-pocketbase 2>/dev/null || true
 docker compose --env-file .env -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
 
 echo "[deploy] start services"
