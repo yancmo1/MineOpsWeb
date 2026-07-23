@@ -29,9 +29,11 @@ routerAdd("GET", "/api/catalog/artifacts", (c) => {
     if (!ok) { return c.json(400, {"error":"Invalid file: " + filename}); }
     var bytes = $os.readFile("/pb/catalog-artifacts/" + filename);
     if (!bytes || !bytes.length) { return c.json(404, {"error":"Not found"}); }
+    // Convert bytes to string and return as raw content — do NOT use
+    // c.json() which re-serializes and changes the SHA-256 hash.
     var str = "";
     for (var j = 0; j < bytes.length; j++) { str += String.fromCharCode(bytes[j]); }
-    return c.json(200, JSON.parse(str));
+    return c.string(200, str);
   } catch (e) {
     return c.json(500, {"error":String(e)});
   }
