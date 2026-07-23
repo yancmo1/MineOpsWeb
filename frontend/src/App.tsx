@@ -189,6 +189,7 @@ export default function App() {
             if (!pkg) return;
             console.debug("[app] Catalog activated:", pkg.releaseId, pkg.catalogVersion, pkg.source);
             const verifiedManagers = managersFromVerifiedPackage(pkg);
+            console.debug("[app] Catalog manager display sample:", verifiedManagers.filter((manager) => ["sm-10001", "sm-10066", "sm-10029"].includes(manager.id)).map((manager) => ({ id: manager.id, name: manager.name, gameId: manager.gameId })));
             if (verifiedManagers.length > 0) {
               setCatalog(verifiedManagers);
               const localProgress = await loadProgress(verifiedManagers);

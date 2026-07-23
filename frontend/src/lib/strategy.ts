@@ -15,6 +15,7 @@
 import type { CatalogManager, PlayerManager } from "./db";
 import { strengthScore, effectiveActiveValue, rarityWeight, rankThreshold } from "./db";
 import type { CachedCatalogPackage } from "./catalog-cache";
+import { APK_MANAGER_NAMES } from "./manager-name-fallback";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -241,13 +242,21 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
   const aliasEntries = mappings && typeof mappings === "object" && Array.isArray((mappings as { aliases?: unknown }).aliases) ? (mappings as { aliases: Array<Record<string, unknown>> }).aliases : [];
   for (const alias of aliasEntries) if (typeof alias.canonicalId === "string" && typeof alias.alias === "string" && alias.alias) aliases.set(alias.canonicalId, alias.alias);
 
-  return (core as { managers: Array<Record<string, unknown>> }).managers.flatMap((item) => {
+  const nameSourceCounts: Record<string, number> = {};
+  const managers = (core as { managers: Array<Record<string, unknown>> }).managers.flatMap((item) => {
     const id = typeof item.canonicalId === "string" ? item.canonicalId : item.id;
     if (typeof id !== "string" || !id) return [];
     const extensions = item.extensions && typeof item.extensions === "object" ? item.extensions as Record<string, unknown> : {};
     const sourceIdentifiers = item.sourceIdentifiers && typeof item.sourceIdentifiers === "object" ? item.sourceIdentifiers as Record<string, unknown> : {};
     const nameKey = typeof extensions.nameKey === "string" ? extensions.nameKey : typeof sourceIdentifiers.nameKey === "string" ? sourceIdentifiers.nameKey : undefined;
-    const name = typeof item.name === "string" && item.name.trim() ? item.name : localizedNames.get(id) ?? aliases.get(id) ?? (nameKey ? deriveManagerName(nameKey) : id);
+    const packageName = typeof item.name === "string" && item.name.trim() ? item.name : undefined;
+    const localizedName = localizedNames.get(id);
+    const aliasName = aliases.get(id);
+    const derivedName = nameKey ? deriveManagerName(nameKey) : undefined;
+    const fallbackName = APK_MANAGER_NAMES[id];
+    const name = packageName ?? localizedName ?? aliasName ?? derivedName ?? fallbackName ?? id;
+    const source = packageName ? "core" : localizedName ? "localization" : aliasName ? "alias" : derivedName ? "nameKey" : fallbackName ? "apk-fallback" : "canonical-id";
+    nameSourceCounts[source] = (nameSourceCounts[source] ?? 0) + 1;
 
     // Read active ability from either top-level (legacy) or extensions.active (strict v2)
     const active =
@@ -334,6 +343,15 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
       fragmentIds,
     }];
   });
+  console.debug("[catalog-names] Hydrated manager names", {
+    total: managers.length,
+    sourceCounts: nameSourceCounts,
+    samples: managers.filter((manager) => ["sm-10001", "sm-10066", "sm-10029"].includes(manager.id)).map((manager) => ({ id: manager.id, name: manager.name, gameId: manager.gameId })),
+  });
+  if (managers.some((manager) => manager.name === manager.id)) {
+    console.warn("[catalog-names] Some managers still have canonical-ID labels", managers.filter((manager) => manager.name === manager.id).map((manager) => manager.id));
+  }
+  return managers;
 }
 
 /** Best-effort fallback for packages that preserve NameKey but lost localization. */

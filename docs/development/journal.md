@@ -1,5 +1,15 @@
 # Development journal
 
+## 2026-07-23 — Catalog name-path diagnostics and local smoke verification
+
+Added `[catalog-names]` diagnostics with total counts, name-source counts, representative samples (`sm-10001`, `sm-10066`, `sm-10029`), and a warning for any remaining canonical-ID labels. App activation now logs the same sample after the verified package is adapted. The bundled fallback is confirmed in the production bundle.
+
+Verification: 95 frontend tests pass; TypeScript/Vite build passes; local Vite preview serves the app and its bundle contains the fallback label `Altitude` plus the catalog diagnostics. The in-app browser connector was unavailable in this session (`No browser is available`), so no interactive browser click-through could be performed.
+
+## 2026-07-23 — Bundled fallback for published catalog manager names
+
+The live release still contains null manager names and no recoverable `NameKey` for many records, so identity mappings alone could not produce labels. Added `frontend/src/lib/manager-name-fallback.ts` with the 118 names from the APK-derived repository fixture. The adapter uses this only after package names, localization, aliases, and NameKey derivation; it is display-only and does not alter canonical IDs or sync data. Added a regression test for `sm-10066` → `Altitude`.
+
 ## 2026-07-23 — Catalog names and manager metadata recovery
 
 **Goal:** Diagnose missing manager names and related catalog data in the active production release.

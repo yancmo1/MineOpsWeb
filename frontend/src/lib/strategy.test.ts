@@ -250,4 +250,12 @@ describe("Verified release evidence", () => {
     } as CachedCatalogPackage;
     expect(managersFromVerifiedPackage(pkg)[0].name).toBe("Lee Vatori");
   });
+
+  it("uses the bundled APK name fallback when the active package has no name source", () => {
+    const pkg = {
+      ...verifiedPackage,
+      artifacts: { "catalog-core.json": { ...verifiedPackage.artifacts["catalog-core.json"], content: { managers: [{ canonicalId: "sm-10066", name: null, role: "Warehouse", rarity: "Rare" }] } } },
+    } as CachedCatalogPackage;
+    expect(managersFromVerifiedPackage(pkg)[0].name).toBe("Altitude");
+  });
 });
