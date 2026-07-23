@@ -1,5 +1,21 @@
 # Development journal
 
+## 2026-07-23 — Catalog names and manager metadata recovery
+
+**Goal:** Diagnose missing manager names and related catalog data in the active production release.
+
+**Findings:** The live PocketBase catalog has 118 manager records, but all `catalog-core.json` manager `name` fields are null. Its localization artifact contains generic `Manager ####` placeholders for only 73 IDs. The frontend adapter used the canonical ID as the display fallback, so cards showed values such as `sm-10029`. The adapter also omitted `gameId` and `passives`, weakening Kolibri fallback resolution and manager detail data. The production build additionally failed because `sprites.ts` referenced a removed `catalogClient.state` property.
+
+**Changes:**
+- `frontend/src/lib/strategy.ts` now hydrates names from non-placeholder localization entries, mapping aliases, or `NameKey`; derives readable names such as `SM_LeeVatori` → `Lee Vatori`; preserves `gameId`; and maps passive records.
+- `tools/produce-candidate-package.mjs` now derives missing names from `NameKey` and writes them into core and localization artifacts for future releases.
+- `frontend/src/lib/sprites.ts` now uses the stable catalog artifact endpoint for sprite references and no longer depends on the removed client state property.
+- `frontend/src/lib/strategy.test.ts` adds coverage for localization names, NameKey fallback, game IDs, and passives.
+
+**Verification:** 94 frontend Vitest tests pass; TypeScript and Vite production build pass; candidate generation produces 118 named managers and 118 named localization entries.
+
+**Remaining limitation:** The currently published PocketBase release is immutable and still contains the broken null/generic name artifacts. These code fixes will use improved metadata when a corrected package is published; the live release must be regenerated, reviewed, uploaded, and activated separately. The supplied second DeepSeek attachment was not present at its referenced path.
+
 ## 2026-07-21 — Production deploy to Oracle VM via Watchtower auto-deploy
 
 **Goal:** Deploy MineOpsWeb to the Oracle VM with auto-update.
@@ -1626,4 +1642,3 @@ Added `Oracle: Git pull + update images` to `.vscode/tasks.json` — a manual de
 - ✅ `tasks.json` valid JSON (parsed by VS Code)
 - ✅ Uses existing `oracle-vm` SSH alias and `oracle-deploy.sh` script path
 - ✅ Follows same pattern as existing Oracle/UbuntuMac tasks
-

@@ -223,20 +223,38 @@ export function evaluateLineup(
  */
 export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogManager[] {
   const core = pkg.artifacts["catalog-core.json"]?.content;
+  const localization = pkg.artifacts["localization.json"]?.content;
+  const mappings = pkg.artifacts["mappings.json"]?.content;
   if (!core || typeof core !== "object" || !Array.isArray((core as { managers?: unknown }).managers)) {
     return [];
   }
 
+  const localizedNames = new Map<string, string>();
+  const entries = localization && typeof localization === "object" ? (localization as { entries?: unknown }).entries : undefined;
+  if (entries && typeof entries === "object") {
+    for (const [canonicalId, entry] of Object.entries(entries)) {
+      const value = typeof entry === "string" ? entry : entry && typeof entry === "object" && typeof (entry as { displayName?: unknown }).displayName === "string" ? (entry as { displayName: string }).displayName : undefined;
+      if (value && !/^Manager \d+$/.test(value)) localizedNames.set(canonicalId, value);
+    }
+  }
+  const aliases = new Map<string, string>();
+  const aliasEntries = mappings && typeof mappings === "object" && Array.isArray((mappings as { aliases?: unknown }).aliases) ? (mappings as { aliases: Array<Record<string, unknown>> }).aliases : [];
+  for (const alias of aliasEntries) if (typeof alias.canonicalId === "string" && typeof alias.alias === "string" && alias.alias) aliases.set(alias.canonicalId, alias.alias);
+
   return (core as { managers: Array<Record<string, unknown>> }).managers.flatMap((item) => {
     const id = typeof item.canonicalId === "string" ? item.canonicalId : item.id;
     if (typeof id !== "string" || !id) return [];
+    const extensions = item.extensions && typeof item.extensions === "object" ? item.extensions as Record<string, unknown> : {};
+    const sourceIdentifiers = item.sourceIdentifiers && typeof item.sourceIdentifiers === "object" ? item.sourceIdentifiers as Record<string, unknown> : {};
+    const nameKey = typeof extensions.nameKey === "string" ? extensions.nameKey : typeof sourceIdentifiers.nameKey === "string" ? sourceIdentifiers.nameKey : undefined;
+    const name = typeof item.name === "string" && item.name.trim() ? item.name : localizedNames.get(id) ?? aliases.get(id) ?? (nameKey ? deriveManagerName(nameKey) : id);
 
     // Read active ability from either top-level (legacy) or extensions.active (strict v2)
     const active =
       (item.active && typeof item.active === "object")
         ? item.active as Record<string, unknown>
-        : (item.extensions && typeof item.extensions === "object" && (item.extensions as Record<string, unknown>).active && typeof (item.extensions as Record<string, unknown>).active === "object")
-          ? (item.extensions as Record<string, unknown>).active as Record<string, unknown>
+        : (extensions.active && typeof extensions.active === "object")
+          ? extensions.active as Record<string, unknown>
           : undefined;
 
     // Read abilities array (v2 APK-extracted format)
@@ -246,8 +264,8 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
     // Read elements from top-level array, extensions.elements, or derive from element field
     const elements: string[] = Array.isArray(item.elements)
       ? item.elements.filter((value): value is string => typeof value === "string")
-      : (item.extensions && typeof item.extensions === "object" && Array.isArray((item.extensions as Record<string, unknown>).elements))
-        ? ((item.extensions as Record<string, unknown>).elements as unknown[]).filter((value): value is string => typeof value === "string")
+      : Array.isArray(extensions.elements)
+        ? (extensions.elements as unknown[]).filter((value): value is string => typeof value === "string")
         : typeof item.element === "string"
           ? [item.element]
           : [];
@@ -279,9 +297,12 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
 
     return [{
       id,
-      name: typeof item.name === "string" ? item.name : id,
+      name,
       rarity: typeof item.rarity === "string" ? item.rarity : "unknown",
       type: typeof item.role === "string" ? item.role : (typeof item.type === "string" ? item.type : "Unknown area"),
+      gameId: typeof extensions.superManagerId === "number" ? extensions.superManagerId
+        : typeof sourceIdentifiers.superManagerId === "number" ? sourceIdentifiers.superManagerId
+          : Number(id.match(/(\d+)$/)?.[1] ?? NaN),
       elements,
       active: active ? {
         description: typeof active.description === "string" ? active.description : undefined,
@@ -301,11 +322,26 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
           incremental: typeof (a.effectType as Record<string, unknown>).incremental === "number" ? (a.effectType as Record<string, unknown>).incremental as number : undefined,
         } : undefined,
       })) : undefined,
+      passives: Array.isArray(item.passives) ? item.passives.map((p) => ({
+        unlockLevel: typeof p.unlockLevel === "number" ? p.unlockLevel : undefined,
+        description: typeof p.description === "string" ? p.description : undefined,
+        multiplier: typeof p.multiplier === "number" ? p.multiplier : undefined,
+        type: typeof p.type === "string" ? p.type : undefined,
+        promoReq: typeof p.promoReq === "number" ? p.promoReq : undefined,
+      })) : undefined,
       progression,
       spriteRefs,
       fragmentIds,
     }];
   });
+}
+
+/** Best-effort fallback for packages that preserve NameKey but lost localization. */
+export function deriveManagerName(nameKey: string): string {
+  return nameKey.replace(/^(SM_|SuperManager_|Manager_)/, "")
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .trim();
 }
 
 /** Evaluate a selected immutable package, retaining release evidence. */

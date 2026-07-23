@@ -1,5 +1,5 @@
 import { CatalogManager } from "./db";
-import { catalogClient } from "./catalog-client";
+import { getBaseUrl } from "./pocketbase";
 
 /**
  * Get sprite image URL for a manager.
@@ -15,10 +15,7 @@ export function spriteURL(manager: CatalogManager): string | undefined {
   // Prefer catalog spriteRefs
   const fullBody = manager.spriteRefs?.find((s) => s.type === "fullbody" || s.type === "face");
   if (fullBody?.filename) {
-    const baseUrl = catalogClient.state.activePackage?.storageBaseUrl;
-    if (baseUrl) {
-      return `${baseUrl}?file=sprites/${encodeURIComponent(fullBody.filename)}`;
-    }
+    return `${getBaseUrl().replace(/\/$/, "")}/api/catalog/artifacts?file=sprites/${encodeURIComponent(fullBody.filename)}`;
   }
 
   // Legacy fallback: use manager.id as sprite name on idle-miners.com

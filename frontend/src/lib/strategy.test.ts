@@ -222,4 +222,32 @@ describe("Verified release evidence", () => {
   it("returns no manager facts when catalog-core is unavailable", () => {
     expect(managersFromVerifiedPackage({ ...verifiedPackage, artifacts: {} })).toEqual([]);
   });
+
+  it("hydrates names from localization and preserves game IDs/passives", () => {
+    const pkg = {
+      ...verifiedPackage,
+      artifacts: {
+        "catalog-core.json": {
+          ...verifiedPackage.artifacts["catalog-core.json"],
+          content: { managers: [{ canonicalId: "sm-10029", name: null, role: "Elevator", rarity: "Rare", extensions: { superManagerId: 10029 }, passives: [{ description: "Boost" }] }] },
+        },
+        "localization.json": {
+          filename: "localization.json", sha256: "x", bytes: 1, schemaVersion: "1.0.0",
+          content: { entries: { "sm-10029": { displayName: "Dr. Nova" } } },
+        },
+      },
+    } as CachedCatalogPackage;
+    const [manager] = managersFromVerifiedPackage(pkg);
+    expect(manager.name).toBe("Dr. Nova");
+    expect(manager.gameId).toBe(10029);
+    expect(manager.passives?.[0].description).toBe("Boost");
+  });
+
+  it("derives a display name from NameKey when localization is missing", () => {
+    const pkg = {
+      ...verifiedPackage,
+      artifacts: { "catalog-core.json": { ...verifiedPackage.artifacts["catalog-core.json"], content: { managers: [{ canonicalId: "sm-10001", name: null, role: "Elevator", rarity: "Common", sourceIdentifiers: { nameKey: "SM_LeeVatori" } }] } } },
+    } as CachedCatalogPackage;
+    expect(managersFromVerifiedPackage(pkg)[0].name).toBe("Lee Vatori");
+  });
 });

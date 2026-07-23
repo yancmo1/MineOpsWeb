@@ -59,6 +59,14 @@ function canonicalJson(value) {
   return JSON.stringify(stableValue(value), null, 2) + "\n";
 }
 
+function deriveDisplayName(nameKey) {
+  if (typeof nameKey !== "string" || !nameKey) return null;
+  return nameKey.replace(/^(SM_|SuperManager_|Manager_)/, "")
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .trim() || null;
+}
+
 function writeArtifact(filename, data, manifestEntries) {
   const json = canonicalJson(data);
   const hash = sha256(json);
@@ -90,7 +98,12 @@ function main() {
 
   const sourceManifest = JSON.parse(readFileSync(resolve(SOURCE_DIR, "manifest.json"), "utf-8"));
 
-  const managers = sourceCore.managers;
+  const managers = sourceCore.managers.map((manager) => {
+    if (typeof manager.name === "string" && manager.name.trim()) return manager;
+    const nameKey = manager.extensions?.nameKey ?? manager.sourceIdentifiers?.nameKey;
+    const name = deriveDisplayName(nameKey);
+    return name ? { ...manager, name, nameSource: "derived" } : manager;
+  });
   const totalManagers = managers.length;
   console.log(`  Loaded ${totalManagers} managers from catalog-core.json`);
 
@@ -189,6 +202,11 @@ function main() {
   // 4. Update localization with provenance
   const localization = {
     ...sourceLocalization,
+    entries: Object.fromEntries(Object.entries(sourceLocalization.entries ?? {}).map(([id, entry]) => {
+      const manager = managers.find((candidate) => candidate.canonicalId === id);
+      const name = manager?.name ?? (typeof entry === "object" ? entry.displayName : undefined);
+      return [id, typeof entry === "object" ? { ...entry, displayName: name ?? null, displayNameSource: name ? "derived" : "unknown" } : entry];
+    })),
     catalogVersion: sourceCore.catalogVersion || RELEASE_ID,
     releaseId: RELEASE_ID,
     generatedAt: GENERATED_AT,
