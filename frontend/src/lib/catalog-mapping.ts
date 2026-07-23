@@ -164,7 +164,8 @@ export async function fetchOverrides(releaseId: string): Promise<MappingOverride
     const pb = getClient();
     const result = await pb.collection("catalog_overrides").getList(1, 100, {
       filter: `releaseId = "${releaseId}" && isActive = true`,
-      sort: "-createdAt",
+      // NOTE: sort=-createdAt causes 500 on remote PB (field/index issue). Omitted for now.
+      // sort: "-createdAt",
     });
     return result.items.map((item: Record<string, unknown>) => ({
       id: item.id as string,

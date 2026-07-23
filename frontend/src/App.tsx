@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { getSyncMetadata, loadProgress, rankThreshold, saveProgress, setSyncMetadata, strengthScore, getSettings, type CatalogManager, type PlayerManager, type SyncMetadata, type AppSettings } from "./lib/db";
+import { getSyncMetadata, loadProgress, rankThreshold, saveProgress, setSyncMetadata, strengthScore, getSettings, saveSettings, saveCredentials, getCredentials, type CatalogManager, type PlayerManager, type SyncMetadata, type AppSettings, type PersistedCredentials } from "./lib/db";
 import { fetchKolibri, type KolibriCredentials, type KolibriDiagnostics } from "./lib/kolibri";
 import { type Tab, navigationItems, getTabLabel } from "./lib/navigation";
 import { restoreAuth, getAuthStatus, onAuthChange, getClient, getBaseUrl, type AuthStatus } from "./lib/pocketbase";
@@ -85,6 +85,22 @@ export default function App() {
   const [selected, setSelected] = useState<CatalogManager | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [credentials, setCredentials] = useState<KolibriCredentials>({ kolibriId: import.meta.env.VITE_KOLIBRI_ID ?? "", authToken: import.meta.env.VITE_KOLIBRI_AUTH_TOKEN ?? "", saveGameKey: import.meta.env.VITE_KOLIBRI_SAVE_GAME_KEY ?? "0" });
+
+  // Load saved credentials from IndexedDB on mount
+  useEffect(() => {
+    void (async () => {
+      const saved = await getCredentials();
+      if (saved) {
+        setCredentials(saved);
+      }
+    })();
+  }, []);
+
+  // Persist credentials to IndexedDB whenever they change
+  function handleCredentialsChange(next: KolibriCredentials) {
+    setCredentials(next);
+    void saveCredentials(next as PersistedCredentials);
+  }
   const [diagnostics, setDiagnostics] = useState<KolibriDiagnostics | null>(null);
   const [navExpanded, setNavExpanded] = useState(true);
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ authenticated: false });
@@ -600,7 +616,7 @@ export default function App() {
       {tab === "more" && (
         <MorePage
           credentials={credentials}
-          onCredentialsChange={setCredentials}
+          onCredentialsChange={handleCredentialsChange}
           syncing={syncing}
           onSyncNow={syncNow}
           diagnostics={diagnostics}

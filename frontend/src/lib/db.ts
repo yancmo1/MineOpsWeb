@@ -4,12 +4,14 @@ export type CatalogManager = { id: string; name: string; rarity: string; type: s
 export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; unlocked: boolean; updatedAt: string };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
 export type AppSettings = { autoSync: boolean };
+export type PersistedCredentials = { kolibriId: string; authToken: string; saveGameKey: string };
 
 class MineOpsDb extends Dexie {
   progress!: EntityTable<PlayerManager, "managerId">;
   metadata!: EntityTable<{ id: "sync"; value: SyncMetadata }, "id">;
   settings!: EntityTable<{ id: "app"; value: AppSettings }, "id">;
-  constructor() { super("mineops"); this.version(3).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id", settings: "id" }); }
+  credentials!: EntityTable<{ id: "kolibri"; value: PersistedCredentials }, "id">;
+  constructor() { super("mineops"); this.version(4).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id", settings: "id", credentials: "id" }); }
 }
 export const db = new MineOpsDb();
 
@@ -23,6 +25,8 @@ export async function getSyncMetadata(): Promise<SyncMetadata> { return (await d
 export async function setSyncMetadata(value: SyncMetadata): Promise<void> { await db.metadata.put({ id: "sync", value }); }
 export async function getSettings(): Promise<AppSettings> { return (await db.settings.get("app"))?.value ?? { autoSync: false }; }
 export async function saveSettings(value: AppSettings): Promise<void> { await db.settings.put({ id: "app", value }); }
+export async function saveCredentials(value: PersistedCredentials): Promise<void> { await db.credentials.put({ id: "kolibri", value }); }
+export async function getCredentials(): Promise<PersistedCredentials | undefined> { return (await db.credentials.get("kolibri"))?.value; }
 
 // ---------------------------------------------------------------------------
 // Effective Active Value (linear interpolation fallback)
