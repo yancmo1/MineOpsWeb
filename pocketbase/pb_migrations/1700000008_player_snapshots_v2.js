@@ -22,10 +22,7 @@
 migrate((app) => {
   const collection = app.findCollectionByNameOrId("player_snapshots");
 
-  // Build complete field list: existing fields + new v2 fields
   const existingNames = new Set(collection.fields.map((f) => f.name));
-  const allFields = [...collection.fields];
-
   const v2Fields = [
     { name: "capturedAt", type: "date", required: true },
     { name: "progress", type: "text", required: true },
@@ -41,35 +38,15 @@ migrate((app) => {
   let changed = false;
   for (const field of v2Fields) {
     if (!existingNames.has(field.name)) {
-      allFields.push(field);
+      // PB 0.39.x: collection.fields.add(plainObject) fails.
+      // Push directly to the fields array instead.
+      collection.fields.push(field);
       changed = true;
     }
   }
 
   if (changed) {
-    // In PB 0.39.x, collection.fields.add() with plain objects fails
-    // with "could not convert [object Object] to core.Field".
-    // Workaround: recreate the collection with the full field list.
-    const fieldsJson = JSON.stringify(allFields);
-    const schemaJson = JSON.stringify({
-      id: collection.id,
-      name: collection.name,
-      type: collection.type,
-      listRule: collection.listRule,
-      viewRule: collection.viewRule,
-      createRule: collection.createRule,
-      updateRule: collection.updateRule,
-      deleteRule: collection.deleteRule,
-      fields: allFields,
-      indexes: collection.indexes,
-    });
-
-    // Delete old collection, reimport with new fields
-    // (This is safe — no data loss on field addition since no records exist yet)
-    const tempCollection = JSON.parse(schemaJson);
-    app.delete(collection);
-    const newCollection = new Collection(tempCollection);
-    app.save(newCollection);
+    app.save(collection);
   }
 
   // Add indexes
