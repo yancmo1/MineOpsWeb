@@ -1,5 +1,80 @@
 # Development journal
 
+## 2026-07-26 — Fix stale-index.html module-script MIME error in production nginx
+
+**Bug:** The production site intermittently fails to load with `Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html"`. Refreshing 1-2 times resolves it.
+
+**Root cause:** Two interacting problems in `frontend/nginx.conf`:
+
+1. **Stale index.html cache** — `index.html` had `Cache-Control: no-cache` (revalidate), meaning the browser could serve a stale cached copy with an old JS bundle hash before the revalidation completed. The old hash no longer exists on disk, so nginx's catch-all `try_files $uri $uri/ /index.html` silently served `index.html` with MIME `text/html` instead of 404ing.
+
+2. **No isolation for asset locations** — Every request path (including `/assets/index-*.js`) fell through to the same `try_files $uri $uri/ /index.html` SPA fallback. When an asset didn't exist, nginx returned `index.html` with the wrong MIME type instead of a proper 404.
+
+**Fix applied in `frontend/nginx.conf`:**
+
+| Change | Purpose |
+|--------|---------|
+| `index.html` → `Cache-Control: no-cache, no-store, must-revalidate` | Prevent any browser caching of index.html |
+| Added `location = /sw.js` with `no-cache, no-store, must-revalidate` | Service worker must always be fresh |
+| Added `location = /manifest.webmanifest` with same headers | Manifest must always be fresh |
+| Added `location /assets/` with `expires 1y; public, immutable` | Static assets are content-hashed by Vite — cached forever. **Never fall through to SPA handler.** |
+| Added `location /icons/` with `expires 1y; public, immutable` | Same treatment for icons |
+| Added `location /catalog/` with `expires 1y; public, immutable` | Same treatment for catalog data |
+| The SPA `location /` catch-all now only matches bare routes | Asset locations are matched first (by longest-prefix), so `.js`/`.css` never hit the fallback |
+
+**Key design principle:** The `location /assets/` rule is a fixed prefix match (not `=`) — nginx prefers the most specific matching location, so `/assets/` always wins over `/` for asset URLs. If the file doesn't exist, nginx returns a native 404 rather than falling through to the SPA handler.
+
+**Verification:**
+- ✅ nginx.conf syntax valid (`nginx -t` passes inside the production container image)
+- ✅ `/assets/`, `/icons/`, `/catalog/` locations do not include `try_files` fallback — file-missing = native 404
+- ✅ `index.html`, `sw.js`, `manifest.webmanifest` use `no-cache, no-store, must-revalidate`
+- ✅ Docker production build succeeds — all TypeScript checks pass, Vite production build completes (63 modules, 475KB JS bundle), nginx config baked into the image
+- ✅ Asset serving path confirmed: `dist/assets/` contains hash-versioned `.js`/`.css` files matching the `location /assets/` rule
+
+**Secondary fix — pre-existing TypeScript error:**
+The build revealed a pre-existing null-safety error in `frontend/src/components/ManagerDetailModal.tsx:144` — `progress` was accessed without a null guard in the Equipment section (outside the `progress && progress.unlocked` wrapper at lines 81-104). Fixed with optional chaining: `progress?.equipmentIds`.
+
+**Files changed:**
+- `frontend/nginx.conf` — hardened cache headers and added explicit static-asset locations
+- `frontend/src/components/ManagerDetailModal.tsx` — added optional chaining guard (`progress?.equipmentIds`)
+
+**No architecture docs updated:** This is a deployment/nginx configuration fix; the data model and sync model are unaffected.
+
+---
+
+**Follow-up — Service Worker cache was the REAL root cause (2026-07-26):**
+
+After the user tested, the same error occurred again on first load. The console confirmed the production bundle (`index-FMDeo2BK.js`) loaded after refresh, meaning the nginx fix prevented recurrence for fresh loads — but the first load still broke.
+
+**Root cause:** The Service Worker (`frontend/public/sw.js`) was caching `index.html` in its shell cache (`mineops-shell-v4`). The SW intercepts ALL page loads and returns its cached `index.html` **before the browser ever sees the nginx `Cache-Control` headers**. If that cached copy was from a prior Vite dev session, it referenced Vite-only modules (`/@vite/client`, `/src/main.tsx`, `/@react-refresh`), and the browser couldn't find them on nginx → MIME errors.
+
+**Fix in `frontend/public/sw.js`:**
+- Removed `/index.html` and `/` from `SHELL` — they are no longer cached by the SW
+- Bumped cache version from `v4` to `v5` — the old `v4` cache gets deleted on SW activation, purging any stale dev-mode index.html
+- Added explicit comment explaining why index.html must never be cached
+
+Now every page load hits the network (respecting nginx's `Cache-Control: no-store`), and the production `index.html` with correct JS bundle hashes is always served.
+
+**Two-layer defense:**
+| Layer | What it does |
+|-------|-------------|
+| nginx `Cache-Control: no-store` | Prevents browser HTTP cache from storing index.html |
+| SW shell exclusion | Prevents Service Worker cache from storing index.html |
+
+**Verification:**
+- ✅ Docker production build succeeds with updated sw.js
+- ✅ Container image contains `mineops-shell-v5` with only `manifest.webmanifest` and icon SVGs
+- ✅ `nginx -t` passes
+
+**To clear existing SW cache on the browser:**
+The user's browser still has the old `mineops-shell-v4` cache with the stale dev-mode index.html. After deploying, the SW will auto-update (cache version mismatch triggers `activate` → delete old caches), but the user may need to:
+1. Open DevTools → Application → Service Workers → Unregister, or
+2. Hard refresh (Cmd+Shift+R), or
+3. Close and reopen the browser tab
+
+**Files changed (continued):**
+- `frontend/public/sw.js` — removed index.html from shell cache, bumped version to v5
+
 ## 2026-07-23 — Equipment data extraction from APK
 
 The equipment_extractor module (`ops/equipment_extractor.py`) now extracts Super Manager equipment data from the APK's Unity MonoBehaviour configs. This required reverse-engineering the binary layout of 6 config assets in the `configfiles` bundle:

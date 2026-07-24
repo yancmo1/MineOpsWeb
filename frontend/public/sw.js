@@ -1,5 +1,8 @@
-const CACHE = "mineops-shell-v4";
-const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+const CACHE = "mineops-shell-v5";
+// index.html is intentionally NOT cached — it must always be fetched from network
+// so the browser gets the fresh asset hashes from every deploy (prevents MIME type
+// errors from stale index.html referencing non-existent JS bundles).
+const SHELL = ["/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", event =>
   event.waitUntil(
