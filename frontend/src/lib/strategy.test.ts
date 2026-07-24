@@ -197,6 +197,23 @@ describe("Rationale", () => {
 });
 
 describe("Verified release evidence", () => {
+  it("fills omitted sprite and ability fields from manager master data", () => {
+    const pkg = {
+      releaseId: "release", manifestHash: "hash", catalogVersion: "v1",
+      artifacts: {
+        "catalog-core.json": {
+          filename: "catalog-core.json", sha256: "x", bytes: 1, schemaVersion: "1.0.0",
+          content: { managers: [{ canonicalId: "sm-10066", name: null, rarity: "rare", role: "Warehouse", extensions: { superManagerId: 10066 }, active: null, abilities: [], passives: [], spriteRefs: [] }] },
+        },
+      },
+    } as unknown as CachedCatalogPackage;
+    const manager = managersFromVerifiedPackage(pkg)[0];
+    expect(manager.name).toBe("Altitude");
+    expect(manager.sprite).toBe("AlTitude");
+    expect(manager.active?.description).toContain("resources from Warehouse workers");
+    expect(manager.active?.cooldown).toBe(1800);
+  });
+
   const verifiedPackage: CachedCatalogPackage = {
     id: "release-1::abc", releaseId: "release-1", manifestHash: "abc", catalogVersion: "1.2.3",
     gameVersion: "1", gameVersionCode: 1, manifestSchemaVersion: "2.0.0", cachedAt: "2026-01-01T00:00:00Z",

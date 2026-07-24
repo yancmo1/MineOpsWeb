@@ -21,6 +21,23 @@
       "problemMatcher": []
     },
     {
+      "label": "Local Dev: Rebuild + restart",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up --build -d",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      }
+    },
+    {
       "label": "Oracle: Verify capture ingest",
       "type": "shell",
       "command": "ssh",

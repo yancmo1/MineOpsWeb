@@ -7,6 +7,7 @@ from collections import OrderedDict
 
 RELEASE_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/home/yancmo/mineops-data/releases/5.59.0_96449_20260716T143539Z")
 MANAGERS_JSON = RELEASE_DIR / "exports" / "extracted_managers" / "managers.json"
+EQUIPMENT_JSON = RELEASE_DIR / "exports" / "extracted_equipment" / "equipment.json"
 OUTPUT_DIR = RELEASE_DIR / "exports" / "v3"
 
 def derive_name(name_key):
@@ -28,6 +29,23 @@ def el(v,m,d="Unknown"): return m.get(v,d)
 print("Loading...")
 with open(MANAGERS_JSON) as f: raw = json.load(f)
 print(f"{len(raw)} managers")
+
+# --- Equipment ---
+catalog_equipment = []
+catalog_materials = []
+if EQUIPMENT_JSON.exists():
+    eq_data = json.loads(EQUIPMENT_JSON.read_text())
+    catalog_equipment = [OrderedDict([
+        ("equipmentId", e["equipmentId"]),
+        ("nameKey", e["nameKey"]),
+        ("effects", e.get("effects", [])),
+    ]) for e in eq_data.get("equipment", [])]
+    catalog_materials = [OrderedDict([
+        ("materialId", m["materialId"]),
+        ("nameKey", m["nameKey"]),
+        ("sourceTooltipKey", m.get("sourceTooltipKey")),
+    ]) for m in eq_data.get("materials", [])]
+    print(f"{len(catalog_equipment)} equipment items, {len(catalog_materials)} materials")
 
 RELEASE_ID = "5.59.0_96449_20260716T143539Z"
 NOW = datetime.now(timezone.utc).isoformat()
@@ -97,7 +115,7 @@ def wa(dir, fn, data):
 artifacts = {
     "catalog-core.json": OrderedDict([("schemaVersion","2.0.0"),("catalogVersion",RELEASE_ID),("releaseId",RELEASE_ID),("generatedAt",NOW),
         ("source",{"kind":"apk_capture","versionName":"5.59.0","versionCode":96449,"parserVersion":"2.0.0","extractionMethod":"unity-il2cpp-typetree","provenance":{"dataFields":36,"nameSource":"derived_from_NameKey"}}),
-        ("managers",catalog_managers),("mines",[]),("equipment",[]),("research",[]),("collectibles",[]),("artifacts",[])]),
+        ("managers",catalog_managers),("mines",[]),("equipment",catalog_equipment),("materials",catalog_materials),("research",[]),("collectibles",[]),("artifacts",[])]),
     "mappings.json": OrderedDict([("schemaVersion","1.0.0"),("catalogVersion",RELEASE_ID),("releaseId",RELEASE_ID),("generatedAt",NOW),("idMappings",idm),("aliases",aliases)]),
     "localization.json": OrderedDict([("schemaVersion","1.0.0"),("catalogVersion",RELEASE_ID),("releaseId",RELEASE_ID),("generatedAt",NOW),("locale","en"),("entries",loc)]),
     "validation-report.json": OrderedDict([("validationSchemaVersion","1.0.0"),("catalogVersion",RELEASE_ID),("validatedAt",NOW),("status","passed"),
@@ -125,7 +143,7 @@ manifest = OrderedDict([
     ("artifacts",[{"filename":e["filename"],"path":e["filename"],"contentType":"application/json","sha256":e["hash"],"bytes":e["bytes"],
         "required":e["filename"] in ("catalog-core.json","validation-report.json"),"schemaVersion":"1.0.0",
         "recordCount":len(catalog_managers) if e["filename"]=="catalog-core.json" else (len(idm) if e["filename"]=="mappings.json" else 0)} for e in entries]),
-    ("counts",{"managers":len(catalog_managers),"mines":0,"equipment":0,"research":0,"collectibles":0,"artifacts":0,"relationships":0,"unresolvedObjects":0}),
+    ("counts",{"managers":len(catalog_managers),"mines":0,"equipment":len(catalog_equipment),"materials":len(catalog_materials),"research":0,"collectibles":0,"artifacts":0,"relationships":0,"unresolvedObjects":0}),
 ])
 h,b = wa(OUTPUT_DIR, "manifest.json", manifest)
 print(f"  manifest.json: {h[:16]}... ({b}b)")

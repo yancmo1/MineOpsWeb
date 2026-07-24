@@ -16,58 +16,14 @@ import { MorePage } from "./pages/MorePage";
 import { ManagerCard } from "./components/ManagerCard";
 import { ManagerDetailModal } from "./components/ManagerDetailModal";
 import { NavigationIcon } from "./components/NavigationIcon";
+import { compareManagers, defaultOwnership, sortOptions, type ManagersOwnership, type ManagersSortOption } from "./lib/managers-view";
 
 type Department = "All" | "Mine Shaft" | "Elevator" | "Warehouse";
-type Ownership = "unlocked" | "all";
-
-type SortOption =
-  | "recommended"
-  | "rarityAZ"
-  | "inGameOrder"
-  | "closestToRankUp"
-  | "element"
-  | "area"
-  | "levelHighToLow"
-  | "levelLowToHigh";
-
-const sortOptions: { value: SortOption; label: string }[] = [
-  { value: "recommended", label: "Recommended" },
-  { value: "rarityAZ", label: "Rarity (A-Z)" },
-  { value: "inGameOrder", label: "In-game Order" },
-  { value: "closestToRankUp", label: "Closest to Rank Up" },
-  { value: "element", label: "By Element" },
-  { value: "area", label: "By Area" },
-  { value: "levelHighToLow", label: "Level (high→low)" },
-  { value: "levelLowToHigh", label: "Level (low→high)" },
-];
+type Ownership = ManagersOwnership;
+type SortOption = ManagersSortOption;
 
 const departments: Department[] = ["All", "Mine Shaft", "Elevator", "Warehouse"];
 const rarities: string[] = ["legendary", "epic", "rare", "common"];
-
-// Element order for "By Element" sort
-const elementOrder: Record<string, number> = {
-  fire: 0, water: 1, wind: 2, earth: 3,
-  lightning: 4, dark: 5, light: 6, nature: 7,
-  sand: 8, chrome: 9, orb: 10,
-};
-
-// Area sort order
-const areaOrder: Record<string, number> = {
-  "Mine Shaft": 0, "Elevator": 1, "Warehouse": 2,
-};
-
-// Rarity A-Z order (common → rare → epic → legendary)
-const rarityAZOrder: Record<string, number> = {
-  common: 0, rare: 1, epic: 2, legendary: 3,
-};
-
-function getFirstElement(manager: CatalogManager): string {
-  if (manager.elements.length === 0) return "";
-  const el = manager.elements[0];
-  // Elements are like "Nature (SE)" — extract the name before "("
-  const parenIdx = el.indexOf("(");
-  return parenIdx > 0 ? el.slice(0, parenIdx).trim().toLowerCase() : el.toLowerCase();
-}
 
 export default function App() {
   const [catalog, setCatalog] = useState<CatalogManager[]>([]);
@@ -77,7 +33,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("overview");
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState<Department>("All");
-  const [ownership, setOwnership] = useState<Ownership>("all");
+  const [ownership, setOwnership] = useState<Ownership>(defaultOwnership);
   const [sort, setSort] = useState<SortOption>("recommended");
   const [selectedRarities, setSelectedRarities] = useState<Set<string>>(new Set());
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -147,78 +103,41 @@ export default function App() {
       }
     });
 
-    // Subscribe to catalogClient — when it activates, swap to verified package.
-    // Declared outside the async IIFE so cleanup can reach it.
     let unsubCat: (() => void) | undefined;
+    let appliedCatalogKey = "";
 
-    // Immediately check if there's already an active catalog package
-    // (handles Strict Mode double-mount where first mount already loaded it)
-    void (async () => {
-      const existingPkg = await catalogClient.getActivePackage();
-      if (existingPkg) {
-        const existingManagers = managersFromVerifiedPackage(existingPkg);
-        if (existingManagers.length > 0) {
-          console.debug("[app] Using existing active package:", existingPkg.releaseId, existingPkg.catalogVersion);
-          setCatalog(existingManagers);
-          const localProgress = await loadProgress(existingManagers);
-          progressRef = localProgress;
-          setProgress(localProgress);
-        }
+    const applyActiveCatalog = async (reason: string): Promise<number> => {
+      const pkg = await catalogClient.getActivePackage();
+      if (!pkg) return 0;
+      const managers = managersFromVerifiedPackage(pkg);
+      if (managers.length === 0) {
+        console.warn("[app] Active catalog contains no managers", { reason, releaseId: pkg.releaseId, source: pkg.source });
+        return 0;
       }
-    })();
-
-    void (async () => {
-      // --- Catalog loading: unified path ---
-      // The catalogClient is the single authority. It tries:
-      //   1. PocketBase publication → cache → activate
-      //   2. Test fixture (dev mode) → activates
-      //   3. Cached active package (from previous activation)
-      //   4. Bundled bootstrap (first-launch / offline)
-      //   5. Error state
-      //
-      // Legacy sm_complete_database.json has been removed from first-render
-      // authority. The catalogClient provides bootstrap via bundled files.
-
-      // Subscribe to catalogClient — when it activates, swap to verified package
-      // This handles: production publication, test fixture (dev), or cache.
-      unsubCat = catalogClient.subscribe((state) => {
-        const ls = state.loadState;
-        if (ls.phase === "active" || ls.phase === "active_current" || ls.phase === "active_stale" || ls.phase === "offline_cached" || ls.phase === "bootstrap_fallback") {
-          void (async () => {
-            const pkg = await catalogClient.getActivePackage();
-            if (!pkg) return;
-            console.debug("[app] Catalog activated:", pkg.releaseId, pkg.catalogVersion, pkg.source);
-            const verifiedManagers = managersFromVerifiedPackage(pkg);
-            console.debug("[app] Catalog manager display sample:", verifiedManagers.filter((manager) => ["sm-10001", "sm-10066", "sm-10029"].includes(manager.id)).map((manager) => ({ id: manager.id, name: manager.name, gameId: manager.gameId })));
-            if (verifiedManagers.length > 0) {
-              setCatalog(verifiedManagers);
-              const localProgress = await loadProgress(verifiedManagers);
-              progressRef = localProgress;
-              setProgress(localProgress);
-            } else {
-              console.warn("[app] Verified catalog has 0 managers — keeping initial bootstrap");
-            }
-          })();
-        }
-      });
-
-      // Start the async catalog load (doesn't block below; subscribe captures activation)
-      void catalogClient.loadActiveCatalog();
-
-      // Load initial catalog from catalogClient bootstrap (no legacy dependency)
-      let bootstrapManagers: CatalogManager[] = [];
-      try {
-        const pkg = await catalogClient.getActivePackage();
-        if (pkg && pkg.artifacts["catalog-core.json"]?.content) {
-          bootstrapManagers = managersFromVerifiedPackage(pkg);
-        }
-      } catch { /* bootstrap unavailable */ }
-
-      // Set initial catalog from bootstrap (if available), or empty
-      setCatalog(bootstrapManagers);
-      const localProgress = await loadProgress(bootstrapManagers.length > 0 ? bootstrapManagers : []);
+      const key = `${pkg.releaseId}::${pkg.manifestHash}`;
+      if (key === appliedCatalogKey) return managers.length;
+      appliedCatalogKey = key;
+      console.debug("[app] Applying catalog", { reason, releaseId: pkg.releaseId, source: pkg.source, count: managers.length, sm10066: managers.find((manager) => manager.id === "sm-10066")?.name });
+      setCatalog(managers);
+      const localProgress = await loadProgress(managers);
       progressRef = localProgress;
       setProgress(localProgress);
+      return managers.length;
+    };
+
+    unsubCat = catalogClient.subscribe((state) => {
+      const phase = state.loadState.phase;
+      if (["active", "active_current", "active_stale", "offline_cached", "bootstrap_fallback"].includes(phase)) {
+        void applyActiveCatalog(`state:${phase}`);
+      }
+    });
+
+    void (async () => {
+      await applyActiveCatalog("startup");
+      // Auto-sync must never run against the cached bootstrap/test fixture.
+      // Wait until the published package has had a chance to activate first.
+      await catalogClient.loadActiveCatalog();
+      await applyActiveCatalog("after-load");
       const loadedMetadata = await getSyncMetadata();
       setMetadata(loadedMetadata);
       const loadedSettings = await getSettings();
@@ -240,7 +159,7 @@ export default function App() {
       void refreshCaptureStatus();
 
       // Auto-sync once on initial load if enabled and no previous sync
-      if (!hasAutoSynced.current && loadedSettings.autoSync && bootstrapManagers.length > 0 && credentials.kolibriId && credentials.authToken && !loadedMetadata.lastSuccessfulSyncAt) {
+      if (!hasAutoSynced.current && loadedSettings.autoSync && progressRef.length > 0 && credentials.kolibriId && credentials.authToken && !loadedMetadata.lastSuccessfulSyncAt) {
         hasAutoSynced.current = true;
         setTimeout(() => { void syncNow(); }, 100);
       }
@@ -292,58 +211,7 @@ export default function App() {
     }
 
     // Sort
-    items.sort((a, b) => {
-      const nameCmp = a.catalog.name.localeCompare(b.catalog.name);
-      switch (sort) {
-        case "recommended":
-          return strengthScore(b.catalog, b) - strengthScore(a.catalog, a) || nameCmp;
-
-        case "rarityAZ": {
-          const ra = rarityAZOrder[a.catalog.rarity.toLowerCase()] ?? 99;
-          const rb = rarityAZOrder[b.catalog.rarity.toLowerCase()] ?? 99;
-          return ra - rb || nameCmp;
-        }
-
-        case "inGameOrder": {
-          const ga = a.catalog.gameId ?? 999999;
-          const gb = b.catalog.gameId ?? 999999;
-          return ga - gb || nameCmp;
-        }
-
-        case "closestToRankUp": {
-          const thresholdA = rankThreshold(a.rank);
-          const thresholdB = rankThreshold(b.rank);
-          const deficitA = thresholdA != null ? thresholdA - a.fragments : 999999;
-          const deficitB = thresholdB != null ? thresholdB - b.fragments : 999999;
-          if (deficitA !== deficitB) return deficitA - deficitB;
-          if (a.fragments !== b.fragments) return b.fragments - a.fragments;
-          return nameCmp;
-        }
-
-        case "element": {
-          const ea = elementOrder[getFirstElement(a.catalog)] ?? 99;
-          const eb = elementOrder[getFirstElement(b.catalog)] ?? 99;
-          return ea - eb || nameCmp;
-        }
-
-        case "area": {
-          const aa = areaOrder[a.catalog.type] ?? 99;
-          const ab = areaOrder[b.catalog.type] ?? 99;
-          return aa - ab || nameCmp;
-        }
-
-        case "levelHighToLow":
-          if (a.level !== b.level) return b.level - a.level;
-          return nameCmp;
-
-        case "levelLowToHigh":
-          if (a.level !== b.level) return a.level - b.level;
-          return nameCmp;
-
-        default:
-          return nameCmp;
-      }
-    });
+    items.sort((a, b) => compareManagers(a, b, sort, strengthScore, rankThreshold));
 
     return items;
   }, [progress, byId, ownership, department, selectedRarities, query, sort]);
@@ -379,6 +247,11 @@ export default function App() {
         // If the new progress has unlocked=false and the manager had existing
         // progress with unlocked=true, keep the existing data (sync didn't touch it).
         if (existing && !p.unlocked && existing.unlocked) return existing;
+        // The current save shape omits fragment counts. Never erase a known
+        // local/manual fragment count just because this sync could not read it.
+        if (existing && p.fragmentSource === "unavailable" && existing.fragments > 0) {
+          return { ...p, fragments: existing.fragments, fragmentSource: existing.fragmentSource ?? "manual" };
+        }
         return p;
       });
       await saveProgress(mergedProgress);
@@ -486,11 +359,11 @@ export default function App() {
             )}
           </p>
         </div>
-        <button className="sync-button" onClick={() => void syncNow()} disabled={syncing} aria-label="Sync now">
+        <button className="sync-button" onClick={() => void syncNow()} disabled={syncing} aria-label="Sync player data">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
           </svg>
-          <span className="sync-button-text">{syncing ? "Syncing…" : "Sync"}</span>
+          <span className="sync-button-text">{syncing ? "Syncing…" : "Sync player"}</span>
         </button>
       </header>
 

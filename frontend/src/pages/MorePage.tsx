@@ -132,6 +132,29 @@ export function MorePage({
   const catalogStatus = describeCatalogStatus(catalogState.loadState);
   const cacheDetail = describeCache(catalogState.cacheStatus, packages);
   const activePackage = packages.find((pkg) => pkg.isActive);
+  const coreContent = activePackage?.artifacts["catalog-core.json"]?.content as {
+    releaseId?: string;
+    managers?: Array<{ canonicalId?: string; id?: string }>;
+  } | undefined;
+  const catalogManagerIds = new Set(
+    (coreContent?.managers ?? []).map((manager) => manager.canonicalId ?? manager.id ?? "").filter(Boolean),
+  );
+  const progressManagerIds = progress.map((manager) => manager.managerId);
+  const orphanedProgressIds = progressManagerIds.filter((id) => id && !catalogManagerIds.has(id));
+  const catalogSource = activePackage
+    ? catalogState.loadState.phase === "bootstrap_fallback"
+      ? "Bootstrap fallback"
+      : catalogState.loadState.phase === "offline_cached"
+        ? "Cached offline"
+        : catalogState.loadState.phase === "active_stale"
+          ? "Published, stale"
+          : activePackage.source === "published"
+            ? "Published"
+            : activePackage.source
+    : "Unavailable";
+  const releaseIdentityMismatch = Boolean(
+    activePackage && coreContent?.releaseId && activePackage.releaseId !== coreContent.releaseId,
+  );
   return (
     <div className="more-page">
       <CollapsibleSection title="PocketBase Account">
@@ -222,7 +245,7 @@ export function MorePage({
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="Sync Settings">
+      <CollapsibleSection title="Player data preferences">
         <label
           style={{
             display: "flex",
@@ -253,7 +276,10 @@ export function MorePage({
         </label>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Kolibri Sync">
+      <CollapsibleSection title="Player data sync">
+        <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
+          Pull player progress from Kolibri into this browser. The browser keeps the local copy first and optionally mirrors it to PocketBase when signed in.
+        </p>
 
         {/* Sync Status */}
         <div
@@ -345,7 +371,7 @@ export function MorePage({
 
         {/* Sync Button */}
         <button type="submit" disabled={syncing} style={{ width: "100%" }}>
-          {syncing ? "Syncing…" : "Sync Now"}
+          {syncing ? "Syncing player data…" : "Sync player data"}
         </button>
 
         {/* Diagnostics */}
@@ -355,7 +381,7 @@ export function MorePage({
             style={{ marginTop: "1rem", marginBottom: 0, fontSize: "0.875rem" }}
           >
             {diagnostics.managerCount} managers received · {diagnostics.payloadFormat} ·{" "}
-            {diagnostics.unknownManagerCount} unmatched catalog IDs
+            {diagnostics.unknownManagerCount} unmatched catalog IDs · {diagnostics.fragmentFieldCount ?? 0} fragment counts present · {diagnostics.fragmentMissingCount ?? 0} missing from save
             {diagnostics.unresolvedSampleIds && diagnostics.unresolvedSampleIds.length > 0 && (
               <span style={{ display: "block", fontSize: "0.75rem", marginTop: "0.25rem", color: "var(--text-muted)" }}>
                 Sample IDs: {diagnostics.unresolvedSampleIds.join(", ")}
@@ -366,111 +392,35 @@ export function MorePage({
         </form>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Catalog package" ariaLive="polite">
+      <CollapsibleSection title="Catalog" ariaLive="polite">
         <p style={{ marginTop: "-0.5rem", fontSize: "0.875rem" }}><strong>{catalogStatus.label}</strong></p>
         <p className="muted" style={{ fontSize: "0.8rem" }}>{catalogStatus.detail}</p>
         <div style={{ padding: "0.75rem", background: "var(--bg-secondary)", borderRadius: "0.5rem", fontSize: "0.8rem" }}>
-          <p style={{ margin: 0 }}><strong>Active release:</strong> {activePackage?.releaseId ?? "None"}</p>
-          <p style={{ margin: "0.35rem 0 0" }}><strong>Manifest:</strong> {activePackage?.manifestHash ?? "Not available"}</p>
-          <p style={{ margin: "0.35rem 0 0" }}><strong>Schema:</strong> {activePackage?.manifestSchemaVersion ?? "Not available"}</p>
+          <p style={{ margin: 0 }}><strong>Managers:</strong> {catalogManagerIds.size || "—"}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Release:</strong> {activePackage?.releaseId ?? "None"}</p>
+          <p style={{ margin: "0.35rem 0 0" }}><strong>Source:</strong> {catalogSource} · {activePackage?.verificationState ?? "not verified"}</p>
           <p style={{ margin: "0.35rem 0 0" }}><strong>Cache:</strong> {catalogState.cacheStatus.packageCount} package(s), {cacheDetail.size}</p>
-          <p style={{ margin: "0.35rem 0 0" }}><strong>Last-known-good:</strong> {cacheDetail.lastKnownGood}</p>
         </div>
-        {activePackage && <div style={{ marginTop: "0.75rem", fontSize: "0.8rem" }}>
-          <strong>Artifact verification</strong>
-          {Object.values(activePackage.artifacts).map((artifact) => <p className="muted" key={artifact.filename} style={{ margin: "0.3rem 0" }}>✓ {artifact.filename} · {artifact.schemaVersion} · {artifact.bytes.toLocaleString()} bytes</p>)}
-          {activePackage.warnings.map((warning) => <p key={warning} style={{ color: "var(--accent-orange)", margin: "0.3rem 0" }}>{redactDiagnostic(warning)}</p>)}
-        </div>}
-        {/* Catalog diagnostics */}
-        {activePackage && progress && (() => {
-          const coreContent = activePackage.artifacts["catalog-core.json"]?.content as { releaseId?: string; managers?: Array<{ canonicalId?: string; id?: string }> } | undefined;
-          const managers = coreContent?.managers ?? [];
-          const catalogManagerIds = new Set(
-            managers.map((m) => m.canonicalId ?? m.id ?? "").filter(Boolean),
-          );
-          const progressManagerIds = progress.map((p) => p.managerId);
-          const absentFromCatalog = progressManagerIds.filter(
-            (id) => id && !catalogManagerIds.has(id),
-          );
-
-          // Source state
-          let sourceLabel: string;
-          const phase = catalogState.loadState.phase;
-          if (phase === "bootstrap_fallback") {
-            sourceLabel = "Bootstrap (fallback)";
-          } else if (phase === "offline_cached") {
-            sourceLabel = "Cached (offline)";
-          } else if (phase === "active_stale") {
-            sourceLabel = "Published (stale)";
-          } else if (activePackage.storageBaseUrl?.includes("test-fixture")) {
-            sourceLabel = "Test fixture";
-          } else if (activePackage.source === "published") {
-            sourceLabel = "Published";
-          } else if (activePackage.source === "bootstrap") {
-            sourceLabel = "Bootstrap";
-          } else {
-            sourceLabel = activePackage.source;
-          }
-
-          // Release identity cross-check
-          const manifestReleaseId = activePackage.releaseId;
-          const coreReleaseId = coreContent?.releaseId;
-          const identityMismatch =
-            coreReleaseId && manifestReleaseId !== coreReleaseId;
-
-          return (
-            <div
-              style={{
-                marginTop: "0.75rem",
-                fontSize: "0.8rem",
-                borderTop:
-                  "1px solid var(--border-color, rgba(255,255,255,0.08))",
-                paddingTop: "0.5rem",
-              }}
-            >
-              <p style={{ margin: 0, fontWeight: 600 }}>
-                Catalog diagnostics
-              </p>
-              <p className="muted" style={{ margin: "0.3rem 0" }}>
-                <strong>Managers:</strong> {catalogManagerIds.size} in catalog,{" "}
-                {progressManagerIds.length} with progress
-              </p>
-              {absentFromCatalog.length > 0 && (
-                <p
-                  style={{
-                    color: "var(--accent-orange)",
-                    margin: "0.3rem 0",
-                  }}
-                >
-                  <strong>
-                    Orphaned progress IDs ({absentFromCatalog.length}):
-                  </strong>{" "}
-                  {absentFromCatalog.slice(0, 5).join(", ")}
-                  {absentFromCatalog.length > 5
-                    ? `…(+${absentFromCatalog.length - 5})`
-                    : ""}
-                </p>
-              )}
-              {identityMismatch && (
-                <p
-                  style={{
-                    color: "var(--accent-orange)",
-                    margin: "0.3rem 0",
-                  }}
-                >
-                  <strong>Release ID mismatch:</strong> manifest{" "}
-                  {manifestReleaseId} ≠ core {coreReleaseId}
-                </p>
-              )}
-              <p className="muted" style={{ margin: "0.3rem 0" }}>
-                <strong>Source:</strong> {sourceLabel} ·{" "}
-                {activePackage.verificationState}
-              </p>
-            </div>
-          );
-        })()}
+        {orphanedProgressIds.length > 0 && (
+          <p style={{ color: "var(--accent-orange)", fontSize: "0.8rem" }}>
+            {orphanedProgressIds.length} player IDs are not in the active catalog: {orphanedProgressIds.slice(0, 5).join(", ")}{orphanedProgressIds.length > 5 ? "…" : ""}
+          </p>
+        )}
+        {releaseIdentityMismatch && (
+          <p style={{ color: "var(--accent-orange)", fontSize: "0.8rem" }}>
+            Catalog release identity mismatch detected; refresh the catalog before syncing player data.
+          </p>
+        )}
+        {activePackage && (
+          <details style={{ marginTop: "0.75rem", fontSize: "0.8rem" }}>
+            <summary style={{ cursor: "pointer", fontWeight: 600 }}>Technical catalog details</summary>
+            <p className="muted">Manifest: {activePackage.manifestHash} · schema {activePackage.manifestSchemaVersion} · last-known-good {cacheDetail.lastKnownGood}</p>
+            {Object.values(activePackage.artifacts).map((artifact) => <p className="muted" key={artifact.filename} style={{ margin: "0.3rem 0" }}>✓ {artifact.filename} · {artifact.schemaVersion} · {artifact.bytes.toLocaleString()} bytes</p>)}
+            {activePackage.warnings.map((warning) => <p key={warning} style={{ color: "var(--accent-orange)", margin: "0.3rem 0" }}>{redactDiagnostic(warning)}</p>)}
+          </details>
+        )}
         <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.75rem" }}>{catalogStatus.recovery}</p>
-        <button onClick={() => void catalogClient.reloadCatalog()} style={{ width: "100%" }}>Refresh catalog safely</button>
+        <button onClick={() => void catalogClient.reloadCatalog()} style={{ width: "100%" }}>Refresh catalog</button>
       </CollapsibleSection>
 
       <CollapsibleSection title="Snapshot History">
@@ -482,9 +432,9 @@ export function MorePage({
         </button>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Capture Status">
+      <CollapsibleSection title="UbuntuMac catalog bridge">
         <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
-          APK extraction pipeline from ubuntumac. Refresh to check for new releases.
+          UbuntuMac captures and uploads catalog releases separately. Run the UbuntuMac bridge task to publish a new release, then refresh this status and the catalog.
         </p>
         <div
           style={{
@@ -620,7 +570,7 @@ export function MorePage({
           )}
         </div>
         <button onClick={onRefreshCaptureStatus} style={{ width: "100%" }}>
-          Refresh
+          Refresh bridge status
         </button>
       </CollapsibleSection>
 

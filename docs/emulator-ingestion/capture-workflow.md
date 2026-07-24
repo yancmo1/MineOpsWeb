@@ -13,7 +13,7 @@ ubuntumac capture/extraction
 	-> capture-bridge upload
 	-> MineOps PocketBase /api/capture/ingest
 	-> raw_imports + catalog_versions
-	-> MineOpsWeb More > Capture Status / Import history
+	-> MineOpsWeb More > UbuntuMac catalog bridge / import history
 ```
 
 ### 1) Configure capture-bridge on UbuntuMac
@@ -64,7 +64,9 @@ After upload:
 
 - `catalog_versions` gets a new row (release metadata)
 - `raw_imports` stores raw payload JSON
-- MineOpsWeb `More -> Capture Status` shows refreshed import history + latest-vs-previous deltas
+- MineOpsWeb `More -> UbuntuMac catalog bridge` shows refreshed import history + latest-vs-previous deltas. Use the separate `More -> Catalog -> Refresh catalog` action to make the newly published package active in the browser.
+
+The browser does not start the UbuntuMac upload. This is intentionally a second, outbound-only workflow: first sync player data from Kolibri in the client; separately run the UbuntuMac bridge task when a new catalog release is available.
 
 ### 5) Troubleshooting
 

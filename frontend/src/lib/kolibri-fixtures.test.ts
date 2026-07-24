@@ -31,6 +31,8 @@ import {
   clearImportHistory,
   getImportStats,
 } from "./import-history";
+import { catalogForKolibriSync, extractFragmentsFromSave } from "./kolibri";
+import type { CachedCatalogPackage } from "./catalog-cache";
 
 // ---------------------------------------------------------------------------
 // Fixture tests
@@ -55,7 +57,35 @@ describe("Kolibri fixtures", () => {
   });
 });
 
+describe("Catalog race protection", () => {
+  it("uses the active package when the UI supplied catalog is empty", () => {
+    const activePackage = {
+      releaseId: "release", manifestHash: "hash", catalogVersion: "v1",
+      artifacts: {
+        "catalog-core.json": {
+          filename: "catalog-core.json", sha256: "x", bytes: 1, schemaVersion: "1.0.0",
+          content: { managers: [{ canonicalId: "sm-10066", name: "Altitude", rarity: "Rare", role: "Warehouse", extensions: { superManagerId: 10066 } }] },
+        },
+      },
+    } as unknown as CachedCatalogPackage;
+    const selected = catalogForKolibriSync(activePackage, []);
+    expect(selected).toHaveLength(1);
+    expect(selected[0].id).toBe("sm-10066");
+    expect(selected[0].gameId).toBe(10066);
+  });
+});
+
 describe("Fragment field extraction", () => {
+  it("extracts a manager fragment count from a sibling keyed dictionary", () => {
+    const save = { Data: { SuperManagers: { Managers: [{ Id: 10066 }], Fragments: { "10066": 17, "10067": 2 } } } };
+    expect(extractFragmentsFromSave(save, "10066", save.Data.SuperManagers.Managers[0])).toBe(17);
+  });
+
+  it("does not treat an unrelated global fragment total as manager progress", () => {
+    const save = { Data: { SuperManagers: { Managers: [{ Id: 10066 }], TotalFragments: 999 } } };
+    expect(extractFragmentsFromSave(save, "10066", save.Data.SuperManagers.Managers[0])).toBe(0);
+  });
+
   it("extracts Fragments (capitalized, primary field)", () => {
     const row: KolibriManagerRow = { Id: 1, Level: 10, Rank: 1, Promotion: 0, Fragments: 42 };
     expect(extractFragments(row)).toBe(42);

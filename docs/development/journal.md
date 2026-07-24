@@ -1,5 +1,69 @@
 # Development journal
 
+## 2026-07-23 — Equipment data extraction from APK
+
+The equipment_extractor module (`ops/equipment_extractor.py`) now extracts Super Manager equipment data from the APK's Unity MonoBehaviour configs. This required reverse-engineering the binary layout of 6 config assets in the `configfiles` bundle:
+
+- **SuperManagerEquipmentConfig** — 36 equipment name key entries with IDs (e.g. SMEquipmentName01-19)
+- **SuperManagerEquipmentBalancingConfig** — 2 tuning entries (id→level→value triplets)
+- **SuperManagerEquipmentEffectLocaConfig** — effect description localization key suffixes per equipment
+- **SuperManagerEquipmentMaterialConfig** — 15 crafting materials with names and source tooltip keys
+- **SuperManagerEquipmentMaterialShopConfig** — shop pricing data (identified, not yet parsed)
+- **SuperManagerEquipmentInfoPanelConfig** — UI panel colors (skipped, visuals only)
+
+Key discoveries in the binary reverse-engineering:
+- Unity MonoBehaviour serializes `m_Enabled` as 4 bytes (int), not 1 byte (UInt8) as the type tree suggests
+- String fields use EITHER length-prefixed (classpath, assetpath, tooltips) or null-terminated with 4-byte alignment (names in entry lists) depending on the config type
+- Equipment sprite assets are stored in `supermanagerequipment` bundle (170KB of material icons)
+
+The `build-v3-catalog.py` was updated to load equipment.json and populate both `equipment` and `materials` arrays in catalog-core.json. The manifest now reports equipment and materials counts.
+
+**Verification:** `./venv/bin/python3 -m mineops_data_engine.equipment_extractor` extracts 36 equipment items and 15 materials. Full pipeline builds v3 catalog with all data.
+
+**Limitations:**
+- Equipment names are localization keys (e.g. SMEquipmentName01) — display names need mapping to actual item names (Moneymaker Gloves, etc.)
+- Equipment-to-SuperManager assignment (which piece goes on which manager) not yet extracted
+- MaterialShopConfig has shop price data not yet parsed
+- 3 of the 19 unique name keys are unused in the list (SMEquipmentName03, 07, 13 have names in the config but don't appear in the balancing data)
+
+The managers page now opens with the Unlocked filter selected by default, matching the request for a more focused initial view. The sort dropdown also includes a new Rarity (Z-A) option so managers can be ordered from Legendary down to Common.
+
+The change is implemented in the shared managers-view helpers and wired into the main managers UI in [frontend/src/App.tsx](frontend/src/App.tsx), with regression coverage in [frontend/src/lib/managers-view.test.ts](frontend/src/lib/managers-view.test.ts).
+
+Verification: the new Vitest regression test passes, and the frontend production build succeeds.
+
+## 2026-07-23 — Make missing fragments explicit and gate auto-sync on the published catalog
+
+The latest browser console confirmed that the published catalog resolves all 60 saved managers, while the earlier resolved=0 attempt came from auto-sync starting against the cached test fixture before publication download completed. Startup now awaits catalogClient.loadActiveCatalog() before auto-sync is eligible.
+
+The Kolibri rows in the captured save contain no fragment count field; UbuntuMac's current export contains fragment asset IDs but no player-owned fragment values. Progress now tracks fragmentSource, preserves known local values when a later save omits them, and reports fragment counts present/missing in More diagnostics. Manager cards and the detail page show — instead of silently displaying a false zero when the save lacks the field.
+
+UbuntuMac inspection found equipment: [] in the current v2 catalog and no equipment object type in the exported game-object set. The detail page now has an explicit Equipment & Multiplier Effects section that renders captured equipment when it exists and clearly states when the current release has none; no equipment multiplier is inferred.
+
+Verification: 99 frontend tests pass and the TypeScript/Vite production build passes. The latest console's PocketBase auto-cancellation error is no longer present after the existing client fix.
+
+## 2026-07-23 — Restore manager sprites, active abilities, and alternate fragment shapes
+
+The active 5.59 catalog package has 118 managers but its APK export leaves `spriteRefs` empty, active descriptions null, and some passive data empty. Added a checked-in master-data enrichment snapshot from `idle-miners.com/api/sm-data` and merged it only at the verified-package presentation adapter: canonical IDs, release metadata, and sync mappings remain unchanged. Sprite URLs now use upstream sprite slugs such as `AlTitude` instead of invalid canonical IDs like `sm-10066`; active descriptions, level values, cooldowns, durations, elements, and passive values are restored when the package omits them.
+
+Kolibri sync now extracts fragments from manager rows and scoped sibling dictionaries/lists under fragment-named containers, while refusing unrelated global totals. Added regression coverage for both the enrichment path and sibling fragment map path.
+
+Verification: 98 frontend tests pass; TypeScript and Vite production build pass. The browser connector was not available for interactive smoke testing in this session; direct upstream endpoint checks confirmed the master-data payload and sprite URL convention.
+
+## 2026-07-23 — Prevent bootstrap catalog from overwriting verified catalog
+
+The follow-up browser log showed sync succeeding but no visible catalog-name diagnostics. `App.tsx` had competing launch paths: the verified-package activation callback and the initial bootstrap loader could resolve in either order, allowing the latter to overwrite the visible catalog. Added a catalog-authority guard so an activated/existing verified package cannot be replaced by an empty or older bootstrap result. Added explicit release, count, and `sm-10066` identity logs for every catalog selection/replacement.
+
+Verification: 96 frontend tests pass and the production build succeeds.
+
+## 2026-07-23 — Fix Kolibri sync/catalog activation race
+
+**Finding:** The browser log showed Kolibri sync beginning while the UI-supplied catalog was empty. The catalog client later activated 118 managers, but `fetchKolibri` had already built empty lookup maps, producing `resolved=0`, `unresolved=60`, and an incorrect `0 unlocked managers` result.
+
+**Changes:** `frontend/src/lib/kolibri.ts` now derives the sync catalog from the active verified package whenever available, even if React passes an empty or stale catalog. It logs the selected source/count/sample IDs. `frontend/src/lib/pocketbase.ts` disables PocketBase duplicate-request auto-cancellation so overlapping launch/manual sync snapshot requests are not aborted. Added a regression test covering an empty supplied catalog and active-package resolution.
+
+**Verification:** 96 frontend tests pass; TypeScript and Vite production build pass; the regression test confirms `sm-10066` resolves from the active package with `gameId=10066`. Remaining console 404s for `catalog_publication` in dev are expected fallback behavior when that collection is unavailable.
+
 ## 2026-07-23 — Catalog name-path diagnostics and local smoke verification
 
 Added `[catalog-names]` diagnostics with total counts, name-source counts, representative samples (`sm-10001`, `sm-10066`, `sm-10029`), and a warning for any remaining canonical-ID labels. App activation now logs the same sample after the verified package is adapted. The bundled fallback is confirmed in the production bundle.
@@ -1652,3 +1716,45 @@ Added `Oracle: Git pull + update images` to `.vscode/tasks.json` — a manual de
 - ✅ `tasks.json` valid JSON (parsed by VS Code)
 - ✅ Uses existing `oracle-vm` SSH alias and `oracle-deploy.sh` script path
 - ✅ Follows same pattern as existing Oracle/UbuntuMac tasks
+
+## 2026-07-23 — Separate player sync from catalog bridge
+
+Cleaned up the catalog/settings surface so the app presents two distinct data flows:
+
+- **Player data sync** pulls Kolibri progress into the browser’s local state and optionally mirrors the snapshot to PocketBase.
+- **UbuntuMac catalog bridge** is a status/history view for the outbound capture pipeline. It does not imply that the browser can trigger UbuntuMac; the existing VS Code/UbuntuMac task remains the upload action.
+
+The Catalog panel now shows only load health, manager count, release/source, cache summary, orphan warnings, and a collapsed technical-details section. The duplicate low-level artifact and release diagnostics were removed from the default view. The primary app action is labeled “Sync player” / “Sync player data” to avoid conflating player state with catalog publication.
+
+### Changed files
+- `frontend/src/App.tsx` — clarified the primary sync action label.
+- `frontend/src/pages/MorePage.tsx` — separated player sync, catalog status, and UbuntuMac bridge wording; reduced catalog diagnostics noise.
+- `docs/emulator-ingestion/capture-workflow.md` — documented the browser/UbuntuMac boundary and refreshed UI terminology.
+
+### Verification
+- ✅ Frontend tests: 96 passing.
+- ✅ Production TypeScript/Vite build succeeds.
+- ✅ `git diff --check` clean.
+- ✅ Local Vite server responds at `http://127.0.0.1:5173/`.
+- ⚠️ In-app browser smoke test could not run in this session because no browser was available from the browser connector.
+
+### Remaining limitation
+- The browser can refresh bridge status after an UbuntuMac upload, but cannot start the outbound UbuntuMac capture task itself.
+
+## 2026-07-23 — Compact manager detail card redesign
+
+Redesigned the SM detail view to match the supplied compact card reference. The header now combines the portrait, manager name, rarity, and area; the operating stats are a four-column strip; and rank stars plus fragment progress have their own high-visibility panel. Fragment values remain `—` with a “not in save” note when the Kolibri payload did not provide a scoped fragment count, so missing data is not presented as zero. Passive abilities now use readable labels for known effect codes and show compact value/promotion rows. Active ability, element affinity, and equipment sections were tightened to keep the full information set on one scrollable page.
+
+### Changed files
+- `frontend/src/components/ManagerDetailModal.tsx` — new compact hierarchy, prominent stars/fragments, readable passive labels, explicit missing-equipment state.
+- `frontend/src/styles.css` — compact responsive hero, progression panel, stats strip, and dense information rows.
+
+### Verification
+- ✅ Frontend tests: 99 passing.
+- ✅ Production TypeScript/Vite build succeeds.
+- ✅ `git diff --check` clean.
+- ✅ Local Vite bundle smoke checked through the existing local development workflow.
+- ⚠️ In-app browser visual smoke test remains unavailable because the browser connector has no browser session in this environment.
+
+### Remaining limitation
+- The current UbuntuMac catalog release contains no equipment records, and the current Kolibri manager rows do not expose a scoped fragment field; the UI now makes both limitations explicit while retaining the catalog/effect data that is available.

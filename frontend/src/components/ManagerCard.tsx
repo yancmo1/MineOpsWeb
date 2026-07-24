@@ -65,6 +65,11 @@ export function ManagerCard({ manager, onClick }: ManagerCardProps) {
               <span>★ P{manager.promoted}</span>
               <span>⚡ R{manager.rank}</span>
             </div>
+            <div className="manager-card-stats">
+              <span title={manager.fragmentSource === "unavailable" ? "The current Kolibri save did not include a fragment count" : "Fragments"}>
+                ⬥ {manager.fragmentSource === "kolibri" || manager.fragmentSource === "manual" ? manager.fragments : "—"}
+              </span>
+            </div>
             {manager.fragments > 0 && (() => {
               const nextThreshold = rankThreshold(manager.rank);
               return nextThreshold != null ? (

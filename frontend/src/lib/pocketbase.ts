@@ -24,6 +24,11 @@ let _client: PocketBase | null = null;
 export function getClient(): PocketBase {
   if (!_client) {
     _client = new PocketBase(PB_URL);
+    // Launch sync and manual sync can overlap. Let both requests complete so
+    // PocketBase does not abort one as a duplicate request (the previous
+    // behavior produced "request was aborted/autocancelled" in the console).
+    _client.autoCancellation(false);
+    console.debug("[pocketbase] Auto-cancellation disabled for sync-safe requests");
   }
   return _client;
 }

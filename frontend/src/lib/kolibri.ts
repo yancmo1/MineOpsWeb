@@ -1,9 +1,11 @@
 import type { CatalogManager, PlayerManager } from "./db";
 import { resolveIds, fetchOverrides, type MappingEvidence } from "./catalog-mapping";
 import { catalogClient } from "./catalog-client";
+import { managersFromVerifiedPackage } from "./strategy";
+import type { CachedCatalogPackage } from "./catalog-cache";
 
 export type KolibriCredentials = { kolibriId: string; authToken: string; saveGameKey: string };
-export type KolibriDiagnostics = { statusCode: number; payloadFormat: string; rawBytes: number; decodedBytes: number; managerCount: number; unknownManagerCount: number; unresolvedSampleIds?: string[] };
+export type KolibriDiagnostics = { statusCode: number; payloadFormat: string; rawBytes: number; decodedBytes: number; managerCount: number; unknownManagerCount: number; fragmentFieldCount?: number; fragmentMissingCount?: number; unresolvedSampleIds?: string[] };
 
 export interface KolibriResult {
   progress: PlayerManager[];
@@ -14,6 +16,87 @@ export interface KolibriResult {
   unresolved: MappingEvidence[];
   /** The catalog version used for resolution */
   catalogVersion: string | null;
+}
+
+function numericFragmentValue(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, value);
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Math.max(0, Number(value));
+  return undefined;
+}
+
+/**
+ * Kolibri has shipped more than one save shape. Some builds put fragments on
+ * each manager row; others keep a sibling dictionary/list under a fragment-
+ * named property. Keep this deliberately scoped to the current manager ID so
+ * a global fragment total can never be mistaken for a manager's progress.
+ */
+function findFragmentsInSave(root: unknown, sourceId: string, row?: Record<string, unknown>): number | undefined {
+  const direct = row
+    ? Object.entries(row).find(([key, value]) => /frag/i.test(key) && numericFragmentValue(value) != null)
+    : undefined;
+  if (direct) return numericFragmentValue(direct[1]);
+
+  const seen = new Set<object>();
+  const visit = (node: unknown, fragmentContext = false): number | undefined => {
+    if (!node || typeof node !== "object") return undefined;
+    if (seen.has(node as object)) return undefined;
+    seen.add(node as object);
+
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const found = visit(item, fragmentContext);
+        if (found != null) return found;
+      }
+      return undefined;
+    }
+
+    const object = node as Record<string, unknown>;
+    const id = String(object.Id ?? object.id ?? object.ManagerId ?? object.managerId ?? "");
+    const isTarget = id === sourceId;
+    for (const [key, value] of Object.entries(object)) {
+      const nextContext = fragmentContext || /frag/i.test(key);
+      if (nextContext && (isTarget || key === sourceId)) {
+        const directValue = numericFragmentValue(value);
+        if (directValue != null) return directValue;
+        if (value && typeof value === "object") {
+          const nested = visit(value, true);
+          if (nested != null) return nested;
+        }
+      }
+      if (value && typeof value === "object") {
+        const nested = visit(value, nextContext);
+        if (nested != null) return nested;
+      }
+    }
+    return undefined;
+  };
+
+  return visit(root);
+}
+
+export function extractFragmentsFromSave(root: unknown, sourceId: string, row?: Record<string, unknown>): number {
+  return findFragmentsInSave(root, sourceId, row) ?? 0;
+}
+
+/**
+ * The UI can start a sync while React is still holding an empty/bootstrap
+ * catalog. The verified package is the authority for ID resolution, so use
+ * its adapted managers whenever they are available.
+ */
+export function catalogForKolibriSync(
+  activePackage: CachedCatalogPackage | undefined,
+  suppliedCatalog: CatalogManager[],
+): CatalogManager[] {
+  const verifiedCatalog = activePackage ? managersFromVerifiedPackage(activePackage) : [];
+  const selected = verifiedCatalog.length > 0 ? verifiedCatalog : suppliedCatalog;
+  console.debug("[kolibri] Catalog selected for sync", {
+    suppliedCount: suppliedCatalog.length,
+    verifiedCount: verifiedCatalog.length,
+    selectedCount: selected.length,
+    source: verifiedCatalog.length > 0 ? "active-package" : "supplied-catalog",
+    samples: selected.filter((manager) => ["sm-10001", "sm-10066"].includes(manager.id)).map((manager) => ({ id: manager.id, name: manager.name, gameId: manager.gameId })),
+  });
+  return selected;
 }
 
 function lastUUID(value: string): string {
@@ -78,8 +161,39 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
       catalogVersion: null,
     };
   }
-  const catalogVersion = pkg?.catalogVersion ?? null;
-  const releaseId = pkg?.releaseId ?? "";
+  let catalogVersion = pkg?.catalogVersion ?? null;
+  let releaseId = pkg?.releaseId ?? "";
+  const sourceIds = managers.map((row) => String(row.Id ?? "").trim());
+  let syncCatalog = catalogForKolibriSync(pkg, catalog);
+
+  // A bootstrap package can be active briefly while the published package is
+  // still downloading. Do not interpret a real save against an empty or
+  // unrelated bootstrap catalog; wait for a package that can resolve at least
+  // one source manager ID.
+  const catalogMatchesSave = (candidate: CatalogManager[]) => sourceIds.length === 0 || sourceIds.some((sourceId) =>
+    candidate.some((manager) => manager.id === `sm-${sourceId}` || String(manager.gameId ?? "") === sourceId),
+  );
+  if (!catalogMatchesSave(syncCatalog)) {
+    console.debug("[kolibri] Active catalog does not match save IDs; waiting for published package", {
+      catalogReleaseId: pkg.releaseId,
+      catalogVersion: pkg.catalogVersion,
+      catalogCount: syncCatalog.length,
+      firstSaveIds: sourceIds.slice(0, 5),
+    });
+    for (let i = 0; i < 50 && !catalogMatchesSave(syncCatalog); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const candidatePackage = await catalogClient.getActivePackage();
+      const candidateCatalog = catalogForKolibriSync(candidatePackage, catalog);
+      if (candidatePackage && catalogMatchesSave(candidateCatalog)) {
+        pkg = candidatePackage;
+        syncCatalog = candidateCatalog;
+        catalogVersion = pkg.catalogVersion;
+        releaseId = pkg.releaseId;
+        console.debug("[kolibri] Published catalog became usable after", (i + 1) * 200, "ms", pkg.releaseId);
+        break;
+      }
+    }
+  }
 
   // Gather overrides from PocketBase for the current release
 
@@ -87,24 +201,25 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
   const overrides = releaseId ? await fetchOverrides(releaseId) : [];
 
   // Build source ID list and resolve
-  const sourceIds = managers.map((row) => ({ sourceValue: String(row.Id ?? ""), sourceKind: "kolibri_id" as const }));
-  const evidenceMap = await resolveIds(sourceIds, overrides);
+  const sourceIdInputs = sourceIds.map((sourceValue) => ({ sourceValue, sourceKind: "kolibri_id" as const }));
+  const evidenceMap = await resolveIds(sourceIdInputs, overrides);
 
   // Build player progress from resolved mappings
-  const byCanonicalId = new Map(catalog.map((mgr) => [mgr.id, mgr]));
-  const progress = catalog.map((manager) => ({ managerId: manager.id, level: 1, rank: 0, promoted: 0, fragments: 0, unlocked: false, updatedAt: new Date().toISOString() }));
+  const byCanonicalId = new Map(syncCatalog.map((mgr) => [mgr.id, mgr]));
+  const progress: PlayerManager[] = syncCatalog.map((manager) => ({ managerId: manager.id, level: 1, rank: 0, promoted: 0, fragments: 0, fragmentSource: "unavailable", unlocked: false, updatedAt: new Date().toISOString() }));
   const byManagerId = new Map(progress.map((item) => [item.managerId, item]));
 
   // Legacy fallback: always keep gameId lookup available for rows that remain unresolved
   // after mapping/override resolution (common when active mappings are incomplete).
   const byGameId = new Map(
-    catalog.map((mgr) => [String((mgr as CatalogManager & { gameId?: number }).gameId ?? ""), mgr]),
+    syncCatalog.map((mgr) => [String((mgr as CatalogManager & { gameId?: number }).gameId ?? ""), mgr]),
   );
 
   let resolved = 0;
   let resolvedByMapping = 0;
   let resolvedByGameIdFallback = 0;
   let unresolvedCount = 0;
+  let fragmentFieldCount = 0;
 
   for (const row of managers) {
     const srcValue = String(row.Id ?? "").trim();
@@ -140,11 +255,18 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     item.level = Math.max(1, Number(row.Level ?? 1));
     item.rank = Math.max(0, Number(row.Rank ?? 0));
     item.promoted = Math.max(0, Number(row.Promotion ?? 0));
-    item.fragments = Math.max(0, Number(row.Fragments ?? row.fragments ?? row.FragmentCount ?? 0));
-    // Debug: log fragment field discovery every time (low freq since this runs once per sync)
-    if (manager.id === catalog[0]?.id) {
-      console.log("[kolibri] Fragment field discovery for", manager.id, "→", item.fragments,
-        "raw keys:", Object.keys(row).filter(k => /frag/i.test(k)).join(","));
+    const fragmentValue = findFragmentsInSave(root, srcValue, row);
+    item.fragments = fragmentValue ?? 0;
+    item.fragmentSource = fragmentValue == null ? "unavailable" : "kolibri";
+    if (fragmentValue != null) fragmentFieldCount += 1;
+    if (manager.id === syncCatalog[0]?.id || item.fragments > 0) {
+      console.log("[kolibri] Fragment field discovery", {
+        managerId: manager.id,
+        sourceId: srcValue,
+        value: item.fragments,
+        rowKeys: Object.keys(row).filter((key) => /frag/i.test(key)),
+        rootFragmentPaths: Object.keys(data).filter((key) => /frag/i.test(key)),
+      });
     }
     item.updatedAt = new Date().toISOString();
   }
@@ -190,6 +312,8 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
       decodedBytes: decoded.json.byteLength,
       managerCount: managers.length,
       unknownManagerCount: unresolvedCount,
+      fragmentFieldCount,
+      fragmentMissingCount: Math.max(0, resolved - fragmentFieldCount),
       unresolvedSampleIds: unresolved.length > 0
         ? unresolved.map((u) => u.sourceValue).slice(0, 10)
         : undefined,

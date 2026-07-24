@@ -16,6 +16,7 @@ import type { CatalogManager, PlayerManager } from "./db";
 import { strengthScore, effectiveActiveValue, rarityWeight, rankThreshold } from "./db";
 import type { CachedCatalogPackage } from "./catalog-cache";
 import { APK_MANAGER_NAMES } from "./manager-name-fallback";
+import { MANAGER_ENRICHMENT } from "./manager-enrichment";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -243,41 +244,61 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
   for (const alias of aliasEntries) if (typeof alias.canonicalId === "string" && typeof alias.alias === "string" && alias.alias) aliases.set(alias.canonicalId, alias.alias);
 
   const nameSourceCounts: Record<string, number> = {};
+  const enrichmentByGameId = new Map(MANAGER_ENRICHMENT.map((manager) => [String(manager.gameId), manager]));
   const managers = (core as { managers: Array<Record<string, unknown>> }).managers.flatMap((item) => {
     const id = typeof item.canonicalId === "string" ? item.canonicalId : item.id;
     if (typeof id !== "string" || !id) return [];
     const extensions = item.extensions && typeof item.extensions === "object" ? item.extensions as Record<string, unknown> : {};
     const sourceIdentifiers = item.sourceIdentifiers && typeof item.sourceIdentifiers === "object" ? item.sourceIdentifiers as Record<string, unknown> : {};
     const nameKey = typeof extensions.nameKey === "string" ? extensions.nameKey : typeof sourceIdentifiers.nameKey === "string" ? sourceIdentifiers.nameKey : undefined;
+    const gameId = typeof extensions.superManagerId === "number" ? extensions.superManagerId
+      : typeof sourceIdentifiers.superManagerId === "number" ? Number(sourceIdentifiers.superManagerId)
+        : Number(id.match(/(\d+)$/)?.[1] ?? NaN);
+    const enrichment = enrichmentByGameId.get(String(gameId));
     const packageName = typeof item.name === "string" && item.name.trim() ? item.name : undefined;
     const localizedName = localizedNames.get(id);
     const aliasName = aliases.get(id);
     const derivedName = nameKey ? deriveManagerName(nameKey) : undefined;
     const fallbackName = APK_MANAGER_NAMES[id];
-    const name = packageName ?? localizedName ?? aliasName ?? derivedName ?? fallbackName ?? id;
-    const source = packageName ? "core" : localizedName ? "localization" : aliasName ? "alias" : derivedName ? "nameKey" : fallbackName ? "apk-fallback" : "canonical-id";
+    const name = packageName ?? localizedName ?? aliasName ?? derivedName ?? fallbackName ?? enrichment?.name ?? id;
+    const source = packageName ? "core" : localizedName ? "localization" : aliasName ? "alias" : derivedName ? "nameKey" : fallbackName ? "apk-fallback" : enrichment ? "master-data" : "canonical-id";
     nameSourceCounts[source] = (nameSourceCounts[source] ?? 0) + 1;
 
     // Read active ability from either top-level (legacy) or extensions.active (strict v2)
-    const active =
+    const packageActive =
       (item.active && typeof item.active === "object")
         ? item.active as Record<string, unknown>
         : (extensions.active && typeof extensions.active === "object")
           ? extensions.active as Record<string, unknown>
           : undefined;
+    const extensionActive = {
+      description: typeof extensions.description === "string" ? extensions.description : undefined,
+      multiplier: typeof extensions.activeStrength === "number" ? extensions.activeStrength : undefined,
+      multiplierAt100: typeof extensions.activeStrength === "number" ? extensions.activeStrength : undefined,
+      cooldown: typeof extensions.cooldown === "number" ? extensions.cooldown : undefined,
+      duration: typeof extensions.duration === "number" ? extensions.duration : undefined,
+    };
+    const active = packageActive ?? extensionActive;
 
     // Read abilities array (v2 APK-extracted format)
     const abilities = Array.isArray(item.abilities) ? item.abilities as Array<Record<string, unknown>> : undefined;
     const firstAbility = abilities?.[0];
+    const activeDescription = typeof active?.description === "string" && active.description.trim() && !/^Active:\s*SM_/i.test(active.description)
+      ? active.description
+      : enrichment?.descriptionLong;
+    const activeMultiplier = typeof active?.multiplier === "number" ? active.multiplier : enrichment?.activeL1;
+    const activeMultiplierAt100 = typeof active?.multiplierAt100 === "number" ? active.multiplierAt100 : enrichment?.activeL100;
+    const activeCooldown = typeof active?.cooldown === "number" || typeof active?.cooldown === "string" ? active.cooldown : enrichment?.cooldown;
+    const activeDuration = typeof active?.duration === "number" || typeof active?.duration === "string" ? active.duration : enrichment?.duration;
 
     // Read elements from top-level array, extensions.elements, or derive from element field
-    const elements: string[] = Array.isArray(item.elements)
+    const elements: string[] = Array.isArray(item.elements) && item.elements.length > 0
       ? item.elements.filter((value): value is string => typeof value === "string")
-      : Array.isArray(extensions.elements)
+      : Array.isArray(extensions.elements) && extensions.elements.length > 0
         ? (extensions.elements as unknown[]).filter((value): value is string => typeof value === "string")
         : typeof item.element === "string"
           ? [item.element]
-          : [];
+          : enrichment?.elements.map((element) => `${element.element} (${element.effectiveness})`) ?? [];
 
     // Read progression table (v2 APK-extracted)
     const progression = Array.isArray(item.progression)
@@ -289,7 +310,7 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
       : undefined;
 
     // Read sprite refs
-    const spriteRefs = Array.isArray(item.spriteRefs)
+    const spriteRefs = Array.isArray(item.spriteRefs) && item.spriteRefs.length > 0
       ? item.spriteRefs.map((s: Record<string, unknown>) => ({
           name: typeof s.name === "string" ? s.name : undefined,
           filename: typeof s.filename === "string" ? s.filename : undefined,
@@ -309,14 +330,15 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
       name,
       rarity: typeof item.rarity === "string" ? item.rarity : "unknown",
       type: typeof item.role === "string" ? item.role : (typeof item.type === "string" ? item.type : "Unknown area"),
-      gameId: typeof extensions.superManagerId === "number" ? extensions.superManagerId
-        : typeof sourceIdentifiers.superManagerId === "number" ? sourceIdentifiers.superManagerId
-          : Number(id.match(/(\d+)$/)?.[1] ?? NaN),
+      gameId,
+      sprite: typeof item.sprite === "string" ? item.sprite : enrichment?.sprite,
       elements,
       active: active ? {
-        description: typeof active.description === "string" ? active.description : undefined,
-        multiplier: typeof active.multiplier === "number" ? active.multiplier : undefined,
-        multiplierAt100: typeof active.multiplierAt100 === "number" ? active.multiplierAt100 : undefined,
+        description: activeDescription,
+        multiplier: activeMultiplier,
+        multiplierAt100: activeMultiplierAt100,
+        cooldown: activeCooldown,
+        duration: activeDuration,
       } : firstAbility ? {
         multiplier: typeof firstAbility.multiplier === "number" ? firstAbility.multiplier : undefined,
         multiplierAt100: typeof firstAbility.multiplierAt100 === "number" ? firstAbility.multiplierAt100 : undefined,
@@ -331,12 +353,24 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
           incremental: typeof (a.effectType as Record<string, unknown>).incremental === "number" ? (a.effectType as Record<string, unknown>).incremental as number : undefined,
         } : undefined,
       })) : undefined,
-      passives: Array.isArray(item.passives) ? item.passives.map((p) => ({
+      passives: Array.isArray(item.passives) && item.passives.some((p) => Object.values(p).some((value) => value != null)) ? item.passives.map((p) => ({
         unlockLevel: typeof p.unlockLevel === "number" ? p.unlockLevel : undefined,
         description: typeof p.description === "string" ? p.description : undefined,
         multiplier: typeof p.multiplier === "number" ? p.multiplier : undefined,
         type: typeof p.type === "string" ? p.type : undefined,
         promoReq: typeof p.promoReq === "number" ? p.promoReq : undefined,
+      })) : enrichment?.passives.map((passive) => ({
+        unlockLevel: undefined,
+        description: passive.type,
+        multiplier: typeof passive.value === "number" ? passive.value : undefined,
+        type: passive.type,
+        promoReq: passive.promoReq,
+      })),
+      equipment: Array.isArray(item.equipment) ? item.equipment.map((equipment) => ({
+        id: typeof equipment.id === "string" ? equipment.id : undefined,
+        name: typeof equipment.name === "string" ? equipment.name : undefined,
+        description: typeof equipment.description === "string" ? equipment.description : undefined,
+        multiplier: typeof equipment.multiplier === "number" ? equipment.multiplier : undefined,
       })) : undefined,
       progression,
       spriteRefs,
