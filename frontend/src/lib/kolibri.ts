@@ -75,7 +75,30 @@ function findFragmentsInSave(root: unknown, sourceId: string, row?: Record<strin
 }
 
 export function extractFragmentsFromSave(root: unknown, sourceId: string, row?: Record<string, unknown>): number {
+  // Primary source: SuperManagerResourcesSavegame.Fragments array
+  const data = (root as Record<string, unknown>).Data ?? root;
+  const resources = (data as Record<string, unknown>).SuperManagerResourcesSavegame as Record<string, unknown> | undefined;
+  if (resources) {
+    const fragments = resources.Fragments as Array<{SuperManagerId: number; Quantity: number}> | undefined;
+    if (fragments) {
+      const sid = Number(sourceId);
+      const match = fragments.find(f => f.SuperManagerId === sid);
+      if (match) return match.Quantity;
+    }
+  }
+  // Fallback: recursive search for old save formats
   return findFragmentsInSave(root, sourceId, row) ?? 0;
+}
+
+/** Extract equipment assignments from SuperManagerEquipmentSavegame. */
+export function extractEquipmentFromSave(root: unknown, sourceId: string): Array<{equipmentId: number}> {
+  const data = (root as Record<string, unknown>).Data ?? root;
+  const equipSave = (data as Record<string, unknown>).SuperManagerEquipmentSavegame as Record<string, unknown> | undefined;
+  if (!equipSave || !equipSave.EquipmentAssignedToSuperManager) return [];
+  const assignments = equipSave.EquipmentAssignedToSuperManager as Array<{SuperManagerId: number; EquipmentId: number}>;
+  if (!assignments) return [];
+  const sid = Number(sourceId);
+  return assignments.filter(a => a.SuperManagerId === sid).map(a => ({equipmentId: a.EquipmentId}));
 }
 
 /**
@@ -137,6 +160,26 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
   const root = JSON.parse(new TextDecoder().decode(decoded.json)) as Record<string, unknown>;
   const data = (root.Data ?? root) as Record<string, unknown>;
   const managers = (((data.SuperManagers ?? {}) as Record<string, unknown>).Managers ?? []) as Array<Record<string, unknown>>;
+
+  // Direct fragment/equipment extraction from save fields
+  const fragmentMap = new Map<number, number>();
+  const resources = (data as Record<string, unknown>).SuperManagerResourcesSavegame as Record<string, unknown> | undefined;
+  if (resources) {
+    (resources.Fragments as Array<{SuperManagerId: number; Quantity: number}> | undefined)?.forEach(f => {
+      fragmentMap.set(f.SuperManagerId, f.Quantity);
+    });
+    console.log("[kolibri] Fragments loaded:", fragmentMap.size, "managers");
+  }
+  const equipAssignments = new Map<number, number[]>();
+  const equipSave = (data as Record<string, unknown>).SuperManagerEquipmentSavegame as Record<string, unknown> | undefined;
+  if (equipSave) {
+    (equipSave.EquipmentAssignedToSuperManager as Array<{SuperManagerId: number; EquipmentId: number}> | undefined)?.forEach(e => {
+      const list = equipAssignments.get(e.SuperManagerId) ?? [];
+      list.push(e.EquipmentId);
+      equipAssignments.set(e.SuperManagerId, list);
+    });
+    console.log("[kolibri] Equipment assignments loaded:", equipAssignments.size, "managers");
+  }
 
   // Resolve all manager IDs through the mapping resolver
   // Wait for catalog client to have an active package (sync may fire before load finishes)
@@ -255,19 +298,13 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     item.level = Math.max(1, Number(row.Level ?? 1));
     item.rank = Math.max(0, Number(row.Rank ?? 0));
     item.promoted = Math.max(0, Number(row.Promotion ?? 0));
-    const fragmentValue = findFragmentsInSave(root, srcValue, row);
-    item.fragments = fragmentValue ?? 0;
-    item.fragmentSource = fragmentValue == null ? "unavailable" : "kolibri";
-    if (fragmentValue != null) fragmentFieldCount += 1;
-    if (manager.id === syncCatalog[0]?.id || item.fragments > 0) {
-      console.log("[kolibri] Fragment field discovery", {
-        managerId: manager.id,
-        sourceId: srcValue,
-        value: item.fragments,
-        rowKeys: Object.keys(row).filter((key) => /frag/i.test(key)),
-        rootFragmentPaths: Object.keys(data).filter((key) => /frag/i.test(key)),
-      });
-    }
+    // Use direct fragmentMap from SuperManagerResourcesSavegame
+    const fragQty = fragmentMap.get(Number(srcValue));
+    item.fragments = fragQty ?? 0;
+    item.fragmentSource = fragQty != null ? "kolibri" : "unavailable";
+    if (fragQty != null) fragmentFieldCount += 1;
+    // Equipment assignments from SuperManagerEquipmentSavegame
+    item.equipmentIds = equipAssignments.get(Number(srcValue)) ?? [];
     item.updatedAt = new Date().toISOString();
   }
 

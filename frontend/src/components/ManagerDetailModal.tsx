@@ -11,8 +11,11 @@ import { interpolateAbilityDescription, formatTime } from "../lib/textNormalizat
 interface ManagerDetailModalProps {
   manager: CatalogManager;
   progress?: PlayerManager;
+  equipmentNameMap?: Map<number, string>;
   onClose: () => void;
 }
+
+import { equipmentDisplayName } from "../lib/equipment-display-names";
 
 const PASSIVE_LABELS: Record<string, string> = {
   MSB: "Mining Speed Boost",
@@ -35,7 +38,7 @@ function isKnownFragments(progress: PlayerManager): boolean {
   return progress.fragmentSource === "kolibri" || progress.fragmentSource === "manual";
 }
 
-export function ManagerDetailModal({ manager, progress, onClose }: ManagerDetailModalProps) {
+export function ManagerDetailModal({ manager, progress, equipmentNameMap, onClose }: ManagerDetailModalProps) {
   const rarity = manager.rarity.toLowerCase();
   const sprite = spriteURL(manager);
   const areaAbbrev =
@@ -119,7 +122,7 @@ export function ManagerDetailModal({ manager, progress, onClose }: ManagerDetail
               <div key={index} className="detail-passive">
                 <span className="detail-passive-name">{passiveLabel(passive)}</span>
                 <span className="detail-passive-value">
-                  {passive.multiplier != null ? `${passive.multiplier}x` : "—"}
+                  {passive.multiplier != null ? `${passive.multiplier.toFixed(2)}x` : "—"}
                   {passive.promoReq !== undefined && <small> (P{passive.promoReq})</small>}
                 </span>
               </div>
@@ -138,12 +141,22 @@ export function ManagerDetailModal({ manager, progress, onClose }: ManagerDetail
 
         <section className="detail-section">
           <h3 className="detail-section-title">Equipment &amp; Multiplier Effects <span className="detail-section-chevron">⌄</span></h3>
-          {manager.equipment && manager.equipment.length > 0 ? manager.equipment.map((equipment, index) => (
-            <div key={equipment.id ?? index} className="detail-passive">
-              <span className="detail-passive-name">{equipment.name ?? equipment.id ?? "Equipment"}</span>
-              <span className="detail-passive-value">{equipment.multiplier != null ? `${equipment.multiplier}x` : "—"}</span>
+          {progress.equipmentIds && progress.equipmentIds.length > 0 ? (
+            <div>
+              {progress.equipmentIds.map((equipId) => {
+                const name = equipmentNameMap?.get(equipId)
+                  ? equipmentDisplayName(equipId)
+                  : `Equipment ${equipId}`;
+                return (
+                  <div key={equipId} className="detail-passive">
+                    <span className="detail-passive-name">{name}</span>
+                    <span className="detail-passive-value">ID: {equipId}</span>
+                  </div>
+                );
+              })}
+              <p className="detail-empty-note" style={{ marginTop: '0.5rem' }}>Equipment assigned from player save. Multiplier effects from catalog enrichment.</p>
             </div>
-          )) : <p className="detail-empty-note">No equipment records were captured by UbuntuMac for this release. No multiplier is inferred.</p>}
+          ) : <p className="detail-empty-note">No equipment assigned to this manager.</p>}
         </section>
       </article>
     </div>

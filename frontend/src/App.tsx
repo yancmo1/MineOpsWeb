@@ -15,6 +15,7 @@ import { StrategyPage } from "./pages/StrategyPage";
 import { MorePage } from "./pages/MorePage";
 import { ManagerCard } from "./components/ManagerCard";
 import { ManagerDetailModal } from "./components/ManagerDetailModal";
+import { buildEquipmentNameMap } from "./lib/equipment-lookup";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { compareManagers, defaultOwnership, sortOptions, type ManagersOwnership, type ManagersSortOption } from "./lib/managers-view";
 
@@ -62,6 +63,7 @@ export default function App() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ authenticated: false });
   const [showSnapshotHistory, setShowSnapshotHistory] = useState(false);
   const [captureStatus, setCaptureStatus] = useState<CaptureStatus>({ healthy: false });
+  const [equipmentNameMap, setEquipmentNameMap] = useState<Map<number, string>>(new Map());
   const hasAutoSynced = useRef(false);
 
   // Close sort menu on click outside
@@ -119,6 +121,7 @@ export default function App() {
       appliedCatalogKey = key;
       console.debug("[app] Applying catalog", { reason, releaseId: pkg.releaseId, source: pkg.source, count: managers.length, sm10066: managers.find((manager) => manager.id === "sm-10066")?.name });
       setCatalog(managers);
+      setEquipmentNameMap(buildEquipmentNameMap(pkg));
       const localProgress = await loadProgress(managers);
       progressRef = localProgress;
       setProgress(localProgress);
@@ -546,6 +549,7 @@ export default function App() {
         <ManagerDetailModal
           manager={selected}
           progress={progress.find((p) => p.managerId === selected.id)}
+          equipmentNameMap={equipmentNameMap}
           onClose={() => setSelected(null)}
         />
       )}
