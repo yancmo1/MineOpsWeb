@@ -141,7 +141,7 @@ export function ManagerDetailModal({ manager, progress, equipmentNameMap, onClos
 
         <section className="detail-section">
           <h3 className="detail-section-title">Equipment &amp; Multiplier Effects <span className="detail-section-chevron">⌄</span></h3>
-          {progress.equipmentIds && progress.equipmentIds.length > 0 ? (
+          {progress?.equipmentIds && progress.equipmentIds.length > 0 ? (
             <div>
               {progress.equipmentIds.map((equipId) => {
                 const name = equipmentNameMap?.get(equipId)
