@@ -1,93 +1,94 @@
 {
   "artifacts": [
     {
-      "bytes": 373805,
+      "bytes": 114506,
       "contentType": "application/json",
       "filename": "catalog-core.json",
       "path": "catalog-core.json",
-      "recordCount": 118,
+      "recordCount": 169,
       "required": true,
       "schemaVersion": "1.0.0",
-      "sha256": "085608e856bb07bd666f71686329db94a9dbd084c8206e5d6f762152204a13ce"
+      "sha256": "37fedc649585a9815712315f4ddc381728305e8b51b2b7719d2a0e88f9c239f2"
     },
     {
-      "bytes": 883,
-      "contentType": "application/json",
-      "filename": "validation-report.json",
-      "path": "validation-report.json",
-      "recordCount": 0,
-      "required": true,
-      "schemaVersion": "1.0.0",
-      "sha256": "b4057da16ad7b6da637f6fe77339903023ffd147d0241f881091a43fd7c1d4a0"
-    },
-    {
-      "bytes": 196,
-      "contentType": "application/json",
-      "filename": "relationships.json",
-      "path": "relationships.json",
-      "recordCount": 0,
-      "required": false,
-      "schemaVersion": "1.0.0",
-      "sha256": "e4dd369aec5517d7a265a71d30d3c67ae79c09fd119d4a35be98b0699199122c"
-    },
-    {
-      "bytes": 80834,
+      "bytes": 50194,
       "contentType": "application/json",
       "filename": "mappings.json",
       "path": "mappings.json",
       "recordCount": 354,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "02afc4493de361e4d479db95122d757228eda2a2efbe13277f5d3dc0488278dc"
+      "sha256": "b437f633c0b48d76c5afebfd4333b013438d35199e0420c1fa3bc7cbe728f392"
     },
     {
-      "bytes": 20619,
+      "bytes": 15973,
       "contentType": "application/json",
       "filename": "localization.json",
       "path": "localization.json",
-      "recordCount": 118,
+      "recordCount": 0,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "9c340065c7e871a98230bc807cf2db43d850a5f3899f370236f2bfc71445dc68"
+      "sha256": "51dad2851d396c6dc78b5f4055a3aedd5a2204ec88d6455e3c330600ac8e85e5"
     },
     {
-      "bytes": 189,
+      "bytes": 467,
+      "contentType": "application/json",
+      "filename": "validation-report.json",
+      "path": "validation-report.json",
+      "recordCount": 0,
+      "required": true,
+      "schemaVersion": "1.0.0",
+      "sha256": "e76fd291a6540ac38d81f9f77ccb4180cafe7e60ac43527866c5e3770f50ff3b"
+    },
+    {
+      "bytes": 187,
+      "contentType": "application/json",
+      "filename": "relationships.json",
+      "path": "relationships.json",
+      "recordCount": 0,
+      "required": false,
+      "schemaVersion": "1.0.0",
+      "sha256": "38c9a7cf84fd01316fde0079af577f9966dc957a07753bb70ba3eeafb63aa29d"
+    },
+    {
+      "bytes": 180,
       "contentType": "application/json",
       "filename": "assets.json",
       "path": "assets.json",
       "recordCount": 0,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "62863d08a4f2f4425678866bd2e1afac97a18730d83dac4777878f12e44dc298"
+      "sha256": "fd9fad721196e832457a58c64d4337d25a18493518fe6dd904942eb83065b51c"
     },
     {
-      "bytes": 2551,
+      "bytes": 8183,
       "contentType": "application/json",
       "filename": "changelog.json",
       "path": "changelog.json",
       "recordCount": 0,
       "required": false,
       "schemaVersion": "1.0.0",
-      "sha256": "3c9d19736ec30e073d63cf9d7a02e38b98e2d60bbe5395b32a4d8eda933a8c1e"
+      "sha256": "d48904826104cab5a21b56dff8d78eb16521d5b808e78dad3572d79f2aa7bc5a"
     }
   ],
-  "catalogVersion": "5.59.0_96449_0716T143539Z",
+  "catalogVersion": "5.59.0_96449_20260716T143539Z",
   "counts": {
     "artifacts": 0,
     "collectibles": 0,
-    "equipment": 0,
+    "equipment": 36,
     "managers": 118,
     "mines": 0,
     "relationships": 0,
     "research": 0,
-    "unresolvedObjects": 0
+    "unresolvedObjects": 0,
+    "materials": 15
   },
   "gameVersion": "5.59.0",
   "gameVersionCode": 96449,
-  "generatedAt": "2026-07-18T12:54:41.630Z",
+  "generatedAt": "2026-07-19T14:15:14.037600+00:00",
   "generator": {
-    "name": "MineOpsWeb produce-candidate-package",
-    "version": "1.0.0"
+    "name": "MineOpsDataEngine v3",
+    "version": "3.0.0"
   },
   "manifestSchemaVersion": "2.0.0",
   "previousCatalogVersion": null,
