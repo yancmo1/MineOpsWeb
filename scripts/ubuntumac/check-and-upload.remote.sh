@@ -5,6 +5,9 @@ ENV_FILE="$HOME/mineops-data/.capture.env"
 RELEASE_ROOT="$HOME/mineops-data/releases"
 EMULATOR_SERIAL="${EMULATOR_SERIAL:-emulator-5556}"
 PACKAGE_NAME="${PACKAGE_NAME:-com.fluffyfairygames.idleminertycoon}"
+ENGINE="${MINEOPS_DATA_ENGINE:-$HOME/mineops-env/bin/mineops-data-engine}"
+BOOT_TIMEOUT_SECONDS="${EMULATOR_BOOT_TIMEOUT_SECONDS:-180}"
+STARTED_EMULATOR=0
 
 # Make adb/emulator available in non-interactive SSH sessions.
 if [[ -d "$HOME/Android/Sdk/platform-tools" ]]; then
@@ -46,6 +49,64 @@ show_status() {
   curl -fsS "$base/api/collections/catalog_versions/records?perPage=3" | python3 -m json.tool || true
 }
 
+emulator_state() {
+  if ! command -v adb >/dev/null 2>&1; then
+    echo "missing"
+    return 0
+  fi
+  adb -s "$EMULATOR_SERIAL" get-state 2>/dev/null || true
+}
+
+start_emulator_if_needed() {
+  local state
+  state="$(emulator_state)"
+  if [[ "$state" == "device" ]]; then
+    echo "[ubuntu-check] emulator $EMULATOR_SERIAL already online; leaving it running"
+    return 0
+  fi
+
+  if [[ "${NO_EMULATOR_START:-0}" == "1" ]]; then
+    echo "[ubuntu-check] emulator $EMULATOR_SERIAL is offline and automatic startup is disabled"
+    return 1
+  fi
+
+  if [[ ! -x "$ENGINE" ]]; then
+    echo "[ubuntu-check] data engine not found: $ENGINE"
+    return 1
+  fi
+
+  echo "[ubuntu-check] starting emulator $EMULATOR_SERIAL"
+  "$ENGINE" emulator start
+  STARTED_EMULATOR=1
+
+  local elapsed=0
+  while (( elapsed < BOOT_TIMEOUT_SECONDS )); do
+    if [[ "$(emulator_state)" == "device" ]] && [[ "$(adb -s "$EMULATOR_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+      echo "[ubuntu-check] emulator $EMULATOR_SERIAL booted"
+      return 0
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+
+  echo "[ubuntu-check] emulator $EMULATOR_SERIAL did not finish booting within ${BOOT_TIMEOUT_SECONDS}s"
+  return 1
+}
+
+stop_started_emulator() {
+  if [[ "$STARTED_EMULATOR" != "1" || "${KEEP_EMULATOR_RUNNING:-0}" == "1" ]]; then
+    return 0
+  fi
+  echo "[ubuntu-check] stopping emulator $EMULATOR_SERIAL started by this run"
+  "$ENGINE" emulator stop || echo "[ubuntu-check] warning: emulator stop failed" >&2
+}
+
+cleanup() {
+  local exit_code=$?
+  stop_started_emulator
+  exit "$exit_code"
+}
+
 latest_release_json() {
   find "$RELEASE_ROOT" -type f -name release.json -print0 2>/dev/null | xargs -0 ls -1t 2>/dev/null | head -n 1
 }
@@ -60,6 +121,30 @@ print_apk_version() {
     fi
   else
     echo "[ubuntu-check] adb not found; skipping emulator check"
+  fi
+}
+
+acquire_release() {
+  if [[ ! -x "$ENGINE" ]]; then
+    echo "[ubuntu-check] data engine not found: $ENGINE"
+    return 1
+  fi
+
+  echo "[ubuntu-check] acquiring current APK/data release"
+  set +e
+  "$ENGINE" acquire
+  local acquire_code=$?
+  set -e
+
+  # The engine uses 14 for an unchanged release. That is a successful
+  # no-op, but there is nothing new to send to PocketBase.
+  if [[ "$acquire_code" == "14" ]]; then
+    echo "[ubuntu-check] release is unchanged; nothing to upload"
+    return 14
+  fi
+  if [[ "$acquire_code" != "0" ]]; then
+    echo "[ubuntu-check] acquisition failed with exit code $acquire_code"
+    return "$acquire_code"
   fi
 }
 
@@ -153,8 +238,12 @@ upload_release() {
   echo
   rm -f "$body_file"
 
-  if [[ "$http_code" == "200" || "$http_code" == "409" ]]; then
+  if [[ "$http_code" == "200" ]]; then
     return 0
+  fi
+  if [[ "$http_code" == "409" ]]; then
+    echo "[ubuntu-check] release was already ingested; no new upload performed"
+    return 14
   fi
   return 1
 }
@@ -165,12 +254,36 @@ if [[ "$MODE" == "status" || "$MODE" == "--status" ]]; then
   exit $?
 fi
 
+if [[ "$MODE" == "--no-start" ]]; then
+  export NO_EMULATOR_START=1
+fi
+if [[ "$MODE" == "--keep-emulator" ]]; then
+  export KEEP_EMULATOR_RUNNING=1
+fi
+
+trap cleanup EXIT
+
+start_emulator_if_needed
 print_apk_version
+
+before_release_json="$(latest_release_json || true)"
+set +e
+acquire_release
+acquire_code=$?
+set -e
+if [[ "$acquire_code" != "0" ]]; then
+  exit "$acquire_code"
+fi
 
 release_json="$(latest_release_json || true)"
 if [[ -z "$release_json" ]]; then
-  echo "[ubuntu-check] No release.json found under $RELEASE_ROOT"
+  echo "[ubuntu-check] Acquisition completed without producing release.json"
   exit 1
+fi
+
+if [[ "$release_json" == "$before_release_json" ]]; then
+  echo "[ubuntu-check] acquisition did not produce a new release; refusing stale upload"
+  exit 14
 fi
 
 echo "[ubuntu-check] Latest release payload: $release_json"

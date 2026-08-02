@@ -84,7 +84,7 @@ Added in `.vscode/tasks.json`:
 Both tasks call `scripts/ubuntumac/run-remote-check.sh`, which SSHes to UbuntuMac and runs:
 
 - `~/mineops-data/bin/check-and-upload.sh --status`
-- `~/mineops-data/bin/check-and-upload.sh`
+- `~/mineops-data/bin/check-and-upload.sh` (start emulator if needed, acquire a fresh release, upload it, then stop only the emulator started by this run)
 
 Remote runner source of truth in this repo:
 
@@ -101,3 +101,10 @@ Override SSH target/command without editing task files:
 
 - `UBUNTUMAC_SSH_TARGET`
 - `UBUNTUMAC_REMOTE_COMMAND`
+
+The upload runner exports the Android SDK path before invoking `adb` or
+`mineops-data-engine`, waits for `sys.boot_completed=1`, and refuses to upload
+an older release when acquisition produces no new release. Exit code `14` means
+“unchanged/already ingested” and is a clean no-op. For troubleshooting, use
+`--no-start` to require an already-running emulator or `--keep-emulator` to
+leave an emulator started by the run online.

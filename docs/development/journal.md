@@ -1,5 +1,15 @@
 # Development journal
 
+## 2026-08-02 — Make UbuntuMac capture upload acquire fresh data safely
+
+**Problem:** The manual bridge command skipped capture when `emulator-5556` was offline, then selected the newest existing `release.json`. That allowed a stale test release to be submitted repeatedly, producing an ingest `409` without updating the catalog.
+
+**Changes:** `scripts/ubuntumac/check-and-upload.remote.sh` now exports the Android SDK path, starts the fixed emulator only when it is offline, waits for ADB and `sys.boot_completed=1`, runs `mineops-data-engine acquire`, and stops only the emulator started by that invocation. It refuses stale uploads when acquisition reports the release is unchanged, and treats HTTP 409 as a clear no-op with exit code 14. `scripts/ubuntumac/run-remote-check.sh` forwards `--no-start` and `--keep-emulator` troubleshooting options. The capture workflow documentation now describes the lifecycle and no-op behavior.
+
+**Verification:** Shell syntax and diff checks passed locally; the UbuntuMac read-only probe confirmed the current emulator is offline and `acquire --help` is available. The updated runner must be installed on UbuntuMac before the app’s copied SSH command uses the new behavior.
+
+**Limitation:** A real acquisition/upload smoke test requires starting the UbuntuMac emulator and pulling the installed APK set, so it is intentionally left for the user’s next manual bridge run.
+
 ## 2026-08-01 — Make Strategy plan-first and clarify manual catalog updates
 
 **Why:** The Frontier Mine playbook was visually buried above a long manager-ranking list. The user asked for Strategy to act as a list of strategies, starting with Frontier Mine, and asked whether the app can manually pull a game update from the bridge.
