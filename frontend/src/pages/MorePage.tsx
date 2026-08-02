@@ -92,6 +92,7 @@ export function MorePage({
   const [packages, setPackages] = useState<CachedCatalogPackage[]>([]);
   const [imports, setImports] = useState<ImportRecord[]>([]);
   const [progress, setProgress] = useState<PlayerManager[]>([]);
+  const [bridgeCommandCopied, setBridgeCommandCopied] = useState(false);
 
   useEffect(() => {
     const refresh = async () => {
@@ -128,6 +129,15 @@ export function MorePage({
     const newSettings = { ...settings, autoSync: !settings.autoSync };
     onSettingsChange(newSettings);
     await saveSettings(newSettings);
+  }
+
+  async function copyBridgeUpdateCommand() {
+    try {
+      await navigator.clipboard.writeText("ssh ubuntumac '~/mineops-data/bin/check-and-upload.sh'");
+      setBridgeCommandCopied(true);
+    } catch {
+      setBridgeCommandCopied(false);
+    }
   }
   const catalogStatus = describeCatalogStatus(catalogState.loadState);
   const cacheDetail = describeCache(catalogState.cacheStatus, packages);
@@ -436,6 +446,14 @@ export function MorePage({
         <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
           UbuntuMac captures and uploads catalog releases separately. Run the UbuntuMac bridge task to publish a new release, then refresh this status and the catalog.
         </p>
+        <div className="bridge-manual-update">
+          <strong>Manual catalog update</strong>
+          <p>The web app can verify and refresh a published release, but it cannot start an APK capture on UbuntuMac. From your Mac, run the VS Code task <code>UbuntuMac: Check APK + upload latest release</code>, or copy the Terminal command below.</p>
+          <button className="secondary" onClick={() => { void copyBridgeUpdateCommand(); }}>
+            {bridgeCommandCopied ? "Command copied" : "Copy UbuntuMac update command"}
+          </button>
+          <p className="bridge-manual-steps">Then return here: 1) Refresh bridge status; 2) open Catalog and refresh the active catalog package.</p>
+        </div>
         <div
           style={{
             padding: "0.75rem",

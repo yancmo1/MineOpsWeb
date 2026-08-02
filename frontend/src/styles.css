@@ -1022,6 +1022,70 @@ nav button[aria-current="page"]:hover {
 .element-badges { gap: .4rem; }
 .element-badge { padding: .35rem .75rem; font-size: .75rem; border-width: 1px; }
 
+/* Frontier Mine playbook */
+.strategy-plan-menu { border-color: rgba(0, 160, 185, .2); }
+.strategy-plan-menu .eyebrow { margin-bottom: .2rem; }
+.strategy-plan-menu .card-title { margin-bottom: .3rem; }
+.strategy-plan-menu-intro { margin: 0; font-size: .82rem; line-height: 1.45; }
+.strategy-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; margin-top: 1rem; }
+.strategy-plan-card { display: block; min-height: 126px; padding: .85rem; text-align: left; background: var(--mine-light); color: var(--text-primary); border: 1px solid transparent; border-radius: 12px; }
+.strategy-plan-card:hover { transform: translateY(-1px); }
+.strategy-plan-card.active { background: rgba(0, 160, 185, .08); border-color: var(--accent-cyan); }
+.strategy-plan-card span, .strategy-plan-card b { display: block; }
+.strategy-plan-card > span:not(.strategy-plan-card-top) { color: var(--text-secondary); font-size: .75rem; font-weight: 500; line-height: 1.4; margin-top: .55rem; }
+.strategy-plan-card b { color: var(--accent-cyan); font-size: .72rem; margin-top: .7rem; }
+.strategy-plan-card-top { display: flex !important; justify-content: space-between; align-items: flex-start; gap: .5rem; font-size: .82rem; }
+.strategy-plan-card-top em { color: #087f8e; background: rgba(0, 160, 185, .12); border-radius: 999px; font-size: .62rem; font-style: normal; font-weight: 700; padding: .22rem .4rem; white-space: nowrap; }
+.strategy-upgrade-list { display: grid; gap: .5rem; }
+.strategy-upgrade-list > div { padding: .75rem; background: var(--bg-secondary); border: 1px solid var(--mine-light); border-radius: 10px; }
+.strategy-upgrade-list strong { font-size: .82rem; }
+.strategy-upgrade-list p { margin: .25rem 0 0; font-size: .76rem; line-height: 1.4; }
+.bridge-manual-update { margin: 0 0 .8rem; padding: .8rem; background: rgba(0, 160, 185, .06); border: 1px solid rgba(0, 160, 185, .16); border-radius: 10px; }
+.bridge-manual-update > strong { font-size: .82rem; }
+.bridge-manual-update p { color: var(--text-secondary); font-size: .76rem; line-height: 1.45; margin: .35rem 0 .65rem; }
+.bridge-manual-update button { font-size: .76rem; padding: .45rem .7rem; }
+.bridge-manual-update .bridge-manual-steps { margin: .65rem 0 0; }
+.frontier-playbook { border-color: rgba(255, 140, 50, 0.28); }
+.frontier-heading-row { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.frontier-heading-row .eyebrow { color: var(--accent-orange); }
+.frontier-heading-row .card-title { margin-bottom: .25rem; }
+.frontier-source-badge { color: #9a5a16; background: rgba(255, 140, 50, .12); border: 1px solid rgba(255, 140, 50, .25); border-radius: 999px; padding: .35rem .6rem; font-size: .68rem; font-weight: 700; white-space: nowrap; }
+.frontier-intro { max-width: 72rem; line-height: 1.5; font-size: .86rem; }
+.frontier-rule-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: 1rem 0 1.25rem; }
+.frontier-rule-grid > div { background: rgba(255, 140, 50, .07); border-radius: 12px; padding: .75rem; }
+.frontier-rule-grid strong, .frontier-rule-grid span { display: block; }
+.frontier-rule-grid strong { font-size: .78rem; margin-bottom: .3rem; }
+.frontier-rule-grid span { color: var(--text-secondary); font-size: .72rem; line-height: 1.4; }
+.frontier-section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(0, 0, 0, .07); }
+.frontier-section h3 { margin-bottom: .35rem; }
+.frontier-metrics { margin: .8rem 0; }
+.frontier-metrics .metric-card { padding: .65rem; }
+.frontier-metrics .metric-card strong { font-size: 1.25rem; }
+.frontier-roster-list { display: grid; gap: .5rem; }
+.frontier-roster-row { display: grid; grid-template-columns: minmax(130px, .8fr) minmax(160px, 1fr) minmax(220px, 1.5fr); gap: .75rem; align-items: center; padding: .7rem; border: 1px solid var(--mine-light); border-radius: 10px; }
+.frontier-roster-row strong, .frontier-roster-row span { display: block; }
+.frontier-roster-row strong { font-size: .8rem; }
+.frontier-roster-row span { color: var(--text-secondary); font-size: .7rem; margin-top: .15rem; }
+.frontier-roster-row p { margin: 0; color: var(--text-secondary); font-size: .72rem; line-height: 1.35; }
+.frontier-roster-tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+.frontier-roster-tags span { display: inline-block; color: var(--accent-cyan); background: rgba(0, 160, 185, .08); border-radius: 999px; padding: .25rem .45rem; font-size: .65rem; font-weight: 700; }
+.frontier-planner-controls { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: .65rem; margin: .8rem 0; }
+.frontier-planner-controls label { color: var(--text-secondary); font-size: .72rem; font-weight: 700; }
+.frontier-planner-controls input, .frontier-planner-controls select { display: block; margin-top: .3rem; font-size: .8rem; }
+.frontier-plan-summary { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: baseline; padding: .75rem; background: rgba(0, 160, 185, .06); border-radius: 10px; }
+.frontier-plan-summary strong { color: var(--accent-cyan); }
+.frontier-plan-summary span { color: var(--text-secondary); font-size: .72rem; }
+.frontier-table-wrap { overflow-x: auto; margin-top: .7rem; }
+.frontier-table { border-collapse: collapse; width: 100%; font-size: .75rem; }
+.frontier-table th, .frontier-table td { padding: .55rem .45rem; border-bottom: 1px solid var(--mine-light); text-align: right; white-space: nowrap; }
+.frontier-table th:first-child, .frontier-table td:first-child { text-align: left; }
+.frontier-table th { color: var(--text-secondary); font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; }
+.frontier-row-blocked td { color: var(--accent-orange); font-weight: 700; }
+.frontier-sequence ol { margin: .7rem 0 0; padding-left: 1.2rem; }
+.frontier-sequence li { color: var(--text-secondary); font-size: .78rem; line-height: 1.5; padding: .2rem 0; }
+.frontier-sequence strong { color: var(--text-primary); }
+.frontier-footnote { color: var(--text-tertiary); font-size: .68rem; margin: 1rem 0 0; line-height: 1.45; }
+
 @media (max-width: 560px) {
   .dialog-backdrop { padding: .5rem; align-items: flex-end; }
   .detail-modal { max-height: 96vh; border-radius: 18px 18px 0 0; }
@@ -1030,6 +1094,13 @@ nav button[aria-current="page"]:hover {
   .detail-sprite-large { width: 76px; height: 76px; }
   .detail-name { font-size: 1.3rem; }
   .detail-star { font-size: 1.6rem; }
+  .frontier-heading-row { display: block; }
+  .strategy-plan-grid { grid-template-columns: 1fr; }
+  .strategy-plan-card { min-height: 0; }
+  .frontier-source-badge { display: inline-block; margin-top: .25rem; }
+  .frontier-rule-grid { grid-template-columns: 1fr 1fr; }
+  .frontier-roster-row { grid-template-columns: 1fr; gap: .45rem; }
+  .frontier-planner-controls { grid-template-columns: 1fr; }
 }
 
 /* Search */

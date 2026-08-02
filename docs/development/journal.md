@@ -1,5 +1,36 @@
 # Development journal
 
+## 2026-08-01 — Make Strategy plan-first and clarify manual catalog updates
+
+**Why:** The Frontier Mine playbook was visually buried above a long manager-ranking list. The user asked for Strategy to act as a list of strategies, starting with Frontier Mine, and asked whether the app can manually pull a game update from the bridge.
+
+**Changes:**
+- `frontend/src/pages/StrategyPage.tsx` now opens with a Strategy library containing **Frontier Mine start**, **General lineup**, and **Upgrade focus**. The full manager ranking is no longer the default view; General lineup shows only the top recommendation per operating area.
+- `frontend/src/pages/MorePage.tsx` now clearly states that the PWA can refresh bridge/catalog status but cannot remotely start UbuntuMac APK capture. It provides a copyable `ssh ubuntumac '~/mineops-data/bin/check-and-upload.sh'` command and the post-upload refresh sequence.
+- `frontend/src/styles.css` adds responsive styles for the strategy cards and manual-bridge callout.
+- Updated `docs/USER_GUIDE.md`, `docs/emulator-ingestion/capture-workflow.md`, and `docs/PARITY_MATRIX.md` to describe the plan-first UI and manual-update boundary.
+
+**Verification:** `npm test -- --run` → 105 tests passed; `npm run build` → TypeScript and Vite production build passed; `git diff --check` passed. Build emitted only the existing dynamic-import chunking warnings.
+
+**Limitation:** A true one-click in-app bridge trigger would require a separately authenticated remote-execution service and an explicit security design. It is intentionally not added by this UI change.
+
+## 2026-08-01 — Frontier Mine strategy playbook and FC checkpoint planner
+
+**Goal:** Turn the Frontier Mine research request into an actionable MineOps strategy surface.
+
+**Research performed:** Inspected the live [Idle Master's Hub Frontier Calculator](https://idle-miners.com/#fm/calculator), including its Calculator, Barrier Data, and How It Works views. Captured the current FM I–VII checkpoint cost/reward reference under the site's stated headpiece + pendrives assumptions. Cross-checked event rules and item behavior against [Kolibri's Frontier Mine FAQ](https://kolibri-games.helpshift.com/hc/en/3-idle-miner-tycoon/faq/194-what-are-frontier-mines/?han=1&hpn=1&l=en&p=ios) and [Frontier Mine items FAQ](https://kolibri-games.helpshift.com/hc/en/3-idle-miner-tycoon/faq/195-what-are-frontier-mine-items/), then used community sources for sequencing patterns and equipment context.
+
+**Implementation:**
+- Added `frontend/src/lib/frontier-guide.ts` with the checked-in reference table, sequential FC checkpoint projection, and roster-aware tags for income passives, upgrade-cost reduction, shaft burst, transport burst, and support.
+- Added Frontier Mine playbook, account-aware roster summary, checkpoint planner, and transparent limitation copy to `frontend/src/pages/StrategyPage.tsx`.
+- Added responsive Frontier-specific styling in `frontend/src/styles.css`.
+- Added four planner/roster regression tests in `frontend/src/lib/frontier-guide.test.ts`.
+- Added the source-backed strategy guide at `docs/frontier-mine-guide.md`.
+
+**Verification:** `npm test -- --run` → 105 tests passed; `npm run build` → TypeScript and Vite production build passed. Build emitted only the existing dynamic-import chunking warnings. `npm run lint` remains unavailable because the repository has no ESLint 9 `eslint.config.*` file; `git diff --check` passes.
+
+**Limitations:** The public barrier table is community-maintained and patch-sensitive. MineOps does not yet import live Frontier barrier timers/costs, Sparks, event time, complete cooldown/action compatibility, or equipment assignments, so the planner excludes wait-time optimization and does not present a fixed timed lineup. No architecture/data/sync document required changes; `docs/CALCULATION_INVENTORY.md`, `docs/PARITY_MATRIX.md`, and `docs/USER_GUIDE.md` were updated for the strategy behavior.
+
 ## 2026-07-26 — Fix stale-index.html module-script MIME error in production nginx
 
 **Bug:** The production site intermittently fails to load with `Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html"`. Refreshing 1-2 times resolves it.

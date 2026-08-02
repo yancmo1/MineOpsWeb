@@ -66,7 +66,7 @@ After upload:
 - `raw_imports` stores raw payload JSON
 - MineOpsWeb `More -> UbuntuMac catalog bridge` shows refreshed import history + latest-vs-previous deltas. Use the separate `More -> Catalog -> Refresh catalog` action to make the newly published package active in the browser.
 
-The browser does not start the UbuntuMac upload. This is intentionally a second, outbound-only workflow: first sync player data from Kolibri in the client; separately run the UbuntuMac bridge task when a new catalog release is available.
+The browser does not start the UbuntuMac upload. This is intentionally a second, outbound-only workflow: first sync player data from Kolibri in the client; separately run the UbuntuMac bridge task when a new catalog release is available. MineOpsWeb now exposes this boundary in **More → UbuntuMac catalog bridge** with a copyable SSH command and the exact post-upload refresh steps; it remains a manual Mac-side action, not a remote-execution endpoint.
 
 ### 5) Troubleshooting
 

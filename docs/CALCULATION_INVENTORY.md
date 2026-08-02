@@ -10,3 +10,4 @@
 | Rank readiness | `SMProgressService.swift:knownFragmentThreshold` | Rank, fragments | thresholds R0=15, R1=30, R2=50, R3=80; unknown false | `upgradeReadiness.ts` | Threshold edge tests |
 | Manager query | `ManagerListQuery.swift` | Search, area, ownership, rarity, readiness, sort | Deterministic filtering and sorting | `managerQuery.ts` | Component + unit tests |
 | Strategy plan | `Strategy/StrategyEngine.swift` | Owned roster and levels | Rules-first lineup and burst steps; no fabricated managers | `strategy.ts` | Sanitized roster fixtures |
+| Frontier checkpoint plan | Community FM calculator snapshot | Current checkpoint, FC, reward path | Sequential FC spend/reward projection; explicitly excludes wait-time and live mine-state modeling | `frontend/src/lib/frontier-guide.ts` | Barrier reward, unaffordable-next-step, pass-path fixtures |
