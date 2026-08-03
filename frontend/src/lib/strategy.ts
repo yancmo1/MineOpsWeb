@@ -12,11 +12,12 @@
  *   - Does not invent bonuses for missing catalog attributes
  */
 
-import type { CatalogManager, PlayerManager } from "./db";
+import type { CatalogManager, CatalogPassive, PlayerManager } from "./db";
 import { strengthScore, effectiveActiveValue, rarityWeight, rankThreshold } from "./db";
 import type { CachedCatalogPackage } from "./catalog-cache";
 import { APK_MANAGER_NAMES } from "./manager-name-fallback";
 import { MANAGER_ENRICHMENT } from "./manager-enrichment";
+import { isPlaceholderPassiveType } from "./passives";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,6 +92,28 @@ export interface StrategyEvaluation {
 
 const MISSING_ACTIVE_FIELD = "active.multiplier";
 const MISSING_LEVEL = "level < 1";
+
+function domainParams(value: unknown): Array<Record<string, unknown>> {
+  const sources = Array.isArray(value) ? value : value && typeof value === "object" ? [value] : [];
+  return sources.flatMap((source) => {
+    if (!source || typeof source !== "object") return [];
+    const params = (source as { params?: unknown }).params;
+    return Array.isArray(params) ? params.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object") : [];
+  });
+}
+
+function firstDomainParam(value: unknown): Record<string, unknown> | undefined {
+  return domainParams(value)[0];
+}
+
+function numericSourceField(row: Record<string, unknown> | undefined, ...keys: string[]): number | undefined {
+  if (!row) return undefined;
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+  }
+  return undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Evaluation
@@ -225,6 +248,7 @@ export function evaluateLineup(
  */
 export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogManager[] {
   const core = pkg.artifacts["catalog-core.json"]?.content;
+  const managerDomain = pkg.artifacts["manager-domain.json"]?.content;
   const localization = pkg.artifacts["localization.json"]?.content;
   const mappings = pkg.artifacts["mappings.json"]?.content;
   if (!core || typeof core !== "object" || !Array.isArray((core as { managers?: unknown }).managers)) {
@@ -243,6 +267,14 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
   const aliasEntries = mappings && typeof mappings === "object" && Array.isArray((mappings as { aliases?: unknown }).aliases) ? (mappings as { aliases: Array<Record<string, unknown>> }).aliases : [];
   for (const alias of aliasEntries) if (typeof alias.canonicalId === "string" && typeof alias.alias === "string" && alias.alias) aliases.set(alias.canonicalId, alias.alias);
 
+  const managerDomainById = new Map<string, Record<string, unknown>>();
+  const domainManagers = managerDomain && typeof managerDomain === "object" && Array.isArray((managerDomain as { managers?: unknown }).managers)
+    ? (managerDomain as { managers: Array<Record<string, unknown>> }).managers
+    : [];
+  for (const manager of domainManagers) {
+    if (typeof manager.canonicalId === "string") managerDomainById.set(manager.canonicalId, manager);
+  }
+
   const nameSourceCounts: Record<string, number> = {};
   const enrichmentByGameId = new Map(MANAGER_ENRICHMENT.map((manager) => [String(manager.gameId), manager]));
   const managers = (core as { managers: Array<Record<string, unknown>> }).managers.flatMap((item) => {
@@ -255,6 +287,13 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
       : typeof sourceIdentifiers.superManagerId === "number" ? Number(sourceIdentifiers.superManagerId)
         : Number(id.match(/(\d+)$/)?.[1] ?? NaN);
     const enrichment = enrichmentByGameId.get(String(gameId));
+    const domainManager = managerDomainById.get(id);
+    const domainDefinition = firstDomainParam(domainManager?.definition);
+    const domainActiveLevels = domainParams(domainManager?.activeLevels).flatMap((row) => {
+      const level = numericSourceField(row, "Level", "level");
+      const value = numericSourceField(row, "ActiveStrength", "activeStrength", "Value", "value");
+      return level != null && value != null ? [{ level, value }] : [];
+    }).sort((a, b) => a.level - b.level);
     const packageName = typeof item.name === "string" && item.name.trim() ? item.name : undefined;
     const localizedName = localizedNames.get(id);
     const aliasName = aliases.get(id);
@@ -286,10 +325,10 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
     const activeDescription = typeof active?.description === "string" && active.description.trim() && !/^Active:\s*SM_/i.test(active.description)
       ? active.description
       : enrichment?.descriptionLong;
-    const activeMultiplier = typeof active?.multiplier === "number" ? active.multiplier : enrichment?.activeL1;
-    const activeMultiplierAt100 = typeof active?.multiplierAt100 === "number" ? active.multiplierAt100 : enrichment?.activeL100;
-    const activeCooldown = typeof active?.cooldown === "number" || typeof active?.cooldown === "string" ? active.cooldown : enrichment?.cooldown;
-    const activeDuration = typeof active?.duration === "number" || typeof active?.duration === "string" ? active.duration : enrichment?.duration;
+    const activeMultiplier = domainActiveLevels.find((row) => row.level === 1)?.value ?? (typeof active?.multiplier === "number" ? active.multiplier : enrichment?.activeL1);
+    const activeMultiplierAt100 = domainActiveLevels.find((row) => row.level === 100)?.value ?? (typeof active?.multiplierAt100 === "number" ? active.multiplierAt100 : enrichment?.activeL100);
+    const activeCooldown = numericSourceField(domainDefinition, "Cooldown", "cooldown") ?? (typeof active?.cooldown === "number" || typeof active?.cooldown === "string" ? active.cooldown : enrichment?.cooldown);
+    const activeDuration = numericSourceField(domainDefinition, "Duration", "duration") ?? (typeof active?.duration === "number" || typeof active?.duration === "string" ? active.duration : enrichment?.duration);
 
     // Read elements from top-level array, extensions.elements, or derive from element field
     const elements: string[] = Array.isArray(item.elements) && item.elements.length > 0
@@ -343,6 +382,7 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
         multiplier: typeof firstAbility.multiplier === "number" ? firstAbility.multiplier : undefined,
         multiplierAt100: typeof firstAbility.multiplierAt100 === "number" ? firstAbility.multiplierAt100 : undefined,
       } : undefined,
+      activeLevels: domainActiveLevels.length > 0 ? domainActiveLevels : undefined,
       abilities: abilities ? abilities.map((a) => ({
         multiplier: typeof a.multiplier === "number" ? a.multiplier : undefined,
         multiplierAt100: typeof a.multiplierAt100 === "number" ? a.multiplierAt100 : undefined,
@@ -353,19 +393,44 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
           incremental: typeof (a.effectType as Record<string, unknown>).incremental === "number" ? (a.effectType as Record<string, unknown>).incremental as number : undefined,
         } : undefined,
       })) : undefined,
-      passives: Array.isArray(item.passives) && item.passives.some((p) => Object.values(p).some((value) => value != null)) ? item.passives.map((p) => ({
-        unlockLevel: typeof p.unlockLevel === "number" ? p.unlockLevel : undefined,
-        description: typeof p.description === "string" ? p.description : undefined,
-        multiplier: typeof p.multiplier === "number" ? p.multiplier : undefined,
-        type: typeof p.type === "string" ? p.type : undefined,
-        promoReq: typeof p.promoReq === "number" ? p.promoReq : undefined,
-      })) : enrichment?.passives.map((passive) => ({
-        unlockLevel: undefined,
-        description: passive.type,
-        multiplier: typeof passive.value === "number" ? passive.value : undefined,
-        type: passive.type,
-        promoReq: passive.promoReq,
-      })),
+      passives: (() => {
+        const packaged = Array.isArray(item.passives) ? item.passives.map((passive) => {
+          const passiveExtensions = passive.extensions && typeof passive.extensions === "object" ? passive.extensions as Record<string, unknown> : {};
+          return {
+          passiveId: typeof passive.passiveId === "number" ? passive.passiveId : typeof passiveExtensions.sourcePassiveId === "number" ? passiveExtensions.sourcePassiveId : undefined,
+          unlockLevel: typeof passive.unlockLevel === "number" ? passive.unlockLevel : typeof passiveExtensions.unlockLevel === "number" ? passiveExtensions.unlockLevel : undefined,
+          description: typeof passive.description === "string" ? passive.description : undefined,
+          multiplier: typeof passive.multiplier === "number" ? passive.multiplier : undefined,
+          type: typeof passive.type === "string" ? passive.type : undefined,
+          promoReq: typeof passive.promoReq === "number" ? passive.promoReq : typeof passiveExtensions.promoReq === "number" ? passiveExtensions.promoReq : undefined,
+        }}) : [];
+        const enriched = enrichment?.passives ?? [];
+
+        // APK v3 packages currently contain identity-only rows such as
+        // { passiveId: 1007, type: "passive_2" }. Merge by stable row order so
+        // those placeholders retain their APK identity while gaining the
+        // captured type, value, and promotion requirement used by the app.
+        const merged: CatalogPassive[] = packaged.map((passive, index) => {
+          const fallback = enriched[index];
+          return {
+            ...passive,
+            description: passive.description?.trim() || fallback?.type,
+            multiplier: passive.multiplier ?? (typeof fallback?.value === "number" ? fallback.value : undefined),
+            type: passive.type && !isPlaceholderPassiveType(passive.type) ? passive.type : fallback?.type,
+            promoReq: passive.promoReq ?? fallback?.promoReq,
+          };
+        });
+        for (let index = packaged.length; index < enriched.length; index += 1) {
+          const passive = enriched[index];
+          merged.push({
+            description: passive.type,
+            multiplier: typeof passive.value === "number" ? passive.value : undefined,
+            type: passive.type,
+            promoReq: passive.promoReq,
+          });
+        }
+        return merged.length > 0 ? merged : undefined;
+      })(),
       equipment: Array.isArray(item.equipment) ? item.equipment.map((equipment) => ({
         id: typeof equipment.id === "string" ? equipment.id : undefined,
         name: typeof equipment.name === "string" ? equipment.name : undefined,

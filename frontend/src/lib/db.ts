@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 
-export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: Array<{ unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number }>; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }> };
+export type CatalogPassive = { passiveId?: number; unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number };
+export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; activeLevels?: Array<{ level: number; value: number }>; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: CatalogPassive[]; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }> };
 export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; fragmentSource?: "kolibri" | "manual" | "unavailable"; equipmentIds?: number[]; unlocked: boolean; updatedAt: string };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
 export type AppSettings = { autoSync: boolean };
@@ -36,6 +37,9 @@ export async function getCredentials(): Promise<PersistedCredentials | undefined
 // ---------------------------------------------------------------------------
 
 export function effectiveActiveValue(manager: CatalogManager, progress: PlayerManager): number {
+  const exactLevel = manager.activeLevels?.find((row) => row.level === progress.level);
+  if (exactLevel) return exactLevel.value;
+
   const activeL1 = manager.active?.multiplier ?? 1;
   const activeL100 = manager.active?.multiplierAt100;
 

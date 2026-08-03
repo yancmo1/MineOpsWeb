@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { PlayerManager } from "../lib/db";
 import { catalogClient, type CatalogClientState, type LoadState } from "../lib/catalog-client";
 import { evaluateVerifiedLineup, managersFromVerifiedPackage, type StrategyEvaluation } from "../lib/strategy";
-import { buildFrontierRoster, planFrontierCheckpoints, type FrontierPass, type FrontierRosterEntry, FRONTIER_BARRIERS } from "../lib/frontier-guide";
+import { buildFrontierRoster, planFrontierCheckpoints, recommendFrontierAction, type FrontierActionRecommendation, type FrontierPass, type FrontierRosterEntry, FRONTIER_BARRIERS } from "../lib/frontier-guide";
 
 interface StrategyPageProps {
   progress: PlayerManager[];
@@ -20,6 +20,16 @@ function isTestFixture(ls: LoadState): boolean {
   return ls.phase === "active" && "releaseId" in ls && typeof ls.releaseId === "string" && ls.releaseId.startsWith("test-fixture");
 }
 
+function parseOptionalNonNegative(value: string): number | null {
+  if (value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : null;
+}
+
+function parseNonNegative(value: string): number {
+  return parseOptionalNonNegative(value) ?? 0;
+}
+
 export function StrategyPage({ progress }: StrategyPageProps) {
   const [evaluation, setEvaluation] = useState<StrategyEvaluation | null>(null);
   const [frontierRoster, setFrontierRoster] = useState<FrontierRosterEntry[]>([]);
@@ -27,6 +37,10 @@ export function StrategyPage({ progress }: StrategyPageProps) {
   const [isFixture, setIsFixture] = useState(false);
   const [frontierBarrierId, setFrontierBarrierId] = useState("FM I 5");
   const [frontierCredits, setFrontierCredits] = useState("705");
+  const [frontierLiveCost, setFrontierLiveCost] = useState("");
+  const [frontierWaitMinutes, setFrontierWaitMinutes] = useState("");
+  const [frontierFreeSkips, setFrontierFreeSkips] = useState("0");
+  const [frontierTimeJumps, setFrontierTimeJumps] = useState("0");
   const [frontierPass, setFrontierPass] = useState<FrontierPass>("free");
   const [selectedPlan, setSelectedPlan] = useState<StrategyPlanId>("frontier");
 
@@ -56,7 +70,16 @@ export function StrategyPage({ progress }: StrategyPageProps) {
     frontierBarrierId,
     Number(frontierCredits) || 0,
     frontierPass,
-  ), [frontierBarrierId, frontierCredits, frontierPass]);
+    parseOptionalNonNegative(frontierLiveCost) ?? undefined,
+  ), [frontierBarrierId, frontierCredits, frontierLiveCost, frontierPass]);
+
+  const frontierRecommendation = useMemo<FrontierActionRecommendation>(() => recommendFrontierAction({
+    currentCost: parseOptionalNonNegative(frontierLiveCost),
+    remainingWaitMinutes: parseOptionalNonNegative(frontierWaitMinutes),
+    frontierCredits: parseNonNegative(frontierCredits),
+    freeSkips: parseNonNegative(frontierFreeSkips),
+    timeJumps: parseNonNegative(frontierTimeJumps),
+  }), [frontierCredits, frontierFreeSkips, frontierLiveCost, frontierTimeJumps, frontierWaitMinutes]);
 
   // Determine the right empty state based on loading phase
   const isLoading = loadState.phase !== "idle" && !isActive(loadState) && loadState.phase !== "error";
@@ -84,8 +107,17 @@ export function StrategyPage({ progress }: StrategyPageProps) {
         credits={frontierCredits}
         pass={frontierPass}
         plan={frontierPlan}
+        liveCost={frontierLiveCost}
+        waitMinutes={frontierWaitMinutes}
+        freeSkips={frontierFreeSkips}
+        timeJumps={frontierTimeJumps}
+        recommendation={frontierRecommendation}
         onBarrierChange={setFrontierBarrierId}
         onCreditsChange={setFrontierCredits}
+        onLiveCostChange={setFrontierLiveCost}
+        onWaitMinutesChange={setFrontierWaitMinutes}
+        onFreeSkipsChange={setFrontierFreeSkips}
+        onTimeJumpsChange={setFrontierTimeJumps}
         onPassChange={setFrontierPass}
       />}
       {selectedPlan === "lineup" && <section className="card-container">
@@ -156,12 +188,21 @@ interface FrontierPlaybookProps {
   credits: string;
   pass: FrontierPass;
   plan: ReturnType<typeof planFrontierCheckpoints>;
+  liveCost: string;
+  waitMinutes: string;
+  freeSkips: string;
+  timeJumps: string;
+  recommendation: FrontierActionRecommendation;
   onBarrierChange: (value: string) => void;
   onCreditsChange: (value: string) => void;
+  onLiveCostChange: (value: string) => void;
+  onWaitMinutesChange: (value: string) => void;
+  onFreeSkipsChange: (value: string) => void;
+  onTimeJumpsChange: (value: string) => void;
   onPassChange: (value: FrontierPass) => void;
 }
 
-function FrontierPlaybook({ roster, barrierId, credits, pass, plan, onBarrierChange, onCreditsChange, onPassChange }: FrontierPlaybookProps) {
+function FrontierPlaybook({ roster, barrierId, credits, pass, plan, liveCost, waitMinutes, freeSkips, timeJumps, recommendation, onBarrierChange, onCreditsChange, onLiveCostChange, onWaitMinutesChange, onFreeSkipsChange, onTimeJumpsChange, onPassChange }: FrontierPlaybookProps) {
   const passiveCount = roster.filter((entry) => entry.tags.includes("Income passive")).length;
   const reducerCount = roster.filter((entry) => entry.tags.includes("Upgrade-cost reduction")).length;
   const burstCount = roster.filter((entry) => entry.tags.includes("Shaft burst") || entry.tags.includes("Elevator/warehouse burst")).length;
@@ -203,14 +244,23 @@ function FrontierPlaybook({ roster, barrierId, credits, pass, plan, onBarrierCha
 
     <div className="frontier-section">
       <h3>FC checkpoint planner</h3>
-      <p className="detail-empty-note">This is a transparent sequential planner using the published “cost after waiting” reference values. It does not model wait time, ad skips, Time Jumps, or live event changes.</p>
+      <p className="detail-empty-note">The table is a transparent sequential projection. The live barrier cost below overrides the first row; leave it blank to see the patch-sensitive reference value only. The next-action card uses the live values you enter.</p>
       <div className="frontier-planner-controls">
         <label>Current barrier<select value={barrierId} onChange={(event) => onBarrierChange(event.target.value)}>{FRONTIER_BARRIERS.map((barrier) => <option key={barrier.id} value={barrier.id}>{barrier.id}</option>)}</select></label>
         <label>FC balance<input type="number" min="0" inputMode="numeric" value={credits} onChange={(event) => onCreditsChange(event.target.value)} /></label>
         <label>Reward path<select value={pass} onChange={(event) => onPassChange(event.target.value as FrontierPass)}><option value="free">Free</option><option value="premium">Premium Pass</option><option value="elite">Elite Pass</option></select></label>
+        <label>Live barrier cost (FC)<input type="number" min="0" step="1" inputMode="numeric" placeholder="Enter live cost" value={liveCost} onChange={(event) => onLiveCostChange(event.target.value)} /></label>
+        <label>Wait remaining (minutes)<input type="number" min="0" step="0.1" inputMode="decimal" placeholder="Enter live wait" value={waitMinutes} onChange={(event) => onWaitMinutesChange(event.target.value)} /></label>
+        <label>Barrier skips<input type="number" min="0" step="1" inputMode="numeric" value={freeSkips} onChange={(event) => onFreeSkipsChange(event.target.value)} /></label>
+        <label>Time Jumps<input type="number" min="0" step="1" inputMode="numeric" value={timeJumps} onChange={(event) => onTimeJumpsChange(event.target.value)} /></label>
       </div>
-      <div className="frontier-plan-summary"><strong>{plan.furthest ?? "No checkpoint"}</strong><span>{plan.next ? `Next shortfall: ${Math.max(0, plan.next.costAfter - plan.remainingFc)} FC` : "All reference checkpoints cleared"}</span><span>{plan.remainingFc.toLocaleString()} FC projected after rewards</span></div>
+      <div className="frontier-plan-summary"><strong>{plan.furthest ?? "No checkpoint"}</strong><span>{plan.next ? `Next shortfall: ${Math.max(0, (plan.nextCost ?? 0) - plan.remainingFc)} FC` : "All reference checkpoints cleared"}</span><span>{plan.remainingFc.toLocaleString()} FC projected after rewards</span></div>
       <div className="frontier-table-wrap"><table className="frontier-table"><thead><tr><th>Checkpoint</th><th>Cost</th><th>Reward</th><th>Balance</th></tr></thead><tbody>{plan.rows.slice(0, 8).map((row) => <tr key={row.barrier.id} className={row.cleared ? "" : "frontier-row-blocked"}><td>{row.barrier.id}</td><td>{row.cost.toLocaleString()}</td><td>{row.reward ? `+${row.reward.toLocaleString()}` : "—"}</td><td>{row.cleared ? row.balanceAfter.toLocaleString() : "Need more FC"}</td></tr>)}</tbody></table></div>
+      <div className={`frontier-recommendation frontier-recommendation-${recommendation.action}`} aria-live="polite">
+        <div className="frontier-recommendation-heading"><div><p className="eyebrow">Next action</p><h4>{recommendation.title}</h4></div><span>{recommendation.resource === "frontier-credits" ? "FC" : recommendation.resource === "free-skip" ? "Skip" : recommendation.resource === "time-jump" ? "Time Jump" : "No spend"}</span></div>
+        <p>{recommendation.reason}</p>
+        <details open><summary>Assumptions used</summary><ul>{recommendation.assumptions.map((assumption) => <li key={assumption}>{assumption}</li>)}</ul></details>
+      </div>
     </div>
 
     <div className="frontier-section frontier-sequence">

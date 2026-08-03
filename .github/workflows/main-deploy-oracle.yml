@@ -4,6 +4,12 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      web_only:
+        description: Build and publish only the web image (PocketBase remains untouched)
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: mineopsweb-main-build
@@ -89,6 +95,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=web
 
       - name: Docker metadata (pocketbase)
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.web_only != true }}
         id: meta_pb
         uses: docker/metadata-action@v5
         with:
@@ -98,6 +105,7 @@ jobs:
             type=sha,prefix=sha-
 
       - name: Build and push pocketbase image
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.web_only != true }}
         uses: docker/build-push-action@v6
         with:
           context: ./pocketbase
