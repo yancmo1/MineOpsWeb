@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mineops.io/schemas/unresolved_evidence.schema.json",
+  "title": "MineOps Unresolved Evidence",
+  "description": "Immutable evidence ledger for source values or relationships that have not been resolved into verified catalog meaning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "catalogVersion", "releaseId", "generatedAt", "source", "entries"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "catalogVersion": { "type": "string", "minLength": 1 },
+    "releaseId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "source": { "$ref": "#/$defs/source" },
+    "entries": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
+  },
+  "$defs": {
+    "jsonValue": {},
+    "source": { "type": "object", "additionalProperties": true, "minProperties": 1 },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceId", "domain", "status", "severity", "reason"],
+      "properties": {
+        "evidenceId": { "type": "string", "minLength": 1 },
+        "domain": { "type": "string", "minLength": 1 },
+        "subjectId": { "type": ["string", "null"] },
+        "fieldPath": { "type": ["string", "null"] },
+        "status": { "type": "string", "enum": ["unresolved", "partial", "blocked", "needs_review"] },
+        "severity": { "type": "string", "enum": ["info", "warning", "error"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "source": { "$ref": "#/$defs/source" },
+        "rawValue": { "$ref": "#/$defs/jsonValue" },
+        "candidateIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+      }
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "blockingIssues": [],
+  "catalogVersion": "1.0.0-100000-test",
+  "checks": [
+    {
+      "code": "SCHEMA_VALID",
+      "message": "All schemas valid.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "MANIFEST_CATALOG_CONSISTENCY",
+      "message": "Manifest consistent.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "ARTIFACT_HASH_CONSISTENCY",
+      "message": "Hashes match.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "DUPLICATE_CANONICAL_ID",
+      "message": "No duplicates.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "MANIFEST_ARTIFACTS",
+      "message": "Artifacts present.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "DETERMINISTIC_SERIALIZATION",
+      "message": "Deterministic.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "DUPLICATE_SOURCE_IDENTIFIER",
+      "message": "IDs unique.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "MISSING_REQUIRED_FIELDS",
+      "message": "Fields OK.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "UNRESOLVED_OBJECTS",
+      "message": "No unresolved.",
+      "passed": true,
+      "path": null,
+      "severity": "warning"
+    },
+    {
+      "code": "INVALID_REFERENCES",
+      "message": "Refs valid.",
+      "passed": true,
+      "path": null,
+      "severity": "error"
+    },
+    {
+      "code": "SUSPICIOUS_CHANGE_DETECTION",
+      "message": "No suspicious changes.",
+      "passed": true,
+      "path": null,
+      "severity": "warning"
+    }
+  ],
+  "counts": {
+    "errors": 0,
+    "unresolved": 0,
+    "warnings": 0
+  },
+  "status": "passed",
+  "validatedAt": "2026-07-16T00:00:00.000Z",
+  "validationSchemaVersion": "1.0.0",
+  "warnings": []
+}

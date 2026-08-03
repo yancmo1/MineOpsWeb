@@ -62,6 +62,10 @@ const SCHEMA_FILES = {
   diff: "catalog_diff.schema.json",
   changelog: "changelog.schema.json",
   validation: "catalog_validation.schema.json",
+  manager_domain: "manager_domain.schema.json",
+  equipment_domain: "equipment_domain.schema.json",
+  strategy_configs: "strategy_configs.schema.json",
+  unresolved_evidence: "unresolved_evidence.schema.json",
 };
 
 /** Legacy v1 bundle files (monolithic format). */
@@ -76,6 +80,10 @@ const V2_ARTIFACT_SCHEMA_MAP = {
   "assets.json": "assets",
   "validation-report.json": "validation",
   "changelog.json": "changelog",
+  "manager-domain.json": "manager_domain",
+  "equipment-domain.json": "equipment_domain",
+  "strategy-configs.json": "strategy_configs",
+  "unresolved-evidence.json": "unresolved_evidence",
 };
 
 // ---------------------------------------------------------------------------
@@ -365,7 +373,7 @@ function checkManifestConsistencyV1(manifest, catalog) {
 }
 
 /** Manifest consistency for v2 format: cross-checks against catalog-core and relationships. */
-function checkManifestConsistencyV2(manifest, catalogCore, relationships) {
+function checkManifestConsistencyV2(manifest, catalogCore, relationships, unresolvedEvidence) {
   const issues = [];
   if (manifest.catalogVersion !== catalogCore.catalogVersion) issues.push("catalogVersion mismatch (manifest vs catalog-core)");
   if (manifest.releaseId !== catalogCore.releaseId) issues.push("releaseId mismatch (manifest vs catalog-core)");
@@ -378,7 +386,7 @@ function checkManifestConsistencyV2(manifest, catalogCore, relationships) {
     collectibles: catalogCore.collectibles?.length || 0,
     artifacts: catalogCore.artifacts?.length || 0,
     relationships: relationships?.relationships?.length || 0,
-    unresolvedObjects: 0,
+    unresolvedObjects: unresolvedEvidence?.entries?.length || 0,
   };
   for (const key of Object.keys(actual)) {
     if (manifest.counts?.[key] !== actual[key]) {
@@ -391,6 +399,91 @@ function checkManifestConsistencyV2(manifest, catalogCore, relationships) {
     passed: issues.length === 0,
     message: issues.length === 0 ? "Manifest identity and counts match catalog artifacts." : issues.join("; "),
     details: issues.length > 0 ? { issues } : undefined,
+  };
+}
+
+/** Every identity-bearing artifact must belong to the release named by its manifest. */
+function checkArtifactReleaseIdentity(manifest, artifacts) {
+  const issues = [];
+  for (const entry of manifest.artifacts || []) {
+    const artifact = artifacts[entry.filename];
+    if (!artifact || typeof artifact !== "object") continue;
+    if (Object.hasOwn(artifact, "catalogVersion") && artifact.catalogVersion !== manifest.catalogVersion) {
+      issues.push(`${entry.filename}: catalogVersion=${artifact.catalogVersion} does not match manifest=${manifest.catalogVersion}`);
+    }
+    if (Object.hasOwn(artifact, "releaseId") && artifact.releaseId !== manifest.releaseId) {
+      issues.push(`${entry.filename}: releaseId=${artifact.releaseId} does not match manifest=${manifest.releaseId}`);
+    }
+  }
+  return {
+    code: "ARTIFACT_RELEASE_IDENTITY",
+    severity: "error",
+    passed: issues.length === 0,
+    message: issues.length === 0 ? "All identity-bearing artifacts match manifest release identity." : issues.join("; "),
+    details: issues.length > 0 ? { issues } : undefined,
+  };
+}
+
+/** Domain artifacts carry stable record identifiers even when semantics are partial. */
+function checkDomainArtifactIds(artifacts) {
+  const specs = [
+    { filename: "manager-domain.json", arrays: [{ key: "managers", id: "canonicalId" }] },
+    { filename: "equipment-domain.json", arrays: ["equipment", "materials", "balancing", "localization"].map((key) => ({ key, id: "recordId" })) },
+    { filename: "strategy-configs.json", arrays: [{ key: "records", id: "recordId" }] },
+    { filename: "unresolved-evidence.json", arrays: [{ key: "entries", id: "evidenceId" }] },
+  ];
+  const issues = [];
+  for (const spec of specs) {
+    const artifact = artifacts[spec.filename];
+    if (!artifact) continue;
+    for (const arraySpec of spec.arrays) {
+      const seen = new Set();
+      for (const [index, record] of (artifact[arraySpec.key] || []).entries()) {
+        const value = record?.[arraySpec.id];
+        if (value === undefined || value === null || value === "") {
+          issues.push(`${spec.filename}:${arraySpec.key}[${index}] missing ${arraySpec.id}`);
+        } else if (seen.has(String(value))) {
+          issues.push(`${spec.filename}:${arraySpec.key} duplicate ${arraySpec.id}=${value}`);
+        } else {
+          seen.add(String(value));
+        }
+      }
+    }
+  }
+  return {
+    code: "DOMAIN_ARTIFACT_IDENTIFIERS",
+    severity: "error",
+    passed: issues.length === 0,
+    message: issues.length === 0 ? "Domain artifact record identifiers are unique." : issues.join("; "),
+    details: issues.length > 0 ? { issues } : undefined,
+  };
+}
+
+function checkManagerDomainRequired(manifest) {
+  const entry = (manifest.artifacts || []).find((artifact) => artifact.filename === "manager-domain.json");
+  const passed = !entry || entry.required === true;
+  return {
+    code: "MANAGER_DOMAIN_REQUIRED",
+    severity: "error",
+    passed,
+    message: passed ? "manager-domain.json is absent or required." : "manager-domain.json must be marked required when listed in a package.",
+    details: passed ? undefined : { filename: entry.filename, required: entry.required },
+  };
+}
+
+function checkUnresolvedEvidenceConsistency(manifest, unresolvedEvidence) {
+  const entry = (manifest.artifacts || []).find((artifact) => artifact.filename === "unresolved-evidence.json");
+  const actual = unresolvedEvidence?.entries?.length || 0;
+  const expected = manifest.counts?.unresolvedObjects;
+  const passed = expected === actual && (actual === 0 || Boolean(entry));
+  return {
+    code: "UNRESOLVED_EVIDENCE_CONSISTENCY",
+    severity: "error",
+    passed,
+    message: passed
+      ? `Manifest unresolvedObjects count matches ${actual} unresolved evidence entr${actual === 1 ? "y" : "ies"}.`
+      : `counts.unresolvedObjects=${expected} does not match unresolved evidence entries=${actual}.`,
+    details: passed ? undefined : { expected, actual, artifactListed: Boolean(entry) },
   };
 }
 
@@ -420,8 +513,8 @@ function checkMissingRequiredFields(catalog) {
 }
 
 /** Check unresolved objects — always a warning if present */
-function checkUnresolvedObjects(catalog) {
-  const unresolvedCount = (catalog.unresolvedObjects || []).length;
+function checkUnresolvedObjects(catalog, unresolvedEvidence) {
+  const unresolvedCount = unresolvedEvidence?.entries?.length ?? (catalog.unresolvedObjects || []).length;
 
   return {
     code: "UNRESOLVED_OBJECTS",
@@ -791,17 +884,22 @@ async function main() {
 
     const catalogCore = artifacts["catalog-core.json"];
     const relationshipsArt = artifacts["relationships.json"];
-    const mappingsArt = artifacts["mappings.json"];
-    const changelogArt = artifacts["changelog.json"];
+    const mappingsArt = artifacts["mappings.json"] || {};
+    const changelogArt = artifacts["changelog.json"] || { summary: {} };
+    const unresolvedEvidenceArt = artifacts["unresolved-evidence.json"];
 
     // Run checks
     checks = [
       ...checkSchemasV2(ajv, manifest, artifacts, bundleDir),
-      checkManifestConsistencyV2(manifest, catalogCore, relationshipsArt),
+      checkManifestConsistencyV2(manifest, catalogCore, relationshipsArt, unresolvedEvidenceArt),
+      checkArtifactReleaseIdentity(manifest, artifacts),
+      checkDomainArtifactIds(artifacts),
+      checkManagerDomainRequired(manifest),
+      checkUnresolvedEvidenceConsistency(manifest, unresolvedEvidenceArt),
       checkDuplicateCanonicalIds(catalogCore),
       checkDuplicateSourceIds(mappingsArt),
       checkMissingRequiredFields(catalogCore),
-      checkUnresolvedObjects(catalogCore),
+      checkUnresolvedObjects(catalogCore, unresolvedEvidenceArt),
       checkReferences(catalogCore, relationshipsArt),
       checkArtifactHashesV2(manifest, bundleDir),
       checkManifestArtifactsV2(manifest, bundleDir),
@@ -812,7 +910,7 @@ async function main() {
     // Determine overall status
     const errors = checks.filter((c) => c.severity === "error" && !c.passed);
     const warnings = checks.filter((c) => c.severity === "warning" && !c.passed);
-    const unresolvedCount = catalogCore.unresolvedObjects?.length || 0;
+    const unresolvedCount = (unresolvedEvidenceArt?.entries?.length ?? catalogCore.unresolvedObjects?.length ?? 0);
 
     if (errors.length > 0) overallStatus = "failed";
     else if (warnings.length > 0 || unresolvedCount > 0) overallStatus = "review_required";

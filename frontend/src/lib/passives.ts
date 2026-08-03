@@ -7,6 +7,7 @@ const PASSIVE_LABELS: Record<string, string> = {
   CIF: "Cash Income Factor",
   WMSB: "Walking & Mining Speed Boost",
   BUCR: "Building Upgrade Cost Reduction",
+  EUCR: "Elevator Upgrade Cost Reduction",
   MLSB: "Mineshaft Loading Speed Boost",
   IC: "Instant Cash",
   MIF: "Mine Income Factor",
@@ -20,6 +21,15 @@ const PASSIVE_LABELS: Record<string, string> = {
   MBEAM: "Mine Beam",
 };
 
+// Stable APK passive IDs take precedence over legacy row-position enrichment.
+// ID 8 is elevator upgrade-cost reduction; it is not crate resources.
+const PASSIVE_TYPES_BY_ID: Record<number, string> = {
+  7: "MSUCR",
+  8: "EUCR",
+  9: "BUCR",
+  1007: "MIF",
+};
+
 const PLACEHOLDER_TYPE = /^passive[_ -]?\d+$/i;
 
 export function isPlaceholderPassiveType(value?: string): boolean {
@@ -27,11 +37,15 @@ export function isPlaceholderPassiveType(value?: string): boolean {
 }
 
 export function passiveLabel(passive: CatalogPassive): string {
-  const code = passive.type?.trim();
+  const code = (passive.passiveId != null ? PASSIVE_TYPES_BY_ID[passive.passiveId] : undefined) ?? passive.type?.trim();
   if (code && PASSIVE_LABELS[code]) return PASSIVE_LABELS[code];
   if (passive.description?.trim()) return passive.description.trim();
   if (code && !isPlaceholderPassiveType(code)) return code;
   return passive.passiveId == null ? "Passive ability" : `Passive ability #${passive.passiveId}`;
+}
+
+export function passiveTypeForId(passiveId?: number): string | undefined {
+  return passiveId == null ? undefined : PASSIVE_TYPES_BY_ID[passiveId];
 }
 
 export function isPassiveUnlocked(passive: CatalogPassive, progress?: PlayerManager): boolean {

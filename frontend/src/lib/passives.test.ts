@@ -30,7 +30,11 @@ describe("manager passives", () => {
   });
 
   it("does not expose raw catalog placeholder labels", () => {
-    expect(passiveLabel({ passiveId: 1007, type: "passive_2" })).toBe("Passive ability #1007");
+    expect(passiveLabel({ passiveId: 1007, type: "passive_2" })).toBe("Mine Income Factor");
+  });
+
+  it("uses stable APK identity for Damian's elevator cost passive", () => {
+    expect(passiveLabel({ passiveId: 8, type: "CR" })).toBe("Elevator Upgrade Cost Reduction");
   });
 
   it("requires every captured unlock constraint", () => {

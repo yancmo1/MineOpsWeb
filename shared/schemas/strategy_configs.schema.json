@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mineops.io/schemas/strategy_configs.schema.json",
+  "title": "MineOps Strategy Configurations",
+  "description": "Immutable generic strategy configuration records. Domain labels describe extraction classification only; raw values and provenance remain authoritative when semantic meaning is partial or unresolved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "catalogVersion", "releaseId", "generatedAt", "source", "records"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "catalogVersion": { "type": "string", "minLength": 1 },
+    "releaseId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "source": { "$ref": "#/$defs/artifactSource" },
+    "records": { "type": "array", "items": { "$ref": "#/$defs/record" } }
+  },
+  "$defs": {
+    "jsonValue": {},
+    "artifactSource": { "type": "object", "additionalProperties": true, "minProperties": 1 },
+    "recordSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundle", "assetPath", "objectType"],
+      "properties": {
+        "bundle": { "type": "string", "minLength": 1 },
+        "assetPath": { "type": "string", "minLength": 1 },
+        "objectType": { "type": "string", "minLength": 1 },
+        "pathId": { "type": ["string", "integer", "null"] }
+      }
+    },
+    "serializedBytes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rawEncoding", "rawBytes", "rawSha256", "rawByteLength"],
+      "properties": {
+        "rawEncoding": { "const": "base64" },
+        "rawBytes": { "type": "string", "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$" },
+        "rawSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "rawByteLength": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "serializedUnresolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unresolvedEvidenceId"],
+      "properties": { "unresolvedEvidenceId": { "type": "string", "minLength": 1 } }
+    },
+    "rawRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serialized": { "oneOf": [{ "$ref": "#/$defs/serializedBytes" }, { "$ref": "#/$defs/serializedUnresolved" }] },
+        "value": { "$ref": "#/$defs/jsonValue" },
+        "rawSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "oneOf": [
+        { "required": ["serialized"] },
+        { "required": ["value", "rawSha256"] }
+      ]
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordId", "domain", "semanticStatus", "source", "raw"],
+      "properties": {
+        "recordId": { "type": "string", "minLength": 1 },
+        "domain": { "type": "string", "minLength": 1, "description": "Extraction classification, not an assertion of fully verified game behavior." },
+        "semanticStatus": { "type": "string", "enum": ["resolved", "partial", "unresolved"] },
+        "source": { "$ref": "#/$defs/recordSource" },
+        "name": { "type": ["string", "null"] },
+        "params": { "$ref": "#/$defs/jsonValue" },
+        "fields": { "type": "object", "additionalProperties": { "$ref": "#/$defs/jsonValue" } },
+        "raw": { "$ref": "#/$defs/rawRecord" }
+      }
+    }
+  }
+}

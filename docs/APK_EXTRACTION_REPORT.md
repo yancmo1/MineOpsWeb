@@ -13,6 +13,8 @@
 
 Successfully extracted one complete manager record (ID 10074 — "Poseidon") end-to-end from the APK using IL2CPP analysis tooling. The data pipeline is reproducible via a Python extraction script.
 
+> **2026-08-02 audit update:** This report records the original targeted extraction milestone. A later read-only audit confirmed 118 managers across the complete release, identified table-flattening and passive-join losses in the generalized v3 path, and cataloged additional strategy sources in the APK. See [`APK_STRATEGY_DATA_AUDIT.md`](APK_STRATEGY_DATA_AUDIT.md) for the current assessment and roadmap.
+
 ---
 
 ## Tooling Pipeline
@@ -43,7 +45,7 @@ The APK contains 57 Unity AssetBundles (Addressables-based). Key bundles:
 | Bundle | Size | Contents |
 |--------|------|----------|
 | `generalassets_assets_all_*` | 60.7 MB | Main game assets (sprites, textures, configs, prefabs) |
-| `configfiles-supermanagers_assets_all_*` | 0.2 MB | 556 MonoBehaviours + 9 TextAssets — **all manager data** |
+| `configfiles-supermanagers_assets_all_*` | 0.2 MB | 556 MonoBehaviours + 9 TextAssets — linked data for the first 82 managers; the full 118-manager set spans additional bundles |
 | `configfiles_assets_all_*` | 1.2 MB | General config files |
 | `supermanager-XXXXX_assets_all_*` | ~150 KB each | Manager portrait bundles (IDs 10083-10118) |
 | `configfiles-jsonfallback_assets_all_*` | ~1 KB | JSON fallback configs |
@@ -245,6 +247,8 @@ For extracting all managers into the catalog format:
 - **Passive ability descriptions**: Passive effect names and descriptions are in the localization system.
 - **Sprite portraits**: 36 manager portrait bundles exist (IDs 10083-10118). Managers without bundles (like 10074) may use generic or spine-based portraits.
 - **Element ID to name mapping**: Element IDs 4100000-4100007 need to be mapped to element names (the mapping is in IL2CPP code, not extracted data).
+- **Published v3 flattening**: The active production package still reflects the older first-row-only builder. The new lossless candidate retains 11,800 active-level, 1,180 promotion, and 560 rank rows in `manager-domain.json`; it has not been published.
+- **Passive join**: The new strict core projection joins APK passive IDs to their level/promotion unlock rows, and the frontend consumes those requirements. Passive value/effect labels still use captured enrichment until the remaining APK localization/effect join is reviewed.
 
 ---
 

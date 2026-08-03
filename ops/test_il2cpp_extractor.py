@@ -14,8 +14,8 @@ from pathlib import Path
 
 # The extractor module
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from mineops_data_engine.il2cpp_extractor import (
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from il2cpp_extractor import (
     RARITY_MAP,
     CATEGORY_MAP,
     REGION_MAP,

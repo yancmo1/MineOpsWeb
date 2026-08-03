@@ -16,6 +16,7 @@ import "fake-indexeddb/auto";
 import { describe, it, expect } from "vitest";
 import { evaluateLineup, evaluateVerifiedLineup, managersFromVerifiedPackage } from "./strategy";
 import type { CachedCatalogPackage } from "./catalog-cache";
+import { effectiveActiveValue } from "./db";
 import type { CatalogManager, PlayerManager } from "./db";
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,16 @@ describe("Basic ranking", () => {
 });
 
 describe("Score contributions", () => {
+  it("applies exact level and APK rank active effects", () => {
+    const manager = makeManager({
+      id: "sm-10029",
+      active: { multiplier: 5.95, multiplierAt100: 10.2 },
+      activeLevels: [{ level: 30, value: 7.2 }],
+      rankEffects: [{ rank: 4, activeIncrease: 0.46 }],
+    });
+    expect(effectiveActiveValue(manager, makeProgress({ managerId: manager.id, level: 30, rank: 4 }))).toBeCloseTo(10.512);
+  });
+
   it("higher rank increases score", () => {
     const catalog = [makeManager({ id: "mgr-test", rarity: "Rare", active: { multiplier: 5 } })];
     const lowRank = makeProgress({ managerId: "mgr-test", rank: 0, level: 10 });

@@ -17,7 +17,7 @@ import { strengthScore, effectiveActiveValue, rarityWeight, rankThreshold } from
 import type { CachedCatalogPackage } from "./catalog-cache";
 import { APK_MANAGER_NAMES } from "./manager-name-fallback";
 import { MANAGER_ENRICHMENT } from "./manager-enrichment";
-import { isPlaceholderPassiveType } from "./passives";
+import { isPlaceholderPassiveType, passiveTypeForId } from "./passives";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -104,6 +104,16 @@ function domainParams(value: unknown): Array<Record<string, unknown>> {
 
 function firstDomainParam(value: unknown): Record<string, unknown> | undefined {
   return domainParams(value)[0];
+}
+
+function domainRankEffects(value: unknown): Array<{ rank: number; activeIncrease?: number; passiveIncrease?: number }> {
+  return domainParams(value).flatMap((row) => {
+    const rank = numericSourceField(row, "Rank", "rank");
+    if (rank == null) return [];
+    const activeIncrease = numericSourceField(row, "ActiveIncrease", "activeIncrease");
+    const passiveIncrease = numericSourceField(row, "PassiveIncrease", "passiveIncrease");
+    return [{ rank, activeIncrease, passiveIncrease }];
+  });
 }
 
 function numericSourceField(row: Record<string, unknown> | undefined, ...keys: string[]): number | undefined {
@@ -294,6 +304,7 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
       const value = numericSourceField(row, "ActiveStrength", "activeStrength", "Value", "value");
       return level != null && value != null ? [{ level, value }] : [];
     }).sort((a, b) => a.level - b.level);
+    const domainRankEffectRows = domainRankEffects(domainManager?.rankEffects);
     const packageName = typeof item.name === "string" && item.name.trim() ? item.name : undefined;
     const localizedName = localizedNames.get(id);
     const aliasName = aliases.get(id);
@@ -383,6 +394,7 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
         multiplierAt100: typeof firstAbility.multiplierAt100 === "number" ? firstAbility.multiplierAt100 : undefined,
       } : undefined,
       activeLevels: domainActiveLevels.length > 0 ? domainActiveLevels : undefined,
+      rankEffects: domainRankEffectRows.length > 0 ? domainRankEffectRows : undefined,
       abilities: abilities ? abilities.map((a) => ({
         multiplier: typeof a.multiplier === "number" ? a.multiplier : undefined,
         multiplierAt100: typeof a.multiplierAt100 === "number" ? a.multiplierAt100 : undefined,
@@ -412,11 +424,12 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
         // captured type, value, and promotion requirement used by the app.
         const merged: CatalogPassive[] = packaged.map((passive, index) => {
           const fallback = enriched[index];
+          const stableType = passiveTypeForId(passive.passiveId);
           return {
             ...passive,
             description: passive.description?.trim() || fallback?.type,
             multiplier: passive.multiplier ?? (typeof fallback?.value === "number" ? fallback.value : undefined),
-            type: passive.type && !isPlaceholderPassiveType(passive.type) ? passive.type : fallback?.type,
+            type: stableType ?? (passive.type && !isPlaceholderPassiveType(passive.type) ? passive.type : fallback?.type),
             promoReq: passive.promoReq ?? fallback?.promoReq,
           };
         });

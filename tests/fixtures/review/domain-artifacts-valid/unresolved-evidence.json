@@ -1,0 +1,18 @@
+{
+  "catalogVersion": "1.0.0-100000-test",
+  "entries": [
+    {
+      "domain": "manager",
+      "evidenceId": "e-1",
+      "reason": "Captured but not classified",
+      "severity": "warning",
+      "status": "unresolved"
+    }
+  ],
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "releaseId": "test-release",
+  "schemaVersion": "1.0.0",
+  "source": {
+    "kind": "fixture"
+  }
+}

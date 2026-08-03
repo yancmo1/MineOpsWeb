@@ -1,0 +1,24 @@
+{
+  "catalogVersion": "1.0.0-100000-test",
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "records": [
+    {
+      "domain": "unknown",
+      "raw": {
+        "serialized": {}
+      },
+      "recordId": "cfg-missing-evidence",
+      "semanticStatus": "unresolved",
+      "source": {
+        "assetPath": "missing.asset",
+        "bundle": "configfiles",
+        "objectType": "MonoBehaviour"
+      }
+    }
+  ],
+  "releaseId": "test-release",
+  "schemaVersion": "1.0.0",
+  "source": {
+    "kind": "fixture"
+  }
+}

@@ -36,6 +36,7 @@ export function ManagerDetailModal({ manager, progress, equipmentNameMap, onClos
   const knownFragments = progress ? isKnownFragments(progress) : false;
   const fragmentGoal = progress ? rankThreshold(progress.rank) : undefined;
   const filledStars = Math.max(0, Math.min(progress?.rank ?? 0, 5));
+  const activeValue = progress?.unlocked ? effectiveActiveValue(manager, progress) : manager.active?.multiplier;
 
   return (
     <div className="dialog-backdrop" role="presentation" onClick={onClose}>
@@ -90,10 +91,10 @@ export function ManagerDetailModal({ manager, progress, equipmentNameMap, onClos
         <section className="detail-section">
           <h3 className="detail-section-title">Active Ability</h3>
           <p className="detail-ability-description">
-            {interpolateAbilityDescription(manager.active?.description, manager.active?.multiplier, manager.active?.cooldown, manager.active?.duration)}
+            {interpolateAbilityDescription(manager.active?.description, activeValue, manager.active?.cooldown, manager.active?.duration)}
           </p>
           <div className="detail-ability-stats">
-            <div className="detail-ability-stat"><div className="detail-ability-stat-value">{manager.active?.multiplier ? `${manager.active.multiplier}x` : "—"}</div><div className="detail-ability-stat-label">Value</div></div>
+            <div className="detail-ability-stat"><div className="detail-ability-stat-value">{activeValue ? `${activeValue.toFixed(2)}x` : "—"}</div><div className="detail-ability-stat-label">Value</div></div>
             <div className="detail-ability-stat"><div className="detail-ability-stat-value">{formatTime(manager.active?.cooldown)}</div><div className="detail-ability-stat-label">Cooldown</div></div>
             <div className="detail-ability-stat"><div className="detail-ability-stat-value">{formatTime(manager.active?.duration)}</div><div className="detail-ability-stat-label">Duration</div></div>
           </div>
