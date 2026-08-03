@@ -1,0 +1,18 @@
+{
+  "catalogVersion": "1.0.0-100000-test",
+  "entries": [
+    {
+      "domain": "strategy",
+      "evidenceId": "e-1",
+      "reason": "Unknown",
+      "severity": "warning",
+      "status": "unresolved"
+    }
+  ],
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "releaseId": "other-release",
+  "schemaVersion": "1.0.0",
+  "source": {
+    "kind": "fixture"
+  }
+}

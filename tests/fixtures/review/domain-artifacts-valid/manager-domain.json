@@ -1,0 +1,59 @@
+{
+  "catalogVersion": "1.0.0-100000-test",
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "managers": [
+    {
+      "canonicalId": "mgr-1",
+      "definition": {
+        "assetName": "1_SuperManagers.asset",
+        "params": [
+          {
+            "SuperManagerId": 1
+          }
+        ],
+        "rawBytesUnresolvedEvidenceId": "e-1",
+        "rawType": "MonoBehaviour",
+        "sourceAssetPath": "Assets/1_SuperManagers.asset",
+        "sourceBundle": "fixture-bundle"
+      },
+      "raw": {
+        "assets": [
+          {
+            "assetName": "1_SuperManagers.asset",
+            "params": [
+              {
+                "SuperManagerId": 1
+              }
+            ],
+            "rawBytesUnresolvedEvidenceId": "e-1",
+            "rawType": "MonoBehaviour",
+            "sourceAssetPath": "Assets/1_SuperManagers.asset",
+            "sourceBundle": "fixture-bundle"
+          }
+        ]
+      },
+      "sourceFields": {
+        "assetCount": 1,
+        "assetNames": [
+          "1_SuperManagers.asset"
+        ]
+      },
+      "sourceManagerId": 1,
+      "sources": [
+        {
+          "assetPath": "Assets/1_SuperManagers.asset",
+          "bundle": "fixture-bundle",
+          "objectType": "MonoBehaviour"
+        }
+      ],
+      "unresolvedEvidenceIds": [
+        "e-1"
+      ]
+    }
+  ],
+  "releaseId": "test-release",
+  "schemaVersion": "1.0.0",
+  "source": {
+    "kind": "fixture"
+  }
+}

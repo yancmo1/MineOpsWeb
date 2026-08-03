@@ -1,5 +1,6 @@
 import { CatalogManager, PlayerManager, isRankUpReady, rankThreshold } from "../lib/db";
 import { spriteURL } from "../lib/sprites";
+import { activePassives, passiveLabel } from "../lib/passives";
 
 interface ManagerCardProps {
   manager: PlayerManager & { catalog: CatalogManager };
@@ -10,6 +11,7 @@ export function ManagerCard({ manager, onClick }: ManagerCardProps) {
   const rarity = manager.catalog.rarity.toLowerCase();
   const isLocked = !manager.unlocked;
   const sprite = spriteURL(manager.catalog);
+  const unlockedPassives = activePassives(manager.catalog.passives, manager);
   const ready = isRankUpReady({
     managerId: manager.managerId,
     level: manager.level,
@@ -95,6 +97,16 @@ export function ManagerCard({ manager, onClick }: ManagerCardProps) {
               );
             })()}
             {ready && <div className="ready-badge">Ready to Rank Up</div>}
+            {unlockedPassives.length > 0 && (
+              <div className="manager-passive-chips" aria-label="Unlocked passive abilities">
+                {unlockedPassives.slice(0, 2).map((passive, index) => (
+                  <span key={`${passive.passiveId ?? passive.type ?? index}`} title={passiveLabel(passive)}>
+                    {passive.type ?? passiveLabel(passive)}
+                    {passive.multiplier != null ? ` ${passive.multiplier.toFixed(2)}x` : ""}
+                  </span>
+                ))}
+              </div>
+            )}
           </>
         ) : manager.fragments > 0 ? (
           <p style={{ color: "var(--accent-orange)", margin: "0.25rem 0 0" }}>

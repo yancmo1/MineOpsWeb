@@ -316,6 +316,10 @@ describe("Schema conformance", () => {
     "changelog.schema.json",
     "normalized_catalog.schema.json",
     "catalog_diff.schema.json",
+    "manager_domain.schema.json",
+    "equipment_domain.schema.json",
+    "strategy_configs.schema.json",
+    "unresolved_evidence.schema.json",
   ];
 
   const av = new Ajv({ allErrors: true, strict: false });
@@ -349,6 +353,146 @@ describe("Schema conformance", () => {
       }
     });
   }
+});
+
+describe("APK domain artifact contracts", () => {
+  const av = new Ajv({ allErrors: true, strict: false });
+  av.addFormat("date-time", /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/);
+  const schemas = [
+    "manager_domain.schema.json",
+    "equipment_domain.schema.json",
+    "strategy_configs.schema.json",
+    "unresolved_evidence.schema.json",
+  ];
+  for (const schema of schemas) av.addSchema(loadJson(resolve(SCHEMAS_DIR, schema)), schema);
+  const envelope = { schemaVersion: "1.0.0", catalogVersion: "fixture-v1", releaseId: "fixture-release", generatedAt: "2026-08-02T00:00:00.000Z", source: { kind: "fixture" } };
+  const managerAssetCore = {
+    assetName: "10001_SuperManagers.asset",
+    sourceBundle: "configfiles-supermanagers",
+    sourceAssetPath: "Assets/10001_SuperManagers.asset",
+    sourceObjectPathId: 42,
+    rawType: "MonoBehaviour",
+    params: [{ NameKey: "SM_Test" }],
+  };
+  const managerAsset = { ...managerAssetCore, rawBytesUnresolvedEvidenceId: "evidence-1" };
+  const managerSource = { bundle: managerAsset.sourceBundle, assetPath: managerAsset.sourceAssetPath, objectType: managerAsset.rawType, pathId: 42 };
+
+  it("accepts partial manager and equipment records without fabricating absent data", () => {
+    const manager = { ...envelope, managers: [{
+      canonicalId: "manager-1",
+      sourceManagerId: 10001,
+      definition: managerAsset,
+      sources: [managerSource],
+      sourceFields: { assetCount: 1, assetNames: [managerAsset.assetName] },
+      raw: { assets: [managerAsset] },
+      unresolvedEvidenceIds: ["evidence-1"],
+    }] };
+    const equipment = { ...envelope, source: { kind: "fixture", rawRecords: [] }, equipment: [], materials: [], balancing: [], localization: [] };
+    for (const [schema, data] of [["manager_domain.schema.json", manager], ["equipment_domain.schema.json", equipment]]) {
+      const validate = av.getSchema(schema);
+      assert.equal(validate(data), true, `${schema}: ${av.errorsText(validate.errors)}`);
+    }
+  });
+
+  it("preserves raw scalar and nested strategy values with explicit semantic status and provenance", () => {
+    const strategy = {
+      ...envelope,
+      records: [{
+        recordId: "configfiles:123",
+        domain: "mine_economy",
+        semanticStatus: "partial",
+        source: { bundle: "configfiles", assetPath: "Assets/Config.asset", objectType: "UnknownConfig", pathId: 123 },
+        params: [1, { opaque: true }],
+        fields: { multiplier: 1.44, nested: { values: ["raw", null] } },
+        raw: { serialized: { unresolvedEvidenceId: "strategy-raw-evidence-1" } },
+      }],
+    };
+    const validate = av.getSchema("strategy_configs.schema.json");
+    assert.equal(validate(strategy), true, av.errorsText(validate.errors));
+  });
+
+  it("requires raw source data for partial or unresolved strategy records", () => {
+    const strategy = {
+      ...envelope,
+      records: [{ recordId: "missing-raw", domain: "unknown", semanticStatus: "unresolved", source: { bundle: "configfiles", assetPath: "x", objectType: "Unknown" } }],
+    };
+    const validate = av.getSchema("strategy_configs.schema.json");
+    assert.equal(validate(strategy), false);
+  });
+
+  it("rejects malformed claimed manager and equipment records", () => {
+    const manager = { ...envelope, managers: [{
+      canonicalId: "manager-1",
+      sourceManagerId: 10001,
+      definition: { ...managerAsset, sourceBundle: undefined },
+      sources: [managerSource],
+      sourceFields: { assetCount: 1, assetNames: [managerAsset.assetName] },
+      raw: { assets: [managerAsset] },
+      unresolvedEvidenceIds: [],
+    }] };
+    const equipment = { ...envelope, equipment: [{ recordId: "equipment:1", canonicalId: "equipment:1", sourceFields: { equipmentId: 1 }, raw: { equipmentId: 1 } }], materials: [], balancing: [], localization: [] };
+    const managerValidate = av.getSchema("manager_domain.schema.json");
+    const equipmentValidate = av.getSchema("equipment_domain.schema.json");
+    assert.equal(managerValidate(manager), false);
+    assert.equal(equipmentValidate(equipment), false);
+  });
+
+  it("requires complete raw byte metadata whenever serialized bytes are claimed", () => {
+    const manager = { ...envelope, managers: [{
+      canonicalId: "manager-1",
+      sourceManagerId: 10001,
+      definition: { ...managerAssetCore, rawBytes: "AA==" },
+      sources: [managerSource],
+      sourceFields: { assetCount: 1, assetNames: [managerAsset.assetName] },
+      raw: { assets: [managerAsset] },
+      unresolvedEvidenceIds: [],
+    }] };
+    const validate = av.getSchema("manager_domain.schema.json");
+    assert.equal(validate(manager), false);
+  });
+
+  it("rejects empty strategy raw evidence", () => {
+    const strategy = { ...envelope, records: [{
+      recordId: "empty-raw",
+      domain: "unknown",
+      semanticStatus: "partial",
+      source: { bundle: "configfiles", assetPath: "x", objectType: "Unknown" },
+      raw: { serialized: {} },
+    }] };
+    const validate = av.getSchema("strategy_configs.schema.json");
+    assert.equal(validate(strategy), false);
+  });
+
+  it("accepts an explicit unresolved-evidence link when Unity bytes are unavailable", () => {
+    const manager = { ...envelope, managers: [{
+      canonicalId: "manager-1",
+      sourceManagerId: 10001,
+      definition: managerAsset,
+      sources: [managerSource],
+      sourceFields: { assetCount: 1, assetNames: [managerAsset.assetName] },
+      raw: { assets: [managerAsset] },
+      unresolvedEvidenceIds: ["evidence-1"],
+    }] };
+    const strategy = { ...envelope, records: [{
+      recordId: "linked-raw",
+      domain: "unknown",
+      semanticStatus: "unresolved",
+      source: { bundle: "configfiles", assetPath: "x", objectType: "Unknown" },
+      raw: { serialized: { unresolvedEvidenceId: "strategy-raw-evidence-1" } },
+    }] };
+    assert.equal(av.getSchema("manager_domain.schema.json")(manager), true);
+    assert.equal(av.getSchema("strategy_configs.schema.json")(strategy), true);
+  });
+
+  it("requires complete serialized metadata in equipment source.rawRecords", () => {
+    const equipment = {
+      ...envelope,
+      source: { kind: "fixture", rawRecords: [{ assetName: "Equipment.asset", sourceBundle: "configfiles", sourceAssetPath: "x.asset", rawEncoding: "base64", rawBytes: "e30=" }] },
+      equipment: [], materials: [], balancing: [], localization: [],
+    };
+    const validate = av.getSchema("equipment_domain.schema.json");
+    assert.equal(validate(equipment), false);
+  });
 });
 
 describe("Manifest consistency with catalog artifacts", () => {

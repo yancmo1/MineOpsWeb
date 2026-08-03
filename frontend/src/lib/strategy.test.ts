@@ -16,6 +16,7 @@ import "fake-indexeddb/auto";
 import { describe, it, expect } from "vitest";
 import { evaluateLineup, evaluateVerifiedLineup, managersFromVerifiedPackage } from "./strategy";
 import type { CachedCatalogPackage } from "./catalog-cache";
+import { effectiveActiveValue } from "./db";
 import type { CatalogManager, PlayerManager } from "./db";
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,16 @@ describe("Basic ranking", () => {
 });
 
 describe("Score contributions", () => {
+  it("applies exact level and APK rank active effects", () => {
+    const manager = makeManager({
+      id: "sm-10029",
+      active: { multiplier: 5.95, multiplierAt100: 10.2 },
+      activeLevels: [{ level: 30, value: 7.2 }],
+      rankEffects: [{ rank: 4, activeIncrease: 0.46 }],
+    });
+    expect(effectiveActiveValue(manager, makeProgress({ managerId: manager.id, level: 30, rank: 4 }))).toBeCloseTo(10.512);
+  });
+
   it("higher rank increases score", () => {
     const catalog = [makeManager({ id: "mgr-test", rarity: "Rare", active: { multiplier: 5 } })];
     const lowRank = makeProgress({ managerId: "mgr-test", rank: 0, level: 10 });
@@ -258,6 +269,65 @@ describe("Verified release evidence", () => {
     expect(manager.name).toBe("Dr. Nova");
     expect(manager.gameId).toBe(10029);
     expect(manager.passives?.[0].description).toBe("Boost");
+  });
+
+  it("merges identity-only APK passive rows with display and unlock data", () => {
+    const pkg = {
+      ...verifiedPackage,
+      artifacts: {
+        "catalog-core.json": {
+          ...verifiedPackage.artifacts["catalog-core.json"],
+          content: { managers: [{
+            canonicalId: "sm-10006",
+            name: "Mr. Turner",
+            role: "Mine Shaft",
+            rarity: "Rare",
+            extensions: { superManagerId: 10006 },
+            passives: [
+              { passiveId: 5, type: "passive_1", description: null, multiplier: null, unlockLevel: null },
+              { passiveId: 1007, type: "passive_2", description: null, multiplier: null, unlockLevel: null },
+            ],
+          }] },
+        },
+      },
+    } as unknown as CachedCatalogPackage;
+
+    const [manager] = managersFromVerifiedPackage(pkg);
+    expect(manager.passives).toEqual([
+      expect.objectContaining({ passiveId: 5, type: "WMSB", promoReq: 1 }),
+      expect.objectContaining({ passiveId: 1007, type: "MIF", multiplier: 1.44, promoReq: 3 }),
+    ]);
+  });
+
+  it("uses the exact verified manager-domain level row for strategy scoring", () => {
+    const pkg = {
+      ...verifiedPackage,
+      artifacts: {
+        "catalog-core.json": {
+          ...verifiedPackage.artifacts["catalog-core.json"],
+          content: { managers: [{ canonicalId: "sm-10006", name: "Mr. Turner", role: "Mine Shaft", rarity: "rare", active: { multiplier: 10, multiplierAt100: 100 }, passives: [{ canonicalId: "passive:5", extensions: { sourcePassiveId: 5, unlockLevel: 10, promoReq: 1 } }] }] },
+        },
+        "manager-domain.json": {
+          filename: "manager-domain.json", sha256: "y", bytes: 1, schemaVersion: "1.0.0",
+          content: {
+            managers: [{
+              canonicalId: "sm-10006",
+              definition: { params: [{ Duration: 300, Cooldown: 1800 }] },
+              activeLevels: [{ params: [{ Level: 1, ActiveStrength: 10 }, { Level: 7, ActiveStrength: 42 }, { Level: 100, ActiveStrength: 100 }] }],
+            }],
+          },
+        },
+      },
+    } as unknown as CachedCatalogPackage;
+
+    const [manager] = managersFromVerifiedPackage(pkg);
+    expect(manager.activeLevels).toEqual([{ level: 1, value: 10 }, { level: 7, value: 42 }, { level: 100, value: 100 }]);
+    expect(manager.active?.duration).toBe(300);
+    expect(manager.active?.cooldown).toBe(1800);
+    expect(manager.passives?.[0]).toEqual(expect.objectContaining({ passiveId: 5, unlockLevel: 10, promoReq: 1 }));
+
+    const result = evaluateVerifiedLineup(pkg, [makeProgress({ managerId: "sm-10006", level: 7 })]);
+    expect(result.areaRecommendations["Mine Shaft"][0].activeValue).toBe(42);
   });
 
   it("derives a display name from NameKey when localization is missing", () => {

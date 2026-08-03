@@ -11,6 +11,8 @@ Usage:
 from __future__ import annotations
 
 import json
+import base64
+import hashlib
 import sys
 import re
 from dataclasses import dataclass, field, asdict
@@ -98,12 +100,16 @@ def load_bundle(release_dir: Path | str) -> Any:
 
 
 def load_all_bundles(release_dir: Path | str) -> dict[str, Any]:
-    """Load ALL Unity bundles and return a dict of bundle_name -> env."""
+    """Load only manager-relevant Unity bundles for discovery/extraction."""
     import UnityPy
     release_dir = Path(release_dir)
     bundle_dir = release_dir / "extracted/base.apk/assets/Addressables/Android"
     result: dict[str, Any] = {}
-    for bp in sorted(bundle_dir.glob("*.bundle")):
+    bundle_paths = {
+        *bundle_dir.glob("configfiles-supermanagers*.bundle"),
+        *bundle_dir.glob("supermanager-*.bundle"),
+    }
+    for bp in sorted(bundle_paths):
         try:
             env = UnityPy.load(str(bp))
             result[bp.name] = env
@@ -149,10 +155,193 @@ def _read_params(data: Any) -> list[dict[str, Any]] | None:
             if attr.startswith("_") or attr in ("assets_file", "get_type", "object_reader", "save", "set_object_reader"):
                 continue
             val = getattr(p, attr)
-            if isinstance(val, (str, int, float, bool, type(None))):
-                entry[attr] = val
+            if isinstance(val, (str, int, float, bool, type(None), list, tuple, dict)):
+                entry[attr] = _json_value(val)
+            elif not callable(val):
+                entry[attr] = _json_value(val)
         results.append(entry)
     return results
+
+
+def _json_value(value: Any, depth: int = 0) -> Any:
+    """Keep readable data instead of dropping unfamiliar IL2CPP field types."""
+    if depth > 4:
+        return {"unresolvedRepresentation": type(value).__name__}
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, bytes):
+        return {"encoding": "base64", "value": base64.b64encode(value).decode("ascii")}
+    if isinstance(value, (list, tuple)):
+        return [_json_value(item, depth + 1) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_value(item, depth + 1) for key, item in value.items()}
+    values = {}
+    for attr in dir(value):
+        if attr.startswith("_") or attr in ("assets_file", "get_type", "object_reader", "save", "set_object_reader"):
+            continue
+        try:
+            item = getattr(value, attr)
+        except Exception:
+            continue
+        if callable(item):
+            continue
+        if isinstance(item, (str, int, float, bool, type(None), list, tuple, dict, bytes)):
+            values[attr] = _json_value(item, depth + 1)
+    return values or {"unresolvedRepresentation": type(value).__name__}
+
+
+def _raw_object_record(pointer: Any, env: Any | None = None) -> dict[str, Any]:
+    """Retain serialized bytes or a deterministic reason they are unavailable."""
+    reader = getattr(pointer, "object_reader", None)
+    if reader is None and env is not None:
+        path_id = getattr(pointer, "path_id", None)
+        for serialized_file in getattr(env, "assets", []):
+            candidate = getattr(serialized_file, "objects", {}).get(path_id)
+            if candidate is not None:
+                reader = candidate
+                break
+    if reader is None:
+        return {"rawBytesUnavailableReason": "object_reader_not_found"}
+    try:
+        raw = reader.get_raw_data()
+    except Exception as error:
+        return {"rawBytesUnavailableReason": f"raw_data_read_failed:{type(error).__name__}"}
+    return {
+        "rawEncoding": "base64",
+        "rawBytes": base64.b64encode(raw).decode("ascii"),
+        "rawSha256": hashlib.sha256(raw).hexdigest(),
+        "rawByteLength": len(raw),
+    }
+
+
+def _object_path_id(pptr: Any) -> int | None:
+    """Return a Unity object path id when the pointer exposes one."""
+    value = getattr(pptr, "path_id", None)
+    return value if isinstance(value, int) else None
+
+
+def _bundle_name_for(env: Any, all_bundles: dict[str, Any] | None) -> str | None:
+    """Find the capture bundle name without depending on UnityPy internals."""
+    if not all_bundles:
+        return None
+    for bundle_name, bundle_env in all_bundles.items():
+        if bundle_env is env:
+            return bundle_name
+    return None
+
+
+def _source_from_asset(asset: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "bundle": asset.get("sourceBundle"),
+        "assetPath": asset.get("sourceAssetPath"),
+        "objectType": asset.get("rawType"),
+        "pathId": asset.get("sourceObjectPathId"),
+    }
+
+
+def build_manager_domain(
+    managers: list[ExtractedManager],
+    release_id: str,
+    *,
+    catalog_version: str | None = None,
+    generated_at: str | None = None,
+    source: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Create a lossless, release-scoped manager input artifact.
+
+    This intentionally does not interpret enum values or attach user-facing
+    effect labels.  Each asset's complete ``Params`` array stays in source
+    order so later domain joins can be audited or reinterpreted safely.
+    """
+    records: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
+    for manager in sorted(managers, key=lambda item: item.manager_id):
+        assets = []
+        for raw_key in sorted(manager.raw_asset_data):
+            raw = manager.raw_asset_data[raw_key]
+            asset = {
+                "assetName": raw.get("assetName", raw_key),
+                "sourceBundle": raw.get("sourceBundle"),
+                "sourceAssetPath": raw.get("key"),
+                "sourceObjectPathId": raw.get("objectPathId"),
+                "rawType": raw.get("raw_type"),
+            }
+            for key in ("rawEncoding", "rawBytes", "rawSha256", "rawByteLength"):
+                if key in raw:
+                    asset[key] = raw[key]
+            if "rawBytes" not in asset:
+                raw_evidence_id = f"manager-{manager.manager_id}-raw-bytes-{len(assets)}"
+                asset["rawBytesUnresolvedEvidenceId"] = raw_evidence_id
+                unresolved.append({
+                    "evidenceId": raw_evidence_id,
+                    "domain": "manager",
+                    "subjectId": f"sm-{manager.manager_id}",
+                    "fieldPath": f"raw.assets[{len(assets)}].rawBytes",
+                    "status": "partial",
+                    "severity": "warning",
+                    "reason": "Serialized Unity object bytes were unavailable; readable fields were retained with exact object provenance.",
+                    "rawValue": {"unavailableReason": raw.get("rawBytesUnavailableReason", "not_captured")},
+                })
+            if "params" in raw:
+                asset["params"] = raw["params"]
+            if "attrs" in raw:
+                asset["attrs"] = raw["attrs"]
+            assets.append(asset)
+
+        definition = [a for a in assets if a["assetName"].endswith("_SuperManagers.asset")]
+        active_levels = [a for a in assets if "SuperManagersActivesToLevels" in a["assetName"]]
+        promotions = [a for a in assets if "SuperManagersLevelsToPromotions" in a["assetName"]]
+        ranks = [a for a in assets if "RankEffectsValues" in a["assetName"]]
+        factors = [a for a in assets if "ActiveEffectFactorType" in a["assetName"]]
+        fragments = [a for a in assets if "SuperManagerToFragments" in a["assetName"]]
+        evidence_ids = [f"manager-{manager.manager_id}-missing-{item.lower()}" for item in sorted(manager.assets_missing)]
+        evidence_ids.extend(f"manager-{manager.manager_id}-warning-{index}" for index, _ in enumerate(manager.warnings))
+        evidence_ids.extend(asset["rawBytesUnresolvedEvidenceId"] for asset in assets if "rawBytesUnresolvedEvidenceId" in asset)
+        records.append({
+            "canonicalId": f"sm-{manager.manager_id}",
+            "sourceManagerId": manager.manager_id,
+            "definition": definition[0] if len(definition) == 1 else definition,
+            "activeLevels": active_levels,
+            "promotionMilestones": promotions,
+            "rankEffects": ranks,
+            "effectFactors": factors,
+            "fragmentMappings": fragments,
+            "sources": [_source_from_asset(asset) for asset in assets],
+            "sourceFields": {"assetCount": len(assets), "assetNames": [asset["assetName"] for asset in assets]},
+            "raw": {"assets": assets},
+            "unresolvedEvidenceIds": evidence_ids,
+        })
+        for missing in manager.assets_missing:
+            unresolved.append({
+                "evidenceId": f"manager-{manager.manager_id}-missing-{missing.lower()}",
+                "domain": "manager",
+                "subjectId": f"sm-{manager.manager_id}",
+                "fieldPath": missing,
+                "status": "partial",
+                "severity": "warning",
+                "reason": "Expected manager asset was not found in the release-scoped manager bundle.",
+            })
+        for index, warning in enumerate(manager.warnings):
+            unresolved.append({
+                "evidenceId": f"manager-{manager.manager_id}-warning-{index}",
+                "domain": "manager",
+                "subjectId": f"sm-{manager.manager_id}",
+                "fieldPath": None,
+                "status": "needs_review",
+                "severity": "warning",
+                "reason": warning,
+            })
+
+    return {
+        "schemaVersion": "1.0.0",
+        "catalogVersion": catalog_version or release_id,
+        "releaseId": release_id,
+        "generatedAt": generated_at or datetime.now(timezone.utc).isoformat(),
+        "managers": records,
+        # The ledger is transferred to unresolved-evidence.json by packaging.
+        # Keep it in source metadata for callers that need to build the ledger.
+        "source": {**(source or {"kind": "apk_capture", "extraction": "Unity MonoBehaviour Params"}), "unresolved": unresolved},
+    }
 
 
 def _read_simple_attrs(data: Any) -> dict[str, Any]:
@@ -176,11 +365,13 @@ def extract_manager(env: Any, manager_id: int, all_bundles: dict[str, Any] | Non
     fields: dict[str, ExtractedField] = {}
 
     id_str = str(manager_id)
+    exact_asset = re.compile(rf"(?:^|/){re.escape(id_str)}_(?:SuperManagers|SuperManagersActivesToLevels|SuperManagersLevelsToPromotions|ActiveEffectFactorType|RankEffectsValues|SuperManagerToFragments|SuperManagerDataConfig)\.asset$")
     envs_to_search = list(all_bundles.values()) if all_bundles else [env]
 
     for search_env in envs_to_search:
+        bundle_name = _bundle_name_for(search_env, all_bundles)
         for key, pptr in search_env.container.items():
-            if ".asset" not in key or id_str not in key:
+            if not exact_asset.search(key):
                 continue
             try:
                 if pptr.type.name != "MonoBehaviour":
@@ -192,11 +383,19 @@ def extract_manager(env: Any, manager_id: int, all_bundles: dict[str, Any] | Non
             data = pptr.read()
             if entry_name not in assets_found:
                 assets_found.append(entry_name)
-            raw_data[entry_name] = {"raw_type": type(data).__name__, "key": key}
+            raw_key = f"{bundle_name or 'unknown'}::{key}::{_object_path_id(pptr) or 'unknown'}"
+            raw_data[raw_key] = {
+                "assetName": entry_name,
+                "raw_type": type(data).__name__,
+                "key": key,
+                "sourceBundle": bundle_name,
+                "objectPathId": _object_path_id(pptr),
+                **_raw_object_record(pptr, search_env),
+            }
 
             if hasattr(data, "Params") and isinstance(data.Params, list):
                 params = _read_params(data)
-                raw_data[entry_name]["params"] = params
+                raw_data[raw_key]["params"] = params
                 if params:
                     # Flatten single-param assets
                     p = params[0]
@@ -210,7 +409,7 @@ def extract_manager(env: Any, manager_id: int, all_bundles: dict[str, Any] | Non
                     )
             else:
                 attrs = _read_simple_attrs(data)
-                raw_data[entry_name]["attrs"] = attrs
+                raw_data[raw_key]["attrs"] = attrs
 
     # Check for expected asset types
     for asset_type in EXPECTED_ASSET_TYPES:
@@ -221,7 +420,8 @@ def extract_manager(env: Any, manager_id: int, all_bundles: dict[str, Any] | Non
 
     # Construct canonical fields from SuperManagers.asset
     super_key = f"{id_str}_SuperManagers.asset"
-    super_params = raw_data.get(super_key, {}).get("params")
+    super_rows = [raw for raw in raw_data.values() if raw.get("assetName") == super_key]
+    super_params = super_rows[0].get("params") if super_rows else None
     if super_params and len(super_params) > 0:
         p = super_params[0]
         sid = p.get("SuperManagerId")
@@ -347,6 +547,7 @@ def _serialize_manager(mgr: ExtractedManager) -> dict:
         "assetsFound": sorted(mgr.assets_found),
         "assetsMissing": sorted(mgr.assets_missing),
         "warnings": mgr.warnings,
+        "rawAssets": mgr.raw_asset_data,
     }
 
 

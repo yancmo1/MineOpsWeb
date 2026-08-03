@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 
-export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: Array<{ unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number }>; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }> };
+export type CatalogPassive = { passiveId?: number; unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number };
+export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; activeLevels?: Array<{ level: number; value: number }>; rankEffects?: Array<{ rank: number; activeIncrease?: number; passiveIncrease?: number }>; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: CatalogPassive[]; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }> };
 export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; fragmentSource?: "kolibri" | "manual" | "unavailable"; equipmentIds?: number[]; unlocked: boolean; updatedAt: string };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
 export type AppSettings = { autoSync: boolean };
@@ -36,18 +37,25 @@ export async function getCredentials(): Promise<PersistedCredentials | undefined
 // ---------------------------------------------------------------------------
 
 export function effectiveActiveValue(manager: CatalogManager, progress: PlayerManager): number {
-  const activeL1 = manager.active?.multiplier ?? 1;
-  const activeL100 = manager.active?.multiplierAt100;
+  const exactLevel = manager.activeLevels?.find((row) => row.level === progress.level);
+  const baseValue = exactLevel?.value ?? (() => {
+    const activeL1 = manager.active?.multiplier ?? 1;
+    const activeL100 = manager.active?.multiplierAt100;
 
-  if (activeL100 != null && progress.level >= 1) {
-    const base = activeL1;
-    const maxVal = activeL100;
-    const ratio = Math.min(progress.level / 100.0, 1.0);
-    return base + (maxVal - base) * ratio;
-  }
+    if (activeL100 != null && progress.level >= 1) {
+      const ratio = Math.min(progress.level / 100.0, 1.0);
+      return activeL1 + (activeL100 - activeL1) * ratio;
+    }
 
-  // Fallback: use flat activeL1
-  return activeL1;
+    return activeL1;
+  })();
+
+  const rankEffect = manager.rankEffects?.find((row) => row.rank === progress.rank)?.activeIncrease;
+  if (rankEffect == null || !Number.isFinite(rankEffect)) return baseValue;
+  // APK rank rows are normally stored as an additive percentage (0.46 = 46%),
+  // but accept an already-expanded factor as well for older package shapes.
+  const rankFactor = rankEffect >= 1 ? rankEffect : 1 + rankEffect;
+  return baseValue * rankFactor;
 }
 
 // ---------------------------------------------------------------------------

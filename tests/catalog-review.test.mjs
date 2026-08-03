@@ -57,6 +57,25 @@ function writeArtifact(dir, filename, content) {
   writeFileSync(resolve(dir, filename), canonicalJson(content));
 }
 
+function addManifestArtifact(dir, filename, content, { required = false, recordCount = 0, counts } = {}) {
+  writeArtifact(dir, filename, content);
+  const manifestPath = resolve(dir, "manifest.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+  const raw = readFileSync(resolve(dir, filename), "utf-8");
+  manifest.artifacts.push({
+    filename,
+    contentType: "application/json",
+    sha256: sha256(raw),
+    bytes: Buffer.byteLength(raw, "utf-8"),
+    schemaVersion: "1.0.0",
+    recordCount,
+    required,
+    path: filename,
+  });
+  if (counts) manifest.counts = { ...manifest.counts, ...counts };
+  writeArtifact(dir, "manifest.json", manifest);
+}
+
 // ---------------------------------------------------------------------------
 // Fixture builders
 // ---------------------------------------------------------------------------
@@ -276,13 +295,13 @@ describe("Missing required artifacts", () => {
     assert.ok(summary.error.includes("catalog-core.json not found"));
   });
 
-  it("missing optional artifact does not block review", () => {
+  it("missing optional artifact quarantines the immutable package", () => {
     const dir = setupFixture("missing-optional");
     createValidFixture(dir);
     rmSync(resolve(dir, "changelog.json"));
     const summary = reviewPackage(dir);
     assert.equal(summary.reviewable, true);
-    assert.equal(summary.recommendedDecision, "approved"); // changelog is optional
+    assert.equal(summary.recommendedDecision, "quarantined");
   });
 });
 
@@ -303,7 +322,7 @@ describe("Hash failures", () => {
     assert.equal(catalogCoreArtifact.hashMatch, false);
   });
 
-  it("hash mismatch on optional artifact does not quarantine", () => {
+  it("hash mismatch on optional artifact quarantines the immutable package", () => {
     const dir = setupFixture("hash-mismatch-optional");
     createValidFixture(dir);
     const fp = resolve(dir, "changelog.json");
@@ -311,11 +330,42 @@ describe("Hash failures", () => {
     writeFileSync(fp, content.replace('"managersAdded": 0', '"managersAdded": 99'));
     const summary = reviewPackage(dir);
     assert.equal(summary.reviewable, true);
-    // Optional artifact hash mismatch — still passes overall integrity
+    assert.equal(summary.recommendedDecision, "quarantined");
+    assert.equal(summary.artifactIntegrity.passed, false);
     const changelogArtifact = summary.artifactIntegrity.artifacts.find((a) => a.filename === "changelog.json");
     assert.ok(changelogArtifact);
     assert.equal(changelogArtifact.hashMatch, false);
     assert.equal(changelogArtifact.required, false);
+  });
+
+  it("tampered optional domain artifact quarantines the immutable package", () => {
+    const dir = setupFixture("tampered-optional-domain");
+    createValidFixture(dir);
+    addManifestArtifact(dir, "strategy-configs.json", {
+      schemaVersion: "1.0.0",
+      catalogVersion: "1.0.0-100000-test",
+      releaseId: "test-release",
+      generatedAt: "2026-07-16T00:00:00.000Z",
+      source: { kind: "fixture" },
+      records: [{
+        recordId: "cfg-1",
+        domain: "unknown",
+        semanticStatus: "partial",
+        source: { bundle: "configfiles", assetPath: "x.asset", objectType: "MonoBehaviour" },
+      raw: { serialized: { rawEncoding: "base64", rawBytes: "MQ==", rawSha256: sha256("1"), rawByteLength: 1 } },
+      }],
+    }, { required: false, recordCount: 1 });
+    const artifactPath = resolve(dir, "strategy-configs.json");
+    const artifact = JSON.parse(readFileSync(artifactPath, "utf-8"));
+    artifact.records[0].raw.serialized.rawBytes = "Mg==";
+    writeArtifact(dir, "strategy-configs.json", artifact);
+
+    const summary = reviewPackage(dir);
+    assert.equal(summary.recommendedDecision, "quarantined");
+    assert.equal(summary.artifactIntegrity.passed, false);
+    const result = summary.artifactIntegrity.artifacts.find((entry) => entry.filename === "strategy-configs.json");
+    assert.equal(result.required, false);
+    assert.equal(result.hashMatch, false);
   });
 });
 
@@ -482,6 +532,99 @@ describe("Schema compatibility", () => {
     const summary = reviewPackage(dir);
     assert.equal(summary.reviewable, false);
     assert.ok(summary.error.includes("not v2 format"));
+  });
+});
+
+describe("Domain artifact review", () => {
+  const envelope = { schemaVersion: "1.0.0", catalogVersion: "1.0.0-100000-test", releaseId: "test-release", generatedAt: "2026-07-16T00:00:00.000Z", source: { kind: "fixture" } };
+  const managerAsset = { assetName: "1_SuperManagers.asset", sourceBundle: "fixture-bundle", sourceAssetPath: "Assets/1_SuperManagers.asset", rawType: "MonoBehaviour", params: [{ SuperManagerId: 1 }], rawBytesUnresolvedEvidenceId: "e-1" };
+
+  it("accepts an identity-bound required manager domain and matching unresolved evidence", () => {
+    const dir = setupFixture("domain-artifacts-valid");
+    createValidFixture(dir);
+    addManifestArtifact(dir, "manager-domain.json", { ...envelope, managers: [{
+      canonicalId: "mgr-1",
+      sourceManagerId: 1,
+      definition: managerAsset,
+      sources: [{ bundle: "fixture-bundle", assetPath: "Assets/1_SuperManagers.asset", objectType: "MonoBehaviour" }],
+      sourceFields: { assetCount: 1, assetNames: ["1_SuperManagers.asset"] },
+      raw: { assets: [managerAsset] },
+      unresolvedEvidenceIds: ["e-1"],
+    }] }, { required: true, recordCount: 1 });
+    addManifestArtifact(dir, "unresolved-evidence.json", { ...envelope, entries: [{ evidenceId: "e-1", domain: "manager", status: "unresolved", severity: "warning", reason: "Captured but not classified" }] }, { required: false, recordCount: 1, counts: { unresolvedObjects: 1 } });
+    const summary = reviewPackage(dir);
+    assert.equal(summary.recommendedDecision, "review_required");
+    assert.equal(summary.domainArtifactReview.hasFatal, false);
+    assert.equal(summary.domainArtifactReview.unresolvedEntries, 1);
+  });
+
+  it("quarantines a listed optional manager domain", () => {
+    const dir = setupFixture("manager-domain-optional");
+    createValidFixture(dir);
+    addManifestArtifact(dir, "manager-domain.json", { ...envelope, managers: [] }, { required: false });
+    const summary = reviewPackage(dir);
+    assert.equal(summary.recommendedDecision, "quarantined");
+    assert.ok(summary.domainArtifactReview.fatalFindings.some((finding) => finding.code === "MANAGER_DOMAIN_REQUIRED"));
+  });
+
+  it("quarantines release identity or unresolved-count mismatches", () => {
+    const dir = setupFixture("domain-artifact-identity-mismatch");
+    createValidFixture(dir);
+    addManifestArtifact(dir, "unresolved-evidence.json", { ...envelope, releaseId: "other-release", entries: [{ evidenceId: "e-1", domain: "strategy", status: "unresolved", severity: "warning", reason: "Unknown" }] }, { recordCount: 1, counts: { unresolvedObjects: 2 } });
+    const summary = reviewPackage(dir);
+    assert.equal(summary.recommendedDecision, "quarantined");
+    assert.ok(summary.domainArtifactReview.fatalFindings.some((finding) => finding.code === "ARTIFACT_RELEASE_IDENTITY"));
+    assert.ok(summary.domainArtifactReview.fatalFindings.some((finding) => finding.code === "UNRESOLVED_EVIDENCE_CONSISTENCY"));
+  });
+
+  it("quarantines a captured Unity record with neither bytes nor linked unresolved evidence", () => {
+    const dir = setupFixture("missing-serialized-evidence");
+    createValidFixture(dir);
+    addManifestArtifact(dir, "strategy-configs.json", {
+      ...envelope,
+      records: [{
+        recordId: "cfg-missing-evidence",
+        domain: "unknown",
+        semanticStatus: "unresolved",
+        source: { bundle: "configfiles", assetPath: "missing.asset", objectType: "MonoBehaviour" },
+        raw: { serialized: {} },
+      }],
+    }, { recordCount: 1 });
+
+    const summary = reviewPackage(dir);
+    assert.equal(summary.recommendedDecision, "quarantined");
+    assert.ok(summary.domainArtifactReview.fatalFindings.some((finding) => finding.code === "SERIALIZED_EVIDENCE_MISSING"));
+  });
+
+  it("accepts a captured Unity record with an explicit linked unresolved-evidence entry", () => {
+    const dir = setupFixture("linked-serialized-evidence");
+    createValidFixture(dir);
+    addManifestArtifact(dir, "strategy-configs.json", {
+      ...envelope,
+      records: [{
+        recordId: "cfg-linked-evidence",
+        domain: "unknown",
+        semanticStatus: "unresolved",
+        source: { bundle: "configfiles", assetPath: "unavailable.asset", objectType: "MonoBehaviour" },
+        raw: { serialized: { unresolvedEvidenceId: "strategy-bytes-unavailable" } },
+      }],
+    }, { recordCount: 1 });
+    addManifestArtifact(dir, "unresolved-evidence.json", {
+      ...envelope,
+      entries: [{
+        evidenceId: "strategy-bytes-unavailable",
+        domain: "strategy",
+        subjectId: "cfg-linked-evidence",
+        fieldPath: "raw.serialized",
+        status: "unresolved",
+        severity: "warning",
+        reason: "Unity serialized bytes were unavailable from the captured object reader.",
+      }],
+    }, { recordCount: 1, counts: { unresolvedObjects: 1 } });
+
+    const summary = reviewPackage(dir);
+    assert.equal(summary.recommendedDecision, "review_required");
+    assert.equal(summary.domainArtifactReview.hasFatal, false);
   });
 });
 

@@ -1,5 +1,180 @@
 # Development journal
 
+## 2026-08-03 — Correct manager active values and stable Damian passive identity
+
+**Finding:** Damian Jones exposed two parity defects. The detail modal displayed the catalog level-1 active value (`5.95x`) regardless of the player’s level/rank, and passive enrichment matched by row position, labeling APK passive ID `8` as Crate Resources. The supplied game screenshots show Damian at level 30/rank 4 with a `10.5x` active value and an elevator upgrade-cost passive; equipment multipliers were not involved in the displayed active value.
+
+**Implementation:** The active-value path now applies the exact manager-domain level row plus the matching APK rank active-effect factor when those rows are present. The detail description and value stat use that current value. Stable APK passive IDs now override legacy row-position labels; ID `8` resolves to Elevator Upgrade Cost Reduction and ID `1007` to Mine Income Factor. Added regression tests for rank scaling and passive identity.
+
+**Verification:** Frontend tests passed 125/125. The production TypeScript/Vite build passed with only the repository’s existing dynamic-import warnings, and `git diff --check` passed. No connected-device visual smoke was available.
+
+**Remaining limitations:** The published package must include Damian’s exact rank/effect rows for the UI to reach the screenshot’s full parity. Fallback enrichment values for passive magnitudes still lack verified level/rank semantics, so this change corrects identity and active calculation without inventing passive numeric formulas.
+
+## 2026-08-03 — Respect the iOS top safe area in the mobile app shell
+
+**Outcome:** Added `env(safe-area-inset-top)` to the mobile app shell’s top padding so the header and page content remain below the Dynamic Island/status area on iOS devices. Desktop layout behavior is unchanged because its existing media-query padding still overrides the mobile shell padding.
+
+**Verification:** Reviewed the existing `viewport-fit=cover` configuration and bottom safe-area handling, ran the frontend test suite and production build, and checked the resulting diff for whitespace errors.
+
+**Remaining limitations:** A connected-device visual browser smoke was not available in this session. No architecture or parity document required changes; this is a shell-level safe-area presentation fix.
+
+## 2026-08-03 — Redesign More and deploy the lossless-catalog frontend
+
+**Outcome:** Rebuilt `/more` as a responsive settings and data-health workspace, then deployed the frontend that consumes the active lossless catalog. The page now leads with quick sync/catalog/history actions and health summaries, followed by grouped Player sync, Catalog & strategy data, History & recovery, Cloud account, Preferences, Capture bridge, and Diagnostics sections. Native disclosure buttons expose `aria-expanded`/`aria-controls`, primary controls meet a 44px touch target, keyboard focus is visible, narrow layouts collapse cleanly, and the existing sync, authentication, snapshot, import-history, capture-status, cache, and recovery behavior is preserved.
+
+**Lossless adapter surface:** The deployed manager and strategy adapters consume `manager-domain.json` exact active-level rows and strict passive unlock metadata. More shows whether exact APK level tables are present; manager cards/details and strategy scoring use the verified active package without inventing semantics for unresolved APK records.
+
+**Verification:** The focused More page suite passed 3/3 tests and the complete frontend suite passed 123/123 tests across 11 files. TypeScript and the Vite production build passed; `git diff --check` passed. The required in-app browser connector reported no available browser runtime, so interactive screenshot and pointer-level visual QA could not be performed. Server-rendered accessibility assertions, responsive CSS review, build verification, and public asset checks were used instead.
+
+**Deployment:** Commit `e3c87b37807b5c7ade47f1a709edec40257a0c60` was published as `ghcr.io/yancmo1/mineopsweb-web:sha-e3c87b3` and `latest` by GitHub Actions run `30809749136`; multi-arch manifest digest is `sha256:c65393475f50eaf46ecced7e1e12672547ce423dc3adea1bf0dc5fa7d19008d3`. A new `web_only` workflow-dispatch input skipped both PocketBase metadata and build steps. Watchtower detected that digest and recreated only `mineopsweb-web-1` at `2026-08-03T11:32:56.397420181Z`. The active production PocketBase container remained on image `sha256:91147cb29fff83c74de572627a554d20ef4d1e7a1be7d80fa1e68b2c2b7039bb` with its original start time; the separately watched legacy PocketBase container also remained unchanged.
+
+**Live evidence:** `https://mineops.shepswork.com/` returned HTTP 200 and served `assets/index-CIoEFLnO.js` plus `assets/index-BfUSDGQR.css`, both HTTP 200. The live JavaScript contains `manager-domain.json`, `Exact APK level tables`, `Exact levels active`, `Settings & data`, and `Keep MineOps current`. The public catalog pointer remained `5.59.0_96449_20260716T143539Z.lossless-v1` with manifest SHA-256 `2ea925ea0c66b7f047d20b4e1be0784fe4a5d7a869769f2eb4dcde76f25fe1ee`; PocketBase health remained HTTP 200.
+
+**Rollback and limitations:** The prior web image remains addressable as `ghcr.io/yancmo1/mineopsweb-web:sha-bc653e2` (manifest digest `sha256:43b59c088773da8afe2089aa6a52e494d373e74831264bdeee9626d2ce81734a`). Pin that immutable tag in the web compose definition and recreate only the web service if rollback is required. Export/import/reset parity and a real connected-device browser smoke remain open; generic research, mine, equipment-effect, event, and other unresolved catalog semantics are still deliberately excluded from recommendations.
+
+## 2026-08-02 — Publish the lossless APK strategy catalog through the hardened control plane
+
+**Outcome:** The lossless APK strategy package is now the active Oracle catalog. Its immutable release identity is `5.59.0_96449_20260716T143539Z.lossless-v1`, manifest SHA-256 is `2ea925ea0c66b7f047d20b4e1be0784fe4a5d7a869769f2eb4dcde76f25fe1ee`, and validation-report SHA-256 is `9be9525e33350102be3056aa285737011608be9e871387e19443012feb9aa3bd`. The manifest lists 11 artifacts (12 served files including the manifest): 118 managers, 11,800 exact manager level rows, 1,180 promotion rows, 560 rank rows, 36 equipment definitions, 15 materials, 1,698 strategy-config records, and 1,726 explicit unresolved-evidence records. The prior active release `5.59.0_96449_20260716T143539Z` is retained as `superseded` and is the current rollback target.
+
+**UbuntuMac/package identity:** A hard-linked immutable release revision was created at `/home/yancmo/mineops-data/releases/5.59.0_96449_20260716T143539Z.lossless-v1`; the original capture was not changed. The published candidate is `/home/yancmo/mineops-data/releases/5.59.0_96449_20260716T143539Z.lossless-v1/exports/strategy-candidates/5.59.0_96449_20260716T143539Z.lossless-v1.unique.candidate`. Independent validation passed 26/26 checks. The `REVIEW_REQUIRED` finding represents the deliberately retained unresolved ledger, not a fatal/hash/domain-integrity failure; the server-bound review approved the immutable package after the isolated lifecycle rehearsal.
+
+**Security and backup gate:** The retired PocketBase superuser credential was rotated on Oracle. A first replacement was invalidated immediately after a read-only compose inspection expanded it into protected tool output; a second replacement was generated atomically, stored only in `/opt/infra-new/compose/.env` with mode `0600`, and authenticated successfully without printing it. The authoritative post-rotation cold backup is `/opt/infra-new/backups/mineops-catalog/20260803T020855Z`; archive SHA-256 is `73ba8dcb40734aaec38088b22f8455a1cceb5f58eb50755db4e2ef35f9b9accb`. Archive verification, tar inspection, and extracted SQLite `PRAGMA integrity_check` all passed. Pre-deploy compose and hook copies are preserved beneath that backup at `predeploy-live-files/`.
+
+**Control-plane repair and hardening:** Added `pocketbase/pb_migrations/1700000008_catalog_control_plane_hardening.js`, release-scoped artifact serving, server-authoritative manifest/validation hash binding, authenticated review/publish routes, transactional publish/rollback, timestamps, closed direct mutation rules, and unique indexes for release identity and one latest review per release. Migration preserved the pointer-bound active row under its original release ID, renamed the duplicate candidate to `legacy-5.59.0_96449_20260716T143539Z-wf6s19g70fxumd8`, and preserved the two unmatched historical approvals under distinct `legacy-...-review-...` identities rather than falsely binding or deleting them.
+
+**Restored-production rehearsal:** The new migration and hooks were first applied to an isolated container restored from the authoritative production backup. That gate caught and fixed PocketBase 0.39 integration defects in schema-persistence ordering, `findRecordsByFilter` limit/offset order, router response access, standard PocketBase auth lookup, and publication-event field names. The clean rerun then passed registration, server-bound approval, transactional publish, all 12 artifact reads/hashes, rollback, old-manifest restoration, schema/index/rule checks, and controlled invalid-auth/body responses. The isolated container and volume were removed after the production verification.
+
+**Oracle deployment/publication:** Production compose project `infra-new` now mounts `/opt/infra-new/catalog-artifacts:/pb/catalog-artifacts:ro` and `/opt/infra-new/apps/mineopsweb/pb_migrations:/pb/pb_migrations:ro`. Release packages live under `/opt/infra-new/catalog-artifacts/releases/<releaseId>/`. Production registration created release record `677tislzp2uhj0j`; review `px3ptw0qoi6o60b` is the single latest approved review bound to both package hashes; publication event `zt2muminsr5szw1` records activation at `2026-08-03T02:31:21.585Z`. The public pointer, release row, and `https://mineops-pb.shepswork.com/api/catalog/artifacts?file=manifest.json` all return the new identity/hash. Every manifest-listed artifact plus the manifest was downloaded and hash-verified after activation.
+
+**Verification:** `node --check` passed for all three hooks and the migration; catalog control-plane/review/publication tests passed 59/59; the earlier complete lossless matrix passed extraction, schemas, validator/review, frontend tests, and production build. Production PocketBase health, public manifest HTTP 200/hash, one exact active release, one bound latest approval, one publish event, and the previous release's `superseded` status were verified. A visual in-app browser smoke could not be run because no browser runtime was connected in this session; API/frontend reachability and the complete client catalog-loading contract were verified independently.
+
+**Rollback:** The preferred catalog-only rollback is authenticated `POST /api/catalog/rollback` with `targetReleaseId` `5.59.0_96449_20260716T143539Z`; this was proven on the restored backup. If control-plane recovery is required, restore the compose/hooks from `predeploy-live-files/` and the PocketBase volume from the verified `20260803T020855Z` cold backup, then recreate only `mineops-pocketbase` with compose project `infra-new`. Do not copy files over an active immutable release directory.
+
+**Remaining limitations:** Publication makes the lossless evidence available to the app, but it does not claim that all 1,698 generic strategy configs have gameplay semantics. Research, mine economy, artifacts, Frontier/event tables, equipment effects/assignments, duplicate manager-variant classification, and official power-score parity still require explicit normalization and characterization. Static APK data still cannot provide player cash, live mine levels, Sparks, barrier state, event time, or owned equipment assignments.
+
+## 2026-08-02 — Lossless catalog publication preflight blocked safely
+
+**Authorized goal:** Publish the reviewed UbuntuMac lossless strategy candidate to Oracle only if rotated environment authentication, immutable package integrity, review binding, role authorization, and activation checks all passed.
+
+**Outcome:** Publication stopped before the first production mutation. No artifact upload, hook copy, compose restart, release registration, review record, publication event, pointer update, or activation was performed. The public seven-artifact package and active manifest SHA-256 `9feee2bde22c82fc3fbec74d60dbb2905bb6283b9aa5f4d5d6161e793a59f7be` remain unchanged.
+
+**Authentication blocker:** No rotated MineOps PocketBase authentication variables are present in the local environment. Oracle's compose environment contains `MINEOPS_PB_ADMIN_EMAIL` and `MINEOPS_PB_ADMIN_PASSWORD`, but a hash-only comparison against the credential previously exposed in repository history proved that the stored password is still the exposed value. It was not used to authenticate. Publication may not resume until that credential is rotated outside the repository and a fresh environment-provided PocketBase session belongs to an auth record with `catalogRole=admin` or `canPublishCatalog=true`.
+
+**Integrity/control-plane blockers:** The live `catalog_releases` collection contains two records with the same `releaseId` (`5.59.0_96449_20260716T143539Z`) but different package hashes and statuses (`active` and `candidate`). The live `catalog_reviews` collection likewise contains two approved records for that release that both claim `isLatest=true`. The new lossless candidate uses that same release identity with a third manifest hash (`79569827af85f176265b66fb5e40df14e5656f4d22ffa11af986a977b1527b7f`), so an exact release lookup cannot safely identify it. The current review hook validates submitted hash formatting but does not compare the submitted manifest and validation-report hashes to server-authoritative stored package hashes. The artifact mount still contains only the seven published files, not the four lossless domain artifacts.
+
+**Required remediation before a new publication attempt:** Rotate and provision environment-only authentication; give the lossless package a distinct immutable release identity; add server-authoritative manifest and validation-report hash binding to review; enforce exactly one latest review per release and an unambiguous release identity; back up PocketBase before repairing the existing duplicate control rows; stage all 11 files without replacing the active package; and repeat read-only preflight before any registration or activation. Existing rows must not be deleted or rewritten without a separately reviewed backup/rollback plan.
+
+**Verification:** Oracle PocketBase remained healthy, the `infra-new` MineOps container remained healthy, the active publication pointer and public artifact hash remained unchanged, and `git diff --check` passed after documenting the blocked outcome.
+
+## 2026-08-02 — Build and validate the lossless APK strategy candidate
+
+**Goal:** Turn the APK strategy-data audit into a reproducible UbuntuMac extraction/package path without flattening source tables or fabricating unresolved gameplay meaning, then make the verified package consumable by the app.
+
+**Release selection repair:** Added the repo-owned `ops/release_store.py` completeness check and regression tests so a lexically newer metadata-only test directory cannot shadow the complete matching release. Selection now also rejects unsafe APK filenames/symlinks and streams each APK to recompute its SHA-256 rather than trusting stale metadata. The module was installed on UbuntuMac after backups, including `/home/yancmo/mineops-engine/backups/release-store-integrity-20260803T011401Z`. The live integrity probe verifies and selects `5.59.0_96449_20260716T143539Z`; local corruption/path-safety tests pass.
+
+**Lossless extraction and packaging:** Manager extraction now uses exact asset-ID matching across the manager config bundle plus 36 per-manager bundles, retains every Params row and serialized object bytes with bundle/path/object provenance, and preserves colliding names safely. Equipment definitions, materials, balancing/localization rows, and raw config objects are retained. Audited data-shaped configs are collected from configfiles/fallback, generalassets, power score, chapters, barrier/event, battle pass, mainland, competitive elemental mines, and prior elemental JSON; visual payloads are excluded. Invalid Unity pointers, standalone Unicode surrogates, non-finite numbers, and integers unsafe for JavaScript are represented deterministically while the original serialized bytes remain available. Captured Unity objects cannot silently lose those bytes: a future read failure must emit a linked unresolved-evidence ID, while complete byte records are verified against their declared length and SHA-256 before packaging.
+
+**Immutable package contract:** Added schemas and validator/review support for `manager-domain.json`, `equipment-domain.json`, `strategy-configs.json`, and `unresolved-evidence.json`. The candidate builder emits those four plus the seven standard v2 artifacts, uses release metadata instead of hardcoded version identity, refuses active/existing output, hashes canonical JSON, and writes `manifest.json` last. `manager-domain.json` is required whenever listed. The PocketBase hook source now allows the four filenames, but the Oracle hook and artifact mount were not changed.
+
+**App consumption:** The verified-package adapter joins `manager-domain.json` by canonical ID, uses the exact active-strength row for the player’s level when present, and reads passive ID/unlock-level/promotion fields from strict core extensions. Linear active interpolation and captured passive values remain compatibility fallbacks for the currently published package.
+
+**UbuntuMac result:** Installed the repo-owned extractor/package files in `~/mineops-engine/src/mineops_data_engine/` and the launcher in `~/mineops-engine/scripts/`, with rollback backups `/home/yancmo/mineops-engine/backups/strategy-pipeline-20260803T005147Z` and `/home/yancmo/mineops-engine/backups/raw-byte-contract-20260803T013000Z`. The final candidate is `/home/yancmo/mineops-data/releases/5.59.0_96449_20260716T143539Z/exports/strategy-candidates/5.59.0_96449_20260716T143539Z.lossless-v1.candidate`; manifest SHA-256 is `79569827af85f176265b66fb5e40df14e5656f4d22ffa11af986a977b1527b7f`. It contains 11 artifacts / 25,775,281 artifact bytes: 118 managers, 11,800 active rows, 1,180 promotion rows, 560 rank rows, 36 equipment, 15 materials, 1,698 strategy-config records, and 1,726 explicit unresolved evidence rows. All 808 manager source assets, all six equipment source records, and all 1,689 Unity strategy records carry complete serialized-byte evidence; nine previously extracted JSON records use the separate hashed-file evidence form. Two blocked entries explicitly record that the audited Frontier and collectible bundles yielded no selected data-shaped configs. Intermediate incomplete/superseded candidates were preserved with `.failed-*`, `.rejected-*`, or `.superseded-*` suffixes rather than deleted.
+
+**Verification:** Independent validation of the copied UbuntuMac candidate passed 26/26 checks, including all artifact schemas, release identity, unique IDs, unresolved-count parity, hashes/byte counts, safe paths, and deterministic serialization. Review returns `REVIEW_REQUIRED`, with no fatal findings, because the unresolved ledger intentionally blocks semantic overclaiming. The final local matrix passed 22 Python extraction/release tests, 106 catalog/package/review/publication tests, all 22 example-package validation checks, and all 120 frontend tests; the TypeScript/Vite production build, retired-helper syntax checks, Python compilation, credential-literal scan, and `git diff --check` also passed. A final UbuntuMac probe recomputed the APK hashes, confirmed the release is complete, selected the intended release ID, matched the candidate manifest hash above, and confirmed the installed pipeline files match the reviewed local checksums.
+
+**Security/operations:** Retired every repository helper containing the exposed production credential, plus related hook-bypassing/direct-mutation helpers; all now fail closed and point to reviewed, environment-authenticated workflows. Repository search confirms the password literal is gone, but it remains in Git history and the credential must be rotated outside this repository before future publication. No Oracle upload, registration, publication, activation, Docker rebuild, or active-package mutation was performed.
+
+**Remaining limitations:** The 1,698 generic config records are extracted and staged, not yet normalized into research/mine/artifact/equipment/frontier calculations. Six managers lack rank/effect-factor/fragment assets and remain explicit evidence. The audited Frontier and collectible bundles yielded no selected data-shaped config records (their visible contents are sprites/textures), so their balancing tables remain unlocated. Static APK data still cannot supply player cash, live mine levels, Sparks, barrier state, event time, or owned equipment assignments. Publication requires credential rotation, human semantic review, and separately authorized Oracle deployment/activation.
+
+## 2026-08-02 — APK Data Inventory — comprehensive reverse-engineering reference
+
+**Goal:** Connect to UbuntuMac, survey the Android emulator APK, inventory every extractable data source, and produce a reference document that organizes findings by what MineOps already uses vs what could be extracted for a simulator.
+
+**Investigation:** SSH to UbuntuMac, inspected `~/mineops-data/releases/5.59.0_96449_20260716T143539Z/`, the 57 Unity AssetBundles, Il2CppDumper output (`~/mineops-data/il2cpp_output/dump.cs`, 56 MB, 302 entity types), existing extraction outputs, and ran live UnityPy probes against the `configfiles` and `generalassets` bundles.
+
+**Key findings:**
+
+1. **57 bundles, ~82 MB** — `generalassets` (60.7 MB) is overwhelmingly visual assets (spine animations, textures, sprites). `configfiles` (1.2 MB) contains 1,603 named MonoBehaviours with economy skill configs (Effect + DescriptionKey). `configfiles-supermanagers` (0.2 MB) is fully extracted.
+
+2. **302 Entity types** from Il2CppDumper — 151 are ScriptableObject Entity types with .Param nested classes. Categorized by simulator need: mine economy (CorridorEntity, ElevatorEntity, etc.), manager economy (ManagerCostEntity, SuperManagerUpgradeCostsEntity), research (SkillNodeEntity, SkillPointCostsEntity), artifacts, collectibles, event mines (all 5 mine types), boost economy.
+
+3. **Extraction probe success** — Confirmed `configfiles` bundle MonoBehaviours (CorridorUpgradeCostReduction, ElevatorCapacity, GroundWorkerCapacity, etc.) are extractable via UnityPy with the same approach as the working manager extractor.
+
+4. **Hard limitations** — Localization strings compiled into IL2CPP code (not extractable). Per-level economy tables (mine shaft cost/income per level) not yet located — may be in generalassets binary or IL2CPP code. Currently worked around via upstream API enrichment and hardcoded fallbacks.
+
+5. **What could be extracted** — configfiles skill data (medium effort, ~1 day), equipment-to-manager mapping (low, ~few hours), equipment shop prices (low, ~few hours), entity tables (high effort, experimental), chapter/mine progression (medium, ~1 day).
+
+**Output:** `docs/APK_DATA_INVENTORY.md` — 27 KB reference with 8 sections covering complete bundle inventory, entity catalog, extraction status/gaps, hard limitations, extraction approaches per category, and 3-tier simulator priority chart with effort estimates.
+
+**Verification:** SSH probe confirmed configfiles MonoBehaviours are accessible via UnityPy. Manager extraction (118 records) and equipment extraction (36 items) confirmed working. Bundle inventory cross-referenced against dump.cs entity types.
+
+**Files changed:**
+- `docs/APK_DATA_INVENTORY.md` (new) — comprehensive data inventory reference
+
+## 2026-08-02 — Correct passive example attribution
+
+**Correction:** The prior audit used Mr. Turner as a concrete APK fixture because his master-data row clearly demonstrates passive `1007` (Mine Income Factor) unlocking at level 30/P3. That was not evidence about the user’s roster, and it was incorrect to describe Turner as the user’s level-30 manager. UbuntuMac contains the APK/catalog capture, not the user’s Kolibri player save.
+
+**Verified scope:** In this release, the P3 MIF master-data examples are 1DL3, Damian Jones, Mr. Turner, Ranger Sue, and Zi Galvani. The frontend receives the user-specific manager name, level, and promotion only from the Kolibri save’s `Data.SuperManagers.Managers[]` rows (`Id`, `Level`, `Promotion`). No player-save export was present in the UbuntuMac capture directories, so I cannot identify which of those managers is yours from the APK audit alone.
+
+**Follow-up:** The implementation and test fixture still use Mr. Turner intentionally as a deterministic catalog regression case; user-facing documentation now describes the behavior generically and no longer claims Turner is the user’s level-30 manager. To identify the actual manager, perform a fresh player sync and inspect the manager whose detail shows level 30/P3 and MIF unlocked.
+
+## 2026-08-02 — Audit APK strategy data and restore manager passives
+
+**Problem:** The published v3 catalog contains APK passive identity rows, but they are placeholders such as `passive_2` with no label, multiplier, or unlock requirement. Because those rows were non-empty, the frontend suppressed richer manager enrichment. Mr. Turner’s level-30/P3 Mine Income Factor therefore did not render and Strategy could not recognize it.
+
+**UbuntuMac audit:** Read the complete 5.59.0 capture and historical extractor/catalog paths without changing the host. The APK exposes exact level 1–100 manager curves, promotion/passive unlocks, rank scaling, manager-specific effect constants, official power-score settings, 49 artifacts, equipment balancing, hundreds of research/mine-economy configs, and Frontier/event settings. The current v3 pipeline publishes 118 managers, 36 equipment items, and 15 materials but flattens most linked tables and emits zero mines/research/collectibles/artifacts. It also contains six same-name manager-ID pairs that need explicit active/legacy/variant classification before strategy treats every row as independent. Scheduled runs on July 26 and August 2 selected an incomplete test release as the unchanged match and did not process a newer APK. Full findings and a prioritized extraction roadmap are in `docs/APK_STRATEGY_DATA_AUDIT.md`.
+
+**Implementation:** The verified-catalog adapter now merges identity-only APK passive rows with captured type/value/promotion data while retaining `passiveId`. Shared passive helpers provide game-facing labels, availability, and milestones. Manager cards show unlocked passive chips; manager details show all passives as unlocked or locked with their level/promotion milestone. Frontier roster tags only consider passives available at the player’s imported promotion. Mr. Turner’s MIF displays as **Mine Income Factor**, **1.44×**, **Lv 30 · P3**.
+
+**Verification:** 28 focused passive/strategy tests passed, including the real Mr. Turner placeholder envelope and P2/P3 strategy boundary; the complete frontend suite then passed all 117 tests. The TypeScript/Vite production build passed with only the existing chunking warnings. The production preview loaded all 118 published managers; Mr. Turner’s detail rendered both passives correctly, and the 390×844 phone viewport showed no clipping or overlap. `npm run lint` remains unavailable because the repository has no ESLint 9 `eslint.config.*` file.
+
+**Documentation:** Added the APK strategy-data audit; updated the extraction report, calculation inventory, parity matrix, user guide, data model, and stale root PRD pointer. No deployment/server document changes were required for this local frontend/data-model fix. Existing concurrent production-verification and Frontier planner documentation was preserved.
+
+**Remaining limitations:** The frontend still uses captured enrichment for passive values until a lossless APK-native manager artifact is published. The audit covers the one complete 5.59.0 release; UbuntuMac capture freshness and incomplete-release matching still require a separate bridge/engine repair and live capture verification.
+
+## 2026-08-02 — Add live Frontier barrier decision planner
+
+**Goal:** Let the Frontier Mine planner use the barrier state visible in-game and recommend a concrete next action.
+
+**Changes:**
+- Added live inputs for current barrier cost, remaining wait in minutes, barrier skips, and Time Jumps on Strategy → Frontier Mine start.
+- A live cost overrides only the current row in the sequential FC projection; blank live cost keeps the checked-in reference table visible without making an FC-spend claim.
+- Added a rules-first recommendation engine that returns **Wait**, **Spend FC**, or **Run a burst**. It uses a documented 10-minute rush threshold, preserves skips/Time Jumps for longer waits, and reports the selected resource and reason.
+- Added an open “Assumptions used” panel beside the recommendation. It explicitly states that one skip is treated as one free unlock, one Time Jump as enough to remove the current wait, and a burst as requiring a ready multiplier/Spark/manager setup. No event deadline, Spark balance, cooldown, multiplier duration, mine cash, or stockpile is inferred.
+- Updated the Frontier guide, calculation inventory, parity matrix, and user guide with the live-input contract and limitations.
+
+**Verification:** `npm --prefix frontend test -- --run` → 117 tests passed; `npm --prefix frontend run build` → TypeScript and Vite production build passed; build emitted only the existing dynamic-import chunking warnings.
+
+**Remaining limitations:** The live fields are manual because the current player import does not provide barrier timer/cost state. The recommendation is a conservative next-action heuristic, not a full Frontier simulator or automatic in-game action.
+
+## 2026-08-02 — Verify public catalog artifact route and active 118-manager production release
+
+**Goal:** Expose the published catalog through the existing production route and verify that the production frontend can load and validate the active release.
+
+**Finding:** No application, Docker, or Cloudflare change was required. The existing PocketBase artifact hook and read-only artifact mount already serve the package at `https://mineops-pb.shepswork.com/api/catalog/artifacts?file=<filename>`, and the public frontend is available at `https://mineops.shepswork.com`.
+
+**Production verification:**
+- Frontend returned HTTP 200, rendered the `MineOps` application, and produced no browser warning/error logs during the smoke test.
+- The frontend fetched the published pointer and release `5.59.0_96449_20260716T143539Z` from PocketBase.
+- The frontend fetched the manifest plus all 7 listed artifacts from the public artifact endpoint and reported **Verified and current** with **118 managers** in More → Catalog.
+- Independent byte-count and SHA-256 verification passed for every artifact. The publication manifest hash matched the downloaded manifest: `9feee2bde22c82fc3fbec74d60dbb2905bb6283b9aa5f4d5d6161e793a59f7be`.
+- Oracle confirmed the artifact files are mounted read-only at `/pb/catalog-artifacts` and the hook is present at `/opt/infra-new/apps/mineopsweb/pb_hooks/catalog-artifacts.pb.js`.
+
+**Cloudflare:** No dashboard-side approval or action is currently required. The existing public routes already serve both the frontend and catalog artifacts. A future hostname or origin change would require Cloudflare One Published application route/DNS changes.
+
+**Documentation:** Updated `docs/deployment/oracle-server-manifest.md` with the live frontend, artifact route, mount, release identity, and verification commands. No code or configuration files required changes.
+
+## 2026-08-02 — Make UbuntuMac capture upload acquire fresh data safely
+
+**Problem:** The manual bridge command skipped capture when `emulator-5556` was offline, then selected the newest existing `release.json`. That allowed a stale test release to be submitted repeatedly, producing an ingest `409` without updating the catalog.
+
+**Changes:** `scripts/ubuntumac/check-and-upload.remote.sh` now exports the Android SDK path, starts the fixed emulator only when it is offline, waits for ADB and `sys.boot_completed=1`, runs `mineops-data-engine acquire`, and stops only the emulator started by that invocation. It refuses stale uploads when acquisition reports the release is unchanged, and treats HTTP 409 as a clear no-op with exit code 14. `scripts/ubuntumac/run-remote-check.sh` forwards `--no-start` and `--keep-emulator` troubleshooting options. The capture workflow documentation now describes the lifecycle and no-op behavior.
+
+**Verification:** Shell syntax and diff checks passed locally; the UbuntuMac read-only probe confirmed the current emulator is offline and `acquire --help` is available. The updated runner must be installed on UbuntuMac before the app’s copied SSH command uses the new behavior.
+
+**Limitation:** A real acquisition/upload smoke test requires starting the UbuntuMac emulator and pulling the installed APK set, so it is intentionally left for the user’s next manual bridge run.
+
 ## 2026-08-01 — Make Strategy plan-first and clarify manual catalog updates
 
 **Why:** The Frontier Mine playbook was visually buried above a long manager-ranking list. The user asked for Strategy to act as a list of strategies, starting with Frontier Mine, and asked whether the app can manually pull a game update from the bridge.

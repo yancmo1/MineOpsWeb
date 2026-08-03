@@ -1,19 +1,13 @@
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { db, type SyncMetadata, type AppSettings, type PlayerManager, saveSettings } from "../lib/db";
 import { type KolibriCredentials, type KolibriDiagnostics } from "../lib/kolibri";
-import {
-  getAuthStatus,
-  signIn,
-  signOut,
-  getBaseUrl,
-  type AuthStatus,
-} from "../lib/pocketbase";
+import { signIn, signOut, getBaseUrl, type AuthStatus } from "../lib/pocketbase";
 import { type CaptureStatus } from "../lib/capture";
 import { catalogClient, type CatalogClientState } from "../lib/catalog-client";
 import type { CachedCatalogPackage } from "../lib/catalog-cache";
 import { listImportRecords } from "../lib/import-history";
 import type { ImportRecord } from "../lib/kolibri-fixtures";
 import { describeCache, describeCatalogStatus, redactDiagnostic } from "../lib/operational-status";
-import { useEffect, useState, type ReactNode } from "react";
 
 interface MorePageProps {
   credentials: KolibriCredentials;
@@ -32,40 +26,85 @@ interface MorePageProps {
   onRefreshCaptureStatus: () => void;
 }
 
+type StatusTone = "success" | "warning" | "neutral" | "error";
+
+function StatusPill({ tone, children }: { tone: StatusTone; children: ReactNode }) {
+  return <span className={`settings-status-pill ${tone}`}>{children}</span>;
+}
+
+function StatusSummary({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: StatusTone;
+}) {
+  return (
+    <article className="settings-status-card">
+      <div className="settings-status-card-heading">
+        <span>{label}</span>
+        <span className={`settings-status-dot ${tone}`} aria-hidden="true" />
+      </div>
+      <strong>{value}</strong>
+      <p>{detail}</p>
+    </article>
+  );
+}
+
 function CollapsibleSection({
   title,
+  description,
+  status,
   defaultOpen = false,
   ariaLive,
   children,
 }: {
   title: string;
+  description: string;
+  status?: ReactNode;
   defaultOpen?: boolean;
   ariaLive?: "polite" | "assertive" | "off";
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const contentId = `settings-section-${useId().replace(/:/g, "")}`;
+
   return (
-    <section className="card-container" {...(ariaLive ? { "aria-live": ariaLive } : {})}>
-      <h2
-        className="card-title"
-        onClick={() => setOpen(!open)}
-        style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+    <section className={`settings-section${open ? " open" : ""}`}>
+      <button
+        type="button"
+        className="settings-section-toggle"
+        aria-expanded={open}
+        aria-controls={contentId}
+        onClick={() => setOpen((value) => !value)}
       >
-        <span>{title}</span>
-        <span
-          style={{
-            fontSize: "0.75rem",
-            color: "var(--text-secondary)",
-            transition: "transform 0.2s",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
-        >
-          ▼
+        <span className="settings-section-heading">
+          <span className="settings-section-title-row">
+            <span className="settings-section-title">{title}</span>
+            {status}
+          </span>
+          <span className="settings-section-description">{description}</span>
         </span>
-      </h2>
-      {open && <div className="collapsible-content">{children}</div>}
+        <span className="settings-section-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <div
+        id={contentId}
+        className="settings-section-content"
+        hidden={!open}
+        {...(ariaLive ? { "aria-live": ariaLive } : {})}
+      >
+        {children}
+      </div>
     </section>
   );
+}
+
+function formatDate(value?: string): string {
+  return value ? new Date(value).toLocaleString() : "Never";
 }
 
 export function MorePage({
@@ -120,7 +159,7 @@ export function MorePage({
     }
   }
 
-  async function handlePbSignOut() {
+  function handlePbSignOut() {
     signOut();
     onAuthChange();
   }
@@ -139,6 +178,7 @@ export function MorePage({
       setBridgeCommandCopied(false);
     }
   }
+
   const catalogStatus = describeCatalogStatus(catalogState.loadState);
   const cacheDetail = describeCache(catalogState.cacheStatus, packages);
   const activePackage = packages.find((pkg) => pkg.isActive);
@@ -165,443 +205,383 @@ export function MorePage({
   const releaseIdentityMismatch = Boolean(
     activePackage && coreContent?.releaseId && activePackage.releaseId !== coreContent.releaseId,
   );
+  const hasExactManagerLevels = Boolean(activePackage?.artifacts["manager-domain.json"]);
+  const artifactCount = activePackage ? Object.keys(activePackage.artifacts).length : 0;
+
+  const syncLabel = syncing
+    ? "Syncing"
+    : metadata.status === "current"
+      ? "Current"
+      : metadata.status === "stale"
+        ? "Needs sync"
+        : metadata.status === "offline"
+          ? "Offline"
+          : "Not synced";
+  const syncTone: StatusTone = syncing
+    ? "neutral"
+    : metadata.status === "current"
+      ? "success"
+      : metadata.status === "stale"
+        ? "warning"
+        : metadata.status === "offline"
+          ? "error"
+          : "neutral";
+  const catalogTone: StatusTone = activePackage && !releaseIdentityMismatch
+    ? catalogState.loadState.phase === "active_stale" || catalogState.loadState.phase === "bootstrap_fallback"
+      ? "warning"
+      : "success"
+    : "error";
+  const accountTone: StatusTone = authStatus.authenticated ? "success" : "neutral";
+  const bridgeTone: StatusTone = captureStatus.healthy ? "success" : "warning";
+
   return (
     <div className="more-page">
-      <CollapsibleSection title="PocketBase Account">
-        <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
-          Server: {getBaseUrl()}
-        </p>
-        {authStatus.authenticated ? (
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.75rem",
-                background: "rgba(52, 199, 89, 0.1)",
-                borderRadius: "0.5rem",
-                marginBottom: "0.75rem",
-              }}
-            >
-              <span style={{ color: "#34c759", fontSize: "1.2rem" }}>✓</span>
-              <div>
-                <div style={{ fontWeight: 600 }}>{authStatus.email}</div>
-                <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                  Signed in
-                </div>
-              </div>
-            </div>
-            <button onClick={handlePbSignOut} style={{ width: "100%" }}>
-              Sign Out
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={(event) => { event.preventDefault(); void handlePbSignIn(); }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                marginBottom: "0.75rem",
-              }}
-            >
-              <span style={{ color: "var(--text-secondary)", fontSize: "1.2rem" }}>○</span>
-              <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                Not signed in — data is stored locally only
-              </span>
-            </div>
-            <label style={{ display: "grid", gap: "0.25rem", marginBottom: "0.75rem" }}>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Email</span>
-              <input
-                type="email"
-                name="email"
-                autoComplete="username"
-                value={pbEmail}
-                onChange={(e) => setPbEmail(e.target.value)}
-                placeholder="admin@mineops.yancmo.xyz"
-              />
-            </label>
-            <label style={{ display: "grid", gap: "0.25rem", marginBottom: "0.75rem" }}>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Password</span>
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                value={pbPassword}
-                onChange={(e) => setPbPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </label>
-            {pbError && (
-              <p
-                style={{
-                  color: "var(--accent-orange)",
-                  fontSize: "0.8rem",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                {pbError}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={pbBusy || !pbEmail || !pbPassword}
-              style={{ width: "100%" }}
-            >
-              {pbBusy ? "Signing in…" : "Sign In"}
-            </button>
-          </form>
-        )}
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Player data preferences">
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            cursor: "pointer",
-            padding: "0.5rem",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={settings.autoSync}
-            onChange={handleAutoSyncToggle}
-            style={{ width: "1.25rem", height: "1.25rem", cursor: "pointer" }}
-          />
-          <div>
-            <div style={{ fontWeight: 600 }}>Auto-sync on launch</div>
-            <div
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--text-secondary)",
-                marginTop: "0.25rem",
-              }}
-            >
-              Automatically sync with Kolibri when app loads (requires saved credentials)
-            </div>
-          </div>
-        </label>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Player data sync">
-        <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
-          Pull player progress from Kolibri into this browser. The browser keeps the local copy first and optionally mirrors it to PocketBase when signed in.
-        </p>
-
-        {/* Sync Status */}
-        <div
-          style={{
-            marginBottom: "1rem",
-            padding: "0.75rem",
-            backgroundColor: "var(--bg-secondary)",
-            borderRadius: "0.5rem",
-          }}
-        >
-          <p className="muted" style={{ margin: 0, fontSize: "0.875rem" }}>
-            <strong>Last sync:</strong>{" "}
-            {metadata.lastSuccessfulSyncAt
-              ? new Date(metadata.lastSuccessfulSyncAt).toLocaleString()
-              : "Never"}
-          </p>
-          {metadata.lastAttemptAt &&
-            metadata.lastAttemptAt !== metadata.lastSuccessfulSyncAt && (
-              <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                <strong>Last attempt:</strong>{" "}
-                {new Date(metadata.lastAttemptAt).toLocaleString()}
-              </p>
-            )}
-          {metadata.error && (
-            <p
-              style={{
-                margin: "0.25rem 0 0",
-                fontSize: "0.875rem",
-                color: "var(--accent-orange)",
-              }}
-            >
-              <strong>Error:</strong> {redactDiagnostic(metadata.error)}
-            </p>
-          )}
-          <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-            <strong>Status:</strong>{" "}
-            {metadata.status === "never"
-              ? "No sync attempted"
-              : metadata.status === "current"
-                ? "Up to date"
-                : metadata.status === "stale"
-                  ? "Needs sync"
-                  : "Offline"}
+      <section className="more-hero" aria-labelledby="settings-data-heading">
+        <div>
+          <p className="eyebrow">Settings &amp; data</p>
+          <h2 id="settings-data-heading">Keep MineOps current</h2>
+          <p>
+            Sync player progress, verify the active game catalog, and recover safely without mixing player data with catalog updates.
           </p>
         </div>
-
-        <form onSubmit={(event) => { event.preventDefault(); if (!syncing) onSyncNow(); }}>
-        {/* Credentials */}
-        <label style={{ display: "grid", gap: "0.5rem", marginBottom: "1rem" }}>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>
-            Kolibri ID or full debug string
-          </span>
-          <input
-            value={credentials.kolibriId}
-            onChange={(e) =>
-              onCredentialsChange({ ...credentials, kolibriId: e.target.value })
-            }
-            placeholder="Paste UUID/debug ID"
-          />
-        </label>
-
-        <label style={{ display: "grid", gap: "0.5rem", marginBottom: "1rem" }}>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Auth token</span>
-          <input
-            type="password"
-            name="authToken"
-            autoComplete="current-password"
-            value={credentials.authToken}
-            onChange={(e) =>
-              onCredentialsChange({ ...credentials, authToken: e.target.value })
-            }
-            placeholder="Token value"
-          />
-        </label>
-
-        <label style={{ display: "grid", gap: "0.5rem", marginBottom: "1rem" }}>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Save game key</span>
-          <input
-            type="password"
-            name="saveGameKey"
-            autoComplete="off"
-            value={credentials.saveGameKey}
-            onChange={(e) =>
-              onCredentialsChange({ ...credentials, saveGameKey: e.target.value })
-            }
-            placeholder="0"
-          />
-        </label>
-
-        {/* Sync Button */}
-        <button type="submit" disabled={syncing} style={{ width: "100%" }}>
-          {syncing ? "Syncing player data…" : "Sync player data"}
-        </button>
-
-        {/* Diagnostics */}
-        {diagnostics && (
-          <p
-            className="muted"
-            style={{ marginTop: "1rem", marginBottom: 0, fontSize: "0.875rem" }}
-          >
-            {diagnostics.managerCount} managers received · {diagnostics.payloadFormat} ·{" "}
-            {diagnostics.unknownManagerCount} unmatched catalog IDs · {diagnostics.fragmentFieldCount ?? 0} fragment counts present · {diagnostics.fragmentMissingCount ?? 0} missing from save
-            {diagnostics.unresolvedSampleIds && diagnostics.unresolvedSampleIds.length > 0 && (
-              <span style={{ display: "block", fontSize: "0.75rem", marginTop: "0.25rem", color: "var(--text-muted)" }}>
-                Sample IDs: {diagnostics.unresolvedSampleIds.join(", ")}
-              </span>
-            )}
-          </p>
-        )}
-        </form>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Catalog" ariaLive="polite">
-        <p style={{ marginTop: "-0.5rem", fontSize: "0.875rem" }}><strong>{catalogStatus.label}</strong></p>
-        <p className="muted" style={{ fontSize: "0.8rem" }}>{catalogStatus.detail}</p>
-        <div style={{ padding: "0.75rem", background: "var(--bg-secondary)", borderRadius: "0.5rem", fontSize: "0.8rem" }}>
-          <p style={{ margin: 0 }}><strong>Managers:</strong> {catalogManagerIds.size || "—"}</p>
-          <p style={{ margin: "0.35rem 0 0" }}><strong>Release:</strong> {activePackage?.releaseId ?? "None"}</p>
-          <p style={{ margin: "0.35rem 0 0" }}><strong>Source:</strong> {catalogSource} · {activePackage?.verificationState ?? "not verified"}</p>
-          <p style={{ margin: "0.35rem 0 0" }}><strong>Cache:</strong> {catalogState.cacheStatus.packageCount} package(s), {cacheDetail.size}</p>
-        </div>
-        {orphanedProgressIds.length > 0 && (
-          <p style={{ color: "var(--accent-orange)", fontSize: "0.8rem" }}>
-            {orphanedProgressIds.length} player IDs are not in the active catalog: {orphanedProgressIds.slice(0, 5).join(", ")}{orphanedProgressIds.length > 5 ? "…" : ""}
-          </p>
-        )}
-        {releaseIdentityMismatch && (
-          <p style={{ color: "var(--accent-orange)", fontSize: "0.8rem" }}>
-            Catalog release identity mismatch detected; refresh the catalog before syncing player data.
-          </p>
-        )}
-        {activePackage && (
-          <details style={{ marginTop: "0.75rem", fontSize: "0.8rem" }}>
-            <summary style={{ cursor: "pointer", fontWeight: 600 }}>Technical catalog details</summary>
-            <p className="muted">Manifest: {activePackage.manifestHash} · schema {activePackage.manifestSchemaVersion} · last-known-good {cacheDetail.lastKnownGood}</p>
-            {Object.values(activePackage.artifacts).map((artifact) => <p className="muted" key={artifact.filename} style={{ margin: "0.3rem 0" }}>✓ {artifact.filename} · {artifact.schemaVersion} · {artifact.bytes.toLocaleString()} bytes</p>)}
-            {activePackage.warnings.map((warning) => <p key={warning} style={{ color: "var(--accent-orange)", margin: "0.3rem 0" }}>{redactDiagnostic(warning)}</p>)}
-          </details>
-        )}
-        <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.75rem" }}>{catalogStatus.recovery}</p>
-        <button onClick={() => void catalogClient.reloadCatalog()} style={{ width: "100%" }}>Refresh catalog</button>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Snapshot History">
-        <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
-          Review changes between Kolibri syncs and restore previous game states.
-        </p>
-        <button onClick={onOpenSnapshotHistory} style={{ width: "100%" }}>
-          View Snapshots
-        </button>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="UbuntuMac catalog bridge">
-        <p className="muted" style={{ marginTop: "-0.5rem", marginBottom: "0.75rem", fontSize: "0.8rem" }}>
-          UbuntuMac captures and uploads catalog releases separately. Run the UbuntuMac bridge task to publish a new release, then refresh this status and the catalog.
-        </p>
-        <div className="bridge-manual-update">
-          <strong>Manual catalog update</strong>
-          <p>The web app can verify and refresh a published release, but it cannot start an APK capture on UbuntuMac. From your Mac, run the VS Code task <code>UbuntuMac: Check APK + upload latest release</code>, or copy the Terminal command below.</p>
-          <button className="secondary" onClick={() => { void copyBridgeUpdateCommand(); }}>
-            {bridgeCommandCopied ? "Command copied" : "Copy UbuntuMac update command"}
+        <div className="more-quick-actions" aria-label="Quick actions">
+          <button type="button" onClick={onSyncNow} disabled={syncing}>
+            {syncing ? "Syncing…" : "Sync player data"}
           </button>
-          <p className="bridge-manual-steps">Then return here: 1) Refresh bridge status; 2) open Catalog and refresh the active catalog package.</p>
+          <button type="button" className="secondary" onClick={() => void catalogClient.reloadCatalog()}>
+            Refresh catalog
+          </button>
+          <button type="button" className="settings-quiet-button" onClick={onOpenSnapshotHistory}>
+            View history
+          </button>
         </div>
-        <div
-          style={{
-            padding: "0.75rem",
-            backgroundColor: "var(--bg-secondary)",
-            borderRadius: "0.5rem",
-            marginBottom: "0.75rem",
-          }}
-        >
-          {captureStatus.healthy ? (
-            <>
-              <p className="muted" style={{ margin: 0, fontSize: "0.875rem" }}>
-                <strong>Status:</strong>{" "}
-                <span style={{ color: "var(--accent-green, #34c759)" }}>Online</span>
-              </p>
-              {captureStatus.catalogVersionCount !== undefined && (
-                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                  <strong>Catalog versions:</strong> {captureStatus.catalogVersionCount}
-                </p>
-              )}
-              {captureStatus.lastReleaseId && (
-                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                  <strong>Latest release:</strong> {captureStatus.lastReleaseId}
-                </p>
-              )}
-              {captureStatus.lastSource && (
-                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                  <strong>Source:</strong> {redactDiagnostic(captureStatus.lastSource)}
-                </p>
-              )}
-              {captureStatus.lastObjectCount !== undefined && (
-                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                  <strong>Objects captured:</strong> {captureStatus.lastObjectCount}
-                </p>
-              )}
-              {captureStatus.lastIngestedAt && (
-                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
-                  <strong>Last ingested:</strong>{" "}
-                  {new Date(captureStatus.lastIngestedAt).toLocaleString()}
-                </p>
-              )}
+      </section>
 
-              {captureStatus.recentReleases && captureStatus.recentReleases.length > 0 && (
-                <div style={{ marginTop: "0.5rem" }}>
-                  <p className="muted" style={{ margin: 0, fontSize: "0.8rem", fontWeight: 600 }}>
-                    Import history ({captureStatus.recentReleases.length} release{captureStatus.recentReleases.length !== 1 ? "s" : ""})
-                  </p>
-                  <div style={{ display: "grid", gap: "0.25rem", marginTop: "0.25rem" }}>
-                    {captureStatus.recentReleases.slice(0, 5).map((release, idx) => (
-                      <div key={`${release.releaseId}-${release.ingestedAt}-${idx}`} style={{
-                        display: "flex", 
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        fontSize: "0.8rem",
-                        padding: "0.15rem 0",
-                      }}>
-                        <span style={{ 
-                          flex: 1, 
-                          overflow: "hidden", 
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          color: idx === 0 ? "var(--accent-cyan)" : "var(--text-secondary)",
-                        }}>
-                          {idx === 0 ? "● " : ""}{release.releaseId}
-                        </span>
-                        <span className="muted" style={{ flexShrink: 0 }}>
-                          {release.objectCount !== undefined ? `${release.objectCount} obj` : "—"}
-                        </span>
-                        <span className="muted" style={{ flexShrink: 0, fontSize: "0.75rem" }}>
-                          {release.ingestedAt ? new Date(release.ingestedAt).toLocaleDateString() : ""}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+      <section className="settings-status-grid" aria-label="MineOps data health">
+        <StatusSummary
+          label="Player data"
+          value={syncLabel}
+          detail={metadata.lastSuccessfulSyncAt ? `Last synced ${formatDate(metadata.lastSuccessfulSyncAt)}` : "No successful Kolibri sync yet"}
+          tone={syncTone}
+        />
+        <StatusSummary
+          label="Strategy catalog"
+          value={activePackage ? `${catalogManagerIds.size || catalogCount || "—"} managers` : catalogStatus.label}
+          detail={activePackage ? `${hasExactManagerLevels ? "Exact level tables" : "Compatibility data"} · ${artifactCount} verified artifacts` : catalogStatus.detail}
+          tone={catalogTone}
+        />
+        <StatusSummary
+          label="Cloud account"
+          value={authStatus.authenticated ? "Connected" : "Local only"}
+          detail={authStatus.authenticated ? authStatus.email ?? "PocketBase session active" : "Sign in for cross-device snapshots"}
+          tone={accountTone}
+        />
+        <StatusSummary
+          label="Capture bridge"
+          value={captureStatus.healthy ? "Online" : "Unavailable"}
+          detail={captureStatus.lastReleaseId ? `Latest ${captureStatus.lastReleaseId}` : "APK catalog capture status"}
+          tone={bridgeTone}
+        />
+      </section>
 
-              {captureStatus.latestRawImport && (
-                <div style={{ marginTop: "0.75rem", borderTop: "1px solid var(--border-color, rgba(255,255,255,0.08))", paddingTop: "0.5rem" }}>
-                  <p className="muted" style={{ margin: 0, fontSize: "0.8rem", fontWeight: 600 }}>
-                    Latest raw import (UbuntuMac payload)
-                  </p>
-                  {captureStatus.latestRawImport.versionName && (
-                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Game version:</strong> {captureStatus.latestRawImport.versionName}
-                      {captureStatus.latestRawImport.versionCode !== undefined ? ` (code ${captureStatus.latestRawImport.versionCode})` : ""}
-                    </p>
-                  )}
-                  {captureStatus.latestRawImport.totalAssets !== undefined && (
-                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Total assets extracted:</strong> {captureStatus.latestRawImport.totalAssets.toLocaleString()}
-                    </p>
-                  )}
-                  {captureStatus.latestRawImport.objectTypes && captureStatus.latestRawImport.objectTypes.length > 0 && (
-                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>Asset types:</strong> {captureStatus.latestRawImport.objectTypes.join(", ")}
-                    </p>
-                  )}
-                  {captureStatus.latestRawImport.apkCount !== undefined && captureStatus.latestRawImport.apkCount > 0 && (
-                    <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      <strong>APK files:</strong> {captureStatus.latestRawImport.apkCount}
-                    </p>
-                  )}
-                </div>
-              )}
+      <div className="settings-layout">
+        <div className="settings-primary-column">
+          <CollapsibleSection
+            title="Player sync"
+            description="Kolibri credentials, freshness, and the next player-data sync."
+            status={<StatusPill tone={syncTone}>{syncLabel}</StatusPill>}
+            defaultOpen
+          >
+            <div className={`settings-callout ${metadata.error ? "error" : "neutral"}`} aria-live="polite">
+              <div className="settings-facts">
+                <div><span>Status</span><strong>{syncLabel}</strong></div>
+                <div><span>Last successful</span><strong>{formatDate(metadata.lastSuccessfulSyncAt)}</strong></div>
+                {metadata.lastAttemptAt && metadata.lastAttemptAt !== metadata.lastSuccessfulSyncAt && (
+                  <div><span>Last attempt</span><strong>{formatDate(metadata.lastAttemptAt)}</strong></div>
+                )}
+              </div>
+              {metadata.error && <p className="settings-error-text">{redactDiagnostic(metadata.error)}</p>}
+            </div>
 
-              {captureStatus.notes && captureStatus.notes.length > 0 && (
-                <div style={{ marginTop: "0.5rem" }}>
-                  {captureStatus.notes.map((note) => (
-                    <p key={note} className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.8rem" }}>
-                      • {note}
-                    </p>
+            <form className="settings-form" onSubmit={(event) => { event.preventDefault(); if (!syncing) onSyncNow(); }}>
+              <div className="settings-field-grid">
+                <label className="settings-field settings-field-wide">
+                  <span>Kolibri ID or full debug string</span>
+                  <input
+                    value={credentials.kolibriId}
+                    onChange={(event) => onCredentialsChange({ ...credentials, kolibriId: event.target.value })}
+                    placeholder="Paste UUID or full debug ID"
+                    spellCheck={false}
+                  />
+                  <small>The full debug string is accepted; MineOps extracts and validates the player ID.</small>
+                </label>
+                <label className="settings-field">
+                  <span>Auth token</span>
+                  <input
+                    type="password"
+                    name="authToken"
+                    autoComplete="current-password"
+                    value={credentials.authToken}
+                    onChange={(event) => onCredentialsChange({ ...credentials, authToken: event.target.value })}
+                    placeholder="Token value"
+                  />
+                </label>
+                <label className="settings-field">
+                  <span>Save game key</span>
+                  <input
+                    type="password"
+                    name="saveGameKey"
+                    autoComplete="off"
+                    value={credentials.saveGameKey}
+                    onChange={(event) => onCredentialsChange({ ...credentials, saveGameKey: event.target.value })}
+                    placeholder="0"
+                  />
+                </label>
+              </div>
+              <button type="submit" className="settings-full-button" disabled={syncing}>
+                {syncing ? "Syncing player data…" : "Sync player data"}
+              </button>
+            </form>
+
+            {diagnostics && (
+              <div className="settings-diagnostic-summary">
+                <strong>Last response</strong>
+                <p>
+                  {diagnostics.managerCount} managers received · {diagnostics.payloadFormat} · {diagnostics.unknownManagerCount} unmatched IDs
+                </p>
+                <p>
+                  {diagnostics.fragmentFieldCount ?? 0} fragment counts present · {diagnostics.fragmentMissingCount ?? 0} missing from save
+                </p>
+                {diagnostics.unresolvedSampleIds && diagnostics.unresolvedSampleIds.length > 0 && (
+                  <p className="settings-code-line">Sample IDs: {diagnostics.unresolvedSampleIds.join(", ")}</p>
+                )}
+              </div>
+            )}
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Catalog & strategy data"
+            description="The verified release used for manager facts and strategy scoring."
+            status={<StatusPill tone={catalogTone}>{activePackage ? "Verified" : catalogStatus.label}</StatusPill>}
+            defaultOpen
+            ariaLive="polite"
+          >
+            <div className="catalog-health-heading">
+              <div>
+                <strong>{catalogStatus.label}</strong>
+                <p>{catalogStatus.detail}</p>
+              </div>
+              {hasExactManagerLevels && <StatusPill tone="success">Exact levels active</StatusPill>}
+            </div>
+
+            <div className="settings-metric-grid">
+              <div><strong>{catalogManagerIds.size || "—"}</strong><span>Managers</span></div>
+              <div><strong>{artifactCount || "—"}</strong><span>Verified artifacts</span></div>
+              <div><strong>{catalogState.cacheStatus.packageCount}</strong><span>Cached packages</span></div>
+            </div>
+
+            <dl className="settings-detail-list">
+              <div><dt>Active release</dt><dd>{activePackage?.releaseId ?? "None"}</dd></div>
+              <div><dt>Source</dt><dd>{catalogSource} · {activePackage?.verificationState ?? "not verified"}</dd></div>
+              <div><dt>Cache size</dt><dd>{cacheDetail.size}</dd></div>
+              <div><dt>Strategy level data</dt><dd>{hasExactManagerLevels ? "Exact APK level tables" : "Compatibility fallback"}</dd></div>
+            </dl>
+
+            {orphanedProgressIds.length > 0 && (
+              <div className="settings-warning" role="status">
+                {orphanedProgressIds.length} player IDs are not in the active catalog: {orphanedProgressIds.slice(0, 5).join(", ")}{orphanedProgressIds.length > 5 ? "…" : ""}
+              </div>
+            )}
+            {releaseIdentityMismatch && (
+              <div className="settings-warning" role="alert">
+                Catalog release identity mismatch detected. Refresh the catalog before syncing player data.
+              </div>
+            )}
+
+            {activePackage && (
+              <details className="settings-technical-details">
+                <summary>Technical catalog details</summary>
+                <p>Manifest: <code>{activePackage.manifestHash}</code></p>
+                <p>Schema {activePackage.manifestSchemaVersion} · last-known-good {cacheDetail.lastKnownGood}</p>
+                <div className="settings-artifact-list">
+                  {Object.values(activePackage.artifacts).map((artifact) => (
+                    <span key={artifact.filename}>✓ {artifact.filename} · {artifact.schemaVersion} · {artifact.bytes.toLocaleString()} bytes</span>
                   ))}
                 </div>
+                {activePackage.warnings.map((warning) => <p className="settings-error-text" key={warning}>{redactDiagnostic(warning)}</p>)}
+              </details>
+            )}
+
+            <p className="settings-help-text">{catalogStatus.recovery}</p>
+            <button type="button" className="settings-full-button" onClick={() => void catalogClient.reloadCatalog()}>
+              Refresh catalog safely
+            </button>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="History & recovery"
+            description="Review imports and restore an earlier player snapshot without changing the catalog."
+            status={<StatusPill tone="neutral">{imports.length} local imports</StatusPill>}
+          >
+            <div className="settings-action-row">
+              <div>
+                <strong>Snapshot history</strong>
+                <p>Compare Kolibri syncs and restore a previous player state.</p>
+              </div>
+              <button type="button" onClick={onOpenSnapshotHistory}>View snapshots</button>
+            </div>
+
+            <div className="settings-subsection">
+              <h3>Recent player imports</h3>
+              {imports.length ? (
+                <ol className="settings-history-list">
+                  {imports.slice(0, 5).map((record) => (
+                    <li key={record.id ?? record.importedAt}>
+                      <div>
+                        <strong>{record.source}</strong>
+                        <time dateTime={record.importedAt}>{formatDate(record.importedAt)}</time>
+                      </div>
+                      <span>{record.resolvedCount} resolved · {record.unresolvedCount} unresolved</span>
+                      <small>{record.catalogVersion ?? "No catalog reference"}</small>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="settings-empty-note">No local player imports recorded yet.</p>
               )}
-            </>
-          ) : (
-            <>
-              <p className="muted" style={{ margin: 0, fontSize: "0.875rem" }}>
-                <strong>Status:</strong>{" "}
-                <span style={{ color: "var(--accent-orange)" }}>Unavailable</span>
-              </p>
-              {captureStatus.error && (
-                <p className="muted" style={{ margin: "0.25rem 0 0", fontSize: "0.875rem", color: "var(--accent-orange)" }}>
-                  {redactDiagnostic(captureStatus.error)}
-                </p>
-              )}
-              <p className="muted" style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>
-                Sign into PocketBase and ensure the capture-ingest endpoint is reachable.
-              </p>
-            </>
-          )}
+            </div>
+          </CollapsibleSection>
         </div>
-        <button onClick={onRefreshCaptureStatus} style={{ width: "100%" }}>
-          Refresh bridge status
-        </button>
-      </CollapsibleSection>
 
-      <CollapsibleSection title="Player import history">
-        {imports.length ? imports.slice(0, 5).map((record) => <p key={record.id ?? record.importedAt} className="muted" style={{ fontSize: "0.8rem" }}>{new Date(record.importedAt).toLocaleString()} · {record.source} · {record.resolvedCount} resolved / {record.unresolvedCount} unresolved · {record.catalogVersion ?? "no catalog reference"}</p>) : <p className="muted" style={{ fontSize: "0.8rem" }}>No local player imports recorded yet.</p>}
-      </CollapsibleSection>
+        <aside className="settings-secondary-column" aria-label="Connections and preferences">
+          <CollapsibleSection
+            title="Cloud account"
+            description="Optional PocketBase sign-in for cross-device snapshots."
+            status={<StatusPill tone={accountTone}>{authStatus.authenticated ? "Connected" : "Local only"}</StatusPill>}
+          >
+            {authStatus.authenticated ? (
+              <div>
+                <div className="settings-account-state success">
+                  <span className="settings-account-mark" aria-hidden="true">✓</span>
+                  <div><strong>{authStatus.email}</strong><span>Signed in to PocketBase</span></div>
+                </div>
+                <button type="button" className="settings-full-button secondary" onClick={handlePbSignOut}>Sign out</button>
+              </div>
+            ) : (
+              <form className="settings-form" onSubmit={(event) => { event.preventDefault(); void handlePbSignIn(); }}>
+                <div className="settings-account-state">
+                  <span className="settings-account-mark" aria-hidden="true">○</span>
+                  <div><strong>Local data only</strong><span>Your browser remains the primary local store.</span></div>
+                </div>
+                <label className="settings-field">
+                  <span>Email</span>
+                  <input type="email" name="email" autoComplete="username" value={pbEmail} onChange={(event) => setPbEmail(event.target.value)} placeholder="you@example.com" />
+                </label>
+                <label className="settings-field">
+                  <span>Password</span>
+                  <input type="password" name="password" autoComplete="current-password" value={pbPassword} onChange={(event) => setPbPassword(event.target.value)} placeholder="••••••••" />
+                </label>
+                {pbError && <p className="settings-error-text" role="alert">{pbError}</p>}
+                <button type="submit" className="settings-full-button" disabled={pbBusy || !pbEmail || !pbPassword}>
+                  {pbBusy ? "Signing in…" : "Sign in"}
+                </button>
+              </form>
+            )}
+            <p className="settings-endpoint">Server <code>{getBaseUrl()}</code></p>
+          </CollapsibleSection>
 
-      <CollapsibleSection title="About this build">
-        <p style={{ marginBottom: 0, fontSize: "0.875rem" }}>
-          MineOpsWeb uses the verified Idle Miner Tycoon manager catalog ({catalogCount || "…"}{" "}
-          records) and keeps catalog definitions separate from player state.
-        </p>
-      </CollapsibleSection>
+          <CollapsibleSection
+            title="Preferences"
+            description="Control when this browser refreshes player data."
+            status={<StatusPill tone={settings.autoSync ? "success" : "neutral"}>{settings.autoSync ? "Auto-sync on" : "Manual"}</StatusPill>}
+            defaultOpen
+          >
+            <label className="settings-toggle">
+              <span>
+                <strong>Auto-sync on launch</strong>
+                <small>Sync with Kolibri when MineOps opens and saved credentials are available.</small>
+              </span>
+              <input type="checkbox" checked={settings.autoSync} onChange={() => void handleAutoSyncToggle()} />
+            </label>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Capture bridge"
+            description="UbuntuMac APK capture and Oracle ingest status."
+            status={<StatusPill tone={bridgeTone}>{captureStatus.healthy ? "Online" : "Unavailable"}</StatusPill>}
+          >
+            <div className="bridge-manual-update">
+              <strong>Publish a newer game catalog</strong>
+              <p>The web app can verify a published release, but it cannot start APK capture on UbuntuMac.</p>
+              <button type="button" className="secondary" onClick={() => void copyBridgeUpdateCommand()}>
+                {bridgeCommandCopied ? "Command copied" : "Copy UbuntuMac update command"}
+              </button>
+              <p className="bridge-manual-steps">Run the command on your Mac, then refresh bridge status and the catalog.</p>
+            </div>
+
+            {captureStatus.healthy ? (
+              <dl className="settings-detail-list">
+                <div><dt>Status</dt><dd className="settings-success-text">Online</dd></div>
+                {captureStatus.catalogVersionCount !== undefined && <div><dt>Catalog versions</dt><dd>{captureStatus.catalogVersionCount}</dd></div>}
+                {captureStatus.lastReleaseId && <div><dt>Latest release</dt><dd>{captureStatus.lastReleaseId}</dd></div>}
+                {captureStatus.lastSource && <div><dt>Source</dt><dd>{redactDiagnostic(captureStatus.lastSource)}</dd></div>}
+                {captureStatus.lastObjectCount !== undefined && <div><dt>Objects captured</dt><dd>{captureStatus.lastObjectCount.toLocaleString()}</dd></div>}
+                {captureStatus.lastIngestedAt && <div><dt>Last ingested</dt><dd>{formatDate(captureStatus.lastIngestedAt)}</dd></div>}
+              </dl>
+            ) : (
+              <div className="settings-warning" role="status">
+                {captureStatus.error ? redactDiagnostic(captureStatus.error) : "Capture status is unavailable."} Sign in and confirm the capture endpoint is reachable.
+              </div>
+            )}
+
+            {captureStatus.recentReleases && captureStatus.recentReleases.length > 0 && (
+              <div className="settings-subsection">
+                <h3>Recent releases</h3>
+                <ol className="settings-release-list">
+                  {captureStatus.recentReleases.slice(0, 5).map((release, index) => (
+                    <li key={`${release.releaseId}-${release.ingestedAt}-${index}`}>
+                      <span>{index === 0 ? "Current ingest" : `Previous ${index}`}</span>
+                      <strong>{release.releaseId}</strong>
+                      <small>{release.objectCount !== undefined ? `${release.objectCount.toLocaleString()} objects` : "Object count unavailable"}{release.ingestedAt ? ` · ${new Date(release.ingestedAt).toLocaleDateString()}` : ""}</small>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {captureStatus.latestRawImport && (
+              <details className="settings-technical-details">
+                <summary>Latest raw import metadata</summary>
+                {captureStatus.latestRawImport.versionName && <p>Game {captureStatus.latestRawImport.versionName}{captureStatus.latestRawImport.versionCode !== undefined ? ` · code ${captureStatus.latestRawImport.versionCode}` : ""}</p>}
+                {captureStatus.latestRawImport.totalAssets !== undefined && <p>{captureStatus.latestRawImport.totalAssets.toLocaleString()} extracted assets</p>}
+                {captureStatus.latestRawImport.objectTypes && captureStatus.latestRawImport.objectTypes.length > 0 && <p>Types: {captureStatus.latestRawImport.objectTypes.join(", ")}</p>}
+                {captureStatus.latestRawImport.apkCount !== undefined && captureStatus.latestRawImport.apkCount > 0 && <p>{captureStatus.latestRawImport.apkCount} APK files</p>}
+              </details>
+            )}
+
+            {captureStatus.notes && captureStatus.notes.length > 0 && (
+              <ul className="settings-note-list">{captureStatus.notes.map((note) => <li key={note}>{note}</li>)}</ul>
+            )}
+            <button type="button" className="settings-full-button secondary" onClick={onRefreshCaptureStatus}>Refresh bridge status</button>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Diagnostics & about"
+            description="Technical identity, cache, and build information."
+          >
+            <dl className="settings-detail-list">
+              <div><dt>Catalog records</dt><dd>{catalogCount || "Loading…"}</dd></div>
+              <div><dt>Player rows on device</dt><dd>{progress.length}</dd></div>
+              <div><dt>Active release</dt><dd>{activePackage?.releaseId ?? "None"}</dd></div>
+              <div><dt>Manifest</dt><dd className="settings-hash">{activePackage?.manifestHash ?? "Unavailable"}</dd></div>
+              <div><dt>Connection</dt><dd>{typeof navigator !== "undefined" && navigator.onLine ? "Online" : "Offline"}</dd></div>
+            </dl>
+            <p className="settings-help-text">
+              MineOps keeps verified game definitions separate from player progress. Resetting or refreshing the catalog does not delete player snapshots.
+            </p>
+          </CollapsibleSection>
+        </aside>
+      </div>
     </div>
   );
 }

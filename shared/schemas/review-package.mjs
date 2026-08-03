@@ -35,6 +35,10 @@ const FATAL_CHECK_CODES = new Set([
   "DETERMINISTIC_SERIALIZATION",
   "DUPLICATE_CANONICAL_ID",
   "DUPLICATE_SOURCE_IDENTIFIER",
+  "ARTIFACT_RELEASE_IDENTITY",
+  "DOMAIN_ARTIFACT_IDENTIFIERS",
+  "MANAGER_DOMAIN_REQUIRED",
+  "UNRESOLVED_EVIDENCE_CONSISTENCY",
 ]);
 
 /** Validation check codes that are warnings (require review, don't block). */
@@ -69,6 +73,10 @@ const EXPECTED_SCHEMA_MAJORS = {
   "assets.json": 1,
   "validation-report.json": 1,
   "changelog.json": 1,
+  "manager-domain.json": 1,
+  "equipment-domain.json": 1,
+  "strategy-configs.json": 1,
+  "unresolved-evidence.json": 1,
 };
 
 // ---------------------------------------------------------------------------
@@ -82,6 +90,153 @@ function loadJson(filePath) {
 
 function sha256(content) {
   return createHash("sha256").update(content, "utf-8").digest("hex");
+}
+
+function checkSerializedEvidence(value, linkField, label, unresolvedIds, findings, allowLink = true) {
+  const byteFields = ["rawEncoding", "rawBytes", "rawSha256", "rawByteLength"];
+  const presentByteFields = byteFields.filter((field) => Object.hasOwn(value || {}, field));
+  if (presentByteFields.length === byteFields.length) {
+    if (value.rawEncoding !== "base64" || typeof value.rawBytes !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value.rawBytes) || !/^[a-f0-9]{64}$/.test(value.rawSha256) || !Number.isInteger(value.rawByteLength) || value.rawByteLength < 0) {
+      findings.push({ code: "SERIALIZED_EVIDENCE_INVALID", severity: "error", message: `${label} has malformed serialized-byte metadata.` });
+      return;
+    }
+    const bytes = Buffer.from(value.rawBytes, "base64");
+    const actualHash = createHash("sha256").update(bytes).digest("hex");
+    if (bytes.length !== value.rawByteLength || actualHash !== value.rawSha256) {
+      findings.push({ code: "SERIALIZED_EVIDENCE_INVALID", severity: "error", message: `${label} serialized bytes do not match their claimed hash/length.` });
+    }
+    if (Object.hasOwn(value, linkField)) {
+      findings.push({ code: "SERIALIZED_EVIDENCE_INVALID", severity: "error", message: `${label} claims both serialized bytes and unresolved evidence.` });
+    }
+    return;
+  }
+
+  if (presentByteFields.length > 0) {
+    findings.push({ code: "SERIALIZED_EVIDENCE_INVALID", severity: "error", message: `${label} has incomplete serialized-byte metadata.` });
+    return;
+  }
+
+  const evidenceId = value?.[linkField];
+  if (!allowLink || typeof evidenceId !== "string" || evidenceId.length === 0) {
+    findings.push({ code: "SERIALIZED_EVIDENCE_MISSING", severity: "error", message: `${label} has neither serialized bytes nor a linked unresolved-evidence entry.` });
+  } else if (!unresolvedIds.has(evidenceId)) {
+    findings.push({ code: "UNRESOLVED_EVIDENCE_LINK", severity: "error", message: `${label} references missing unresolved evidence: ${evidenceId}.` });
+  }
+}
+
+/** Review the new immutable domain artifacts without assigning semantics to raw source data. */
+function checkDomainArtifacts(manifest, bundleDir) {
+  const findings = [];
+  const listed = new Map((manifest.artifacts || []).map((entry) => [entry.filename, entry]));
+  const unresolvedIds = new Set();
+  const unresolvedPath = resolve(bundleDir, "unresolved-evidence.json");
+  if (listed.has("unresolved-evidence.json") && existsSync(unresolvedPath)) {
+    try {
+      for (const entry of loadJson(unresolvedPath).entries || []) {
+        if (typeof entry?.evidenceId === "string") unresolvedIds.add(entry.evidenceId);
+      }
+    } catch {
+      // The normal artifact parsing path below reports invalid JSON.
+    }
+  }
+  const managerDomain = listed.get("manager-domain.json");
+  if (managerDomain && !managerDomain.required) {
+    findings.push({
+      code: "MANAGER_DOMAIN_REQUIRED",
+      severity: "error",
+      message: "manager-domain.json must be required when it is included in a package.",
+    });
+  }
+
+  const specs = [
+    { filename: "manager-domain.json", arrays: [{ key: "managers", id: "canonicalId" }] },
+    { filename: "equipment-domain.json", arrays: ["equipment", "materials", "balancing", "localization"].map((key) => ({ key, id: "recordId" })) },
+    { filename: "strategy-configs.json", arrays: [{ key: "records", id: "recordId" }] },
+    { filename: "unresolved-evidence.json", arrays: [{ key: "entries", id: "evidenceId" }] },
+  ];
+
+  let unresolvedEntries = 0;
+  let unresolvedArtifactPresent = false;
+  for (const spec of specs) {
+    if (!listed.has(spec.filename)) continue;
+    const path = resolve(bundleDir, spec.filename);
+    if (!existsSync(path)) continue; // Presence/hash diagnostics are handled separately.
+    let artifact;
+    try {
+      artifact = loadJson(path);
+    } catch {
+      findings.push({ code: "SCHEMA_VALID", severity: "error", message: `${spec.filename} is not valid JSON.` });
+      continue;
+    }
+    if (artifact.catalogVersion !== manifest.catalogVersion || artifact.releaseId !== manifest.releaseId) {
+      findings.push({
+        code: "ARTIFACT_RELEASE_IDENTITY",
+        severity: "error",
+        message: `${spec.filename} release identity does not match manifest.`,
+      });
+    }
+    if (spec.filename === "manager-domain.json") {
+      for (const manager of artifact.managers || []) {
+        for (const [index, asset] of (manager.raw?.assets || []).entries()) {
+          checkSerializedEvidence(asset, "rawBytesUnresolvedEvidenceId", `manager-domain.json:${manager.canonicalId}:assets[${index}]`, unresolvedIds, findings);
+        }
+      }
+    } else if (spec.filename === "equipment-domain.json") {
+      const rawRecords = artifact.source?.rawRecords;
+      if (!Array.isArray(rawRecords)) {
+        findings.push({ code: "SERIALIZED_EVIDENCE_MISSING", severity: "error", message: "equipment-domain.json source.rawRecords is missing or malformed." });
+      } else {
+        for (const [index, record] of rawRecords.entries()) {
+          checkSerializedEvidence(record, "unresolvedEvidenceId", `equipment-domain.json:source.rawRecords[${index}]`, unresolvedIds, findings, false);
+        }
+      }
+    } else if (spec.filename === "strategy-configs.json") {
+      for (const record of artifact.records || []) {
+        if (record.raw?.serialized && typeof record.raw.serialized === "object") {
+          checkSerializedEvidence(record.raw.serialized, "unresolvedEvidenceId", `strategy-configs.json:${record.recordId}`, unresolvedIds, findings);
+        } else if (!(Object.hasOwn(record.raw || {}, "value") && typeof record.raw?.rawSha256 === "string" && /^[a-f0-9]{64}$/.test(record.raw.rawSha256))) {
+          findings.push({ code: "SERIALIZED_EVIDENCE_MISSING", severity: "error", message: `strategy-configs.json:${record.recordId} has neither serialized Unity evidence nor a hashed external value.` });
+        }
+      }
+    }
+    for (const arraySpec of spec.arrays) {
+      const ids = new Set();
+      for (const [index, record] of (artifact[arraySpec.key] || []).entries()) {
+        const id = record?.[arraySpec.id];
+        if (id === undefined || id === null || id === "" || ids.has(String(id))) {
+          findings.push({
+            code: "DOMAIN_ARTIFACT_IDENTIFIERS",
+            severity: "error",
+            message: `${spec.filename}:${arraySpec.key}[${index}] has a missing or duplicate ${arraySpec.id}.`,
+          });
+        } else {
+          ids.add(String(id));
+        }
+      }
+    }
+    if (spec.filename === "unresolved-evidence.json") {
+      unresolvedArtifactPresent = true;
+      unresolvedEntries = (artifact.entries || []).length;
+    }
+  }
+
+  if (manifest.counts?.unresolvedObjects !== unresolvedEntries || (unresolvedEntries > 0 && !unresolvedArtifactPresent)) {
+    findings.push({
+      code: "UNRESOLVED_EVIDENCE_CONSISTENCY",
+      severity: "error",
+      message: `Manifest unresolvedObjects=${manifest.counts?.unresolvedObjects} does not match unresolved evidence entries=${unresolvedEntries}.`,
+    });
+  }
+  if (unresolvedEntries > 0) {
+    findings.push({
+      code: "UNRESOLVED_OBJECTS",
+      severity: "warning",
+      message: `${unresolvedEntries} unresolved evidence entr${unresolvedEntries === 1 ? "y requires" : "ies require"} human review.`,
+    });
+  }
+
+  const fatalFindings = findings.filter((finding) => finding.severity === "error");
+  return { findings, fatalFindings, hasFatal: fatalFindings.length > 0, unresolvedEntries };
 }
 
 // ---------------------------------------------------------------------------
@@ -107,9 +262,7 @@ function checkArtifactIntegrity(manifest, bundleDir) {
 
     if (!existsSync(filePath)) {
       fileResult.issues.push("file not found");
-      if (entry.required) {
-        allPassed = false;
-      }
+      allPassed = false;
       results.push(fileResult);
       continue;
     }
@@ -124,11 +277,11 @@ function checkArtifactIntegrity(manifest, bundleDir) {
 
     if (!fileResult.hashMatch) {
       fileResult.issues.push(`hash mismatch: expected=${entry.sha256.slice(0, 12)}... actual=${actualHash.slice(0, 12)}...`);
-      if (entry.required) allPassed = false;
+      allPassed = false;
     }
     if (!fileResult.bytesMatch) {
       fileResult.issues.push(`byte size mismatch: expected=${entry.bytes} actual=${actualBytes}`);
-      if (entry.required) allPassed = false;
+      allPassed = false;
     }
 
     // Schema compatibility check
@@ -138,7 +291,7 @@ function checkArtifactIntegrity(manifest, bundleDir) {
       fileResult.schemaCompatible = artifactMajor <= expectedMajor;
       if (!fileResult.schemaCompatible) {
         fileResult.issues.push(`unsupported schema version: ${entry.schemaVersion} (expected major <= ${expectedMajor})`);
-        if (entry.required) allPassed = false;
+        allPassed = false;
       }
     } else {
       fileResult.schemaCompatible = true; // Unknown artifact, assume compatible
@@ -445,6 +598,7 @@ export function reviewPackage(bundleDir) {
   const changelogReview = changelog ? checkChangelog(changelog, manifest) : { findings: [], summary: { isFirstRelease: true } };
   const mappingReview = checkMappingsAndConflicts(mappings, catalogCore);
   const schemaReview = checkSchemaCompatibility(manifest);
+  const domainArtifactReview = checkDomainArtifacts(manifest, bundleDir);
 
   // Compute package-binding hashes for review traceability
   const manifestRaw = readFileSync(manifestPath, "utf-8");
@@ -453,8 +607,8 @@ export function reviewPackage(bundleDir) {
   const validationReportHash = sha256(validationReportRaw);
 
   // Determine overall review status — mapping conflicts with fatal severity now block
-  const hasFatal = !artifactIntegrity.passed || !validationFindings.canPublish || !schemaReview.compatible || mappingReview.hasFatalConflicts;
-  const hasWarnings = validationFindings.warningCount > 0 || changelogReview.findings.length > 0 || mappingReview.warningFindings.length > 0;
+  const hasFatal = !artifactIntegrity.passed || !validationFindings.canPublish || !schemaReview.compatible || mappingReview.hasFatalConflicts || domainArtifactReview.hasFatal;
+  const hasWarnings = validationFindings.warningCount > 0 || changelogReview.findings.length > 0 || mappingReview.warningFindings.length > 0 || domainArtifactReview.findings.some((finding) => finding.severity === "warning");
 
   let recommendedDecision = "approved";
   if (hasFatal) {
@@ -505,6 +659,8 @@ export function reviewPackage(bundleDir) {
       hasFatalConflicts: mappingReview.hasFatalConflicts,
       hasConflicts: mappingReview.hasConflicts,
     },
+
+    domainArtifactReview,
 
     schemaCompatibility: schemaReview,
 
@@ -606,6 +762,15 @@ export function formatReviewSummary(summary) {
     }
   }
   lines.push("");
+
+  if (summary.domainArtifactReview.findings.length > 0) {
+    lines.push("── Domain Artifact Evidence ──");
+    for (const finding of summary.domainArtifactReview.findings) {
+      const icon = finding.severity === "error" ? "❌" : "⚠️";
+      lines.push(`   ${icon} [${finding.code}] ${finding.message}`);
+    }
+    lines.push("");
+  }
 
   // Object counts
   lines.push("── Object Counts ──");

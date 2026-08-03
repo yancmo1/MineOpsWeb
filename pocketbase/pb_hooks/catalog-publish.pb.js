@@ -1,542 +1,64 @@
-/**
- * MineOps Catalog Publication — PocketBase custom routes
- *
- * Routes:
- *   POST /api/catalog/publish  — Atomically activate a reviewed release
- *   POST /api/catalog/rollback — Roll back to a previous active release
- *
- * Authorization model:
- *   - Capture-client Bearer tokens are REJECTED (UbuntuMac cannot publish).
- *   - PocketBase auth cookie is required.
- *   - The authenticated user must have catalog_admin or can_publish_catalog
- *     role. A normal MineOps user cannot publish or roll back releases.
- *     Roles are read from the auth record: authRecord.get("catalogRole")
- *     must equal "admin" or the boolean field "canPublishCatalog" must be true.
- *
- * Transaction model:
- *   - All pointer, status, and audit writes must commit or fail together.
- *   - In PocketBase 0.39+, individual Record saves are atomic at the
- *     collection level. The operations are sequenced to minimize the
- *     inconsistency window: supersede old → update pointer → activate new.
- *   - If the PocketBase version supports transactions ($app.runInTransaction
- *     or similar), wrap the entire mutation in one.
- *
- * Publication model:
- *   The active release is tracked by a single catalog_publication singleton.
- *   Publishing changes only this pointer — no catalog objects are rewritten.
- *   All immutable packages are retained; the prior release is marked superseded.
- *
- *   Rollback does NOT destroy forward history. After A → B → C and rollback
- *   C → B, the system retains enough history to later re-activate C
- *   deliberately. Releases remain in the catalog_releases collection with
- *   their full metadata intact.
- *
- *   Concurrent publish protection: the singleton catalog_publication row
- *   acts as a natural serialization point. Only one publish/rollback can
- *   succeed at a time because the activeReleaseId check is deterministic.
- *
- * Publish:
- *   1. Authenticate + authorize (PB cookie + catalog_admin role required)
- *   2. Verify release exists and has status "ready"
- *   3. Verify the release was approved (catalog_reviews record with decision "approved")
- *   4. Verify manifest hash matches the stored release record (server-authoritative)
- *   5. Mark old active release → superseded
- *   6. Update catalog_publication singleton
- *   7. Mark new release → active
- *   8. Create catalog_publication_events record (append-only)
- *   9. Record audit trail on both releases
- *
- * Rollback:
- *   1. Authenticate + authorize
- *   2. Read current catalog_publication → get target (previousReleaseId or explicit)
- *   3. Verify target release exists AND was previously published (status superseded or active)
- *   4. Mark current active → superseded
- *   5. Swap publication pointer to target
- *   6. Mark target → active
- *   7. Create catalog_publication_events record (append-only)
- *   8. Record audit trail
- *   9. No re-ingestion, no bulk object update, no content rewrite
- */
-
-/**
- * Resolve and authorize the publisher.
- *
- * Three checks:
- *   1. Reject Bearer tokens (capture clients)
- *   2. Require PB auth cookie
- *   3. Require catalog_admin or can_publish_catalog role
- *
- * @returns {{ identity: string, isCaptureToken: boolean, authorized: boolean, reason: string }}
- */
-function resolvePublisher(c) {
-  var info = c.requestInfo();
-
-  // Explicitly reject Bearer tokens — capture clients cannot publish
-  var authHeader = (info.headers || {}).authorization || "";
-  if (/^Bearer\s+/i.test(authHeader)) {
-    return { identity: null, isCaptureToken: true, authorized: false, reason: "capture_token" };
+/** Publication/rollback control plane; intentionally self-contained for PB JSVM. */
+routerAdd("POST", "/api/catalog/{operation}", function (c) {
+  function hash(value) { return typeof value === "string" && /^[a-f0-9]{64}$/.test(value); }
+  function caller() {
+    var info = c.requestInfo(), header = (info.headers || {}).authorization || "", auth = c.auth || info.auth || null;
+    if (!auth) { try { auth = c.get("authRecord"); } catch (_) {} }
+    // Standard PocketBase authentication also uses Bearer, so only classify
+    // it as a capture credential if PocketBase failed to authenticate it.
+    if (!auth) return { authorized: false, reason: /^Bearer\s+/i.test(header) ? "capture_token" : "unauthenticated" };
+    var superuser = false, role = "", canPublish = false;
+    try { superuser = typeof auth.isSuperuser === "function" && auth.isSuperuser(); } catch (_) {}
+    try { role = auth.get("catalogRole") || ""; } catch (_) {}
+    try { canPublish = auth.get("canPublishCatalog") === true; } catch (_) {}
+    return { authorized: superuser || role === "admin" || canPublish, reason: superuser || role === "admin" || canPublish ? "" : "insufficient_role", identity: auth.get("email") || auth.get("username") || auth.id };
   }
-
-  // Must use PB auth cookie
-  var authRecord = null;
+  function exact(app, col, releaseId, manifestHash) { return app.findRecordsByFilter(col, "releaseId = {:releaseId} && manifestSha256 = {:manifestHash}", undefined, 2, 0, { releaseId: releaseId, manifestHash: manifestHash }); }
+  function audit(release, action, identity, notes, now) { var entries = release.get("auditLog") || []; if (typeof entries === "string") entries = JSON.parse(entries); if (!Array.isArray(entries)) entries = []; entries.push({ action: action, publisher: identity, timestamp: now, notes: notes || "" }); release.set("auditLog", JSON.stringify(entries)); }
+  function event(app, action, fromId, toId, manifestHash, identity, notes, now) { var col = app.findCollectionByNameOrId("catalog_publication_events"), record = new Record(col, { action: action, fromReleaseId: fromId || "", toReleaseId: toId, manifestSha256: manifestHash, performedBy: identity, performedAt: now, notes: notes || "" }); app.save(record); return record.id; }
   try {
-    authRecord = c.get("authRecord");
-  } catch (_) { /* not authenticated */ }
-
-  if (!authRecord) {
-    return { identity: null, isCaptureToken: false, authorized: false, reason: "unauthenticated" };
-  }
-
-  var identity = authRecord.get("email") || authRecord.get("username") || authRecord.id;
-
-  // Role check: must have catalog_admin role or can_publish_catalog flag
-  var catalogRole = "";
-  var canPublish = false;
-  try { catalogRole = authRecord.get("catalogRole") || ""; } catch (_) {}
-  try { canPublish = authRecord.get("canPublishCatalog") === true; } catch (_) {}
-
-  if (catalogRole !== "admin" && !canPublish) {
-    return { identity: identity, isCaptureToken: false, authorized: false, reason: "insufficient_role" };
-  }
-
-  return { identity: identity, isCaptureToken: false, authorized: true, reason: "" };
-}
-
-/**
- * Get or create the catalog_publication singleton record.
- */
-function getOrCreatePublication(pubCol) {
-  var records = $app.findRecordsByFilter(pubCol, "", undefined, 0, 1, {});
-  if (records.length > 0) return records[0];
-
-  var record = new Record(pubCol, {
-    activeReleaseId: "",
-    previousReleaseId: "",
-    activatedAt: "",
-    activatedBy: "",
-    manifestSha256: "",
-    notes: "Initial publication record — no active release yet.",
-  });
-  $app.save(record);
-  return record;
-}
-
-/**
- * Append an audit entry to a release record.
- */
-function appendAuditLog(release, action, publisher, notes) {
-  var auditLog = release.get("auditLog");
-  var entries = [];
-  if (auditLog) {
-    entries = typeof auditLog === "string" ? JSON.parse(auditLog) : auditLog;
-  }
-  entries.push({
-    action: action,
-    publisher: publisher,
-    timestamp: new Date().toISOString(),
-    notes: notes || "",
-  });
-  release.set("auditLog", JSON.stringify(entries));
-}
-
-/**
- * Create an append-only publication event record.
- */
-function createPublicationEvent(action, fromReleaseId, toReleaseId, manifestHash, performedBy, reason) {
-  var eventsCol = $app.findCollectionByNameOrId("catalog_publication_events");
-  var event = new Record(eventsCol, {
-    action: action,
-    fromReleaseId: fromReleaseId || "",
-    toReleaseId: toReleaseId,
-    manifestHash: manifestHash,
-    performedBy: performedBy,
-    performedAt: new Date().toISOString(),
-    reason: reason || "",
-  });
-  $app.save(event);
-  return event.id;
-}
-
-// =========================================================================
-// POST /api/catalog/publish
-// =========================================================================
-routerAdd("POST", "/api/catalog/publish", function (c) {
-  try {
-    var info = c.requestInfo();
-    var body = (typeof info.body === "string") ? JSON.parse(info.body) : (info.body || {});
-
-    // 1. Authenticate + authorize
-    var pub = resolvePublisher(c);
-    if (pub.isCaptureToken) {
-      return c.json(403, {
-        success: false,
-        error: "Capture credentials cannot publish releases. Use PocketBase authentication with catalog_admin role.",
-        code: "FORBIDDEN / CAPTURE_CLIENT_NOT_ALLOWED",
-      });
+    var operation = c.request.pathValue("operation");
+    if (operation !== "publish" && operation !== "rollback") return c.json(404, { success: false, code: "NOT_FOUND", error: "Unknown catalog operation." });
+    var body = c.requestInfo().body || {}, actor = caller();
+    if (!actor.authorized) {
+      if (actor.reason === "capture_token") return c.json(403, { success: false, code: "FORBIDDEN / CAPTURE_CLIENT_NOT_ALLOWED", error: "Capture credentials cannot publish or roll back catalog releases." });
+      if (actor.reason === "unauthenticated") return c.json(401, { success: false, code: "UNAUTHORIZED", error: "PocketBase authentication is required." });
+      return c.json(403, { success: false, code: "FORBIDDEN / INSUFFICIENT_ROLE", error: "Publish requires a PocketBase superuser or explicit catalog admin." });
     }
-    if (pub.reason === "unauthenticated") {
-      return c.json(401, {
-        success: false,
-        error: "Authentication required. Publish requires PocketBase auth.",
-        code: "UNAUTHORIZED",
-      });
-    }
-    if (!pub.authorized) {
-      return c.json(403, {
-        success: false,
-        error: "Insufficient permissions. Publish requires catalog_admin role or canPublishCatalog flag.",
-        code: "FORBIDDEN / INSUFFICIENT_ROLE",
-      });
-    }
-
-    // 2. Validate required fields
-    if (!body.releaseId || typeof body.releaseId !== "string" || body.releaseId.length < 1) {
-      return c.json(400, {
-        success: false,
-        error: "releaseId is required.",
-        code: "VALIDATION_ERROR / MISSING_RELEASE_ID",
-      });
-    }
-    if (!body.manifestHash || typeof body.manifestHash !== "string" || !/^[a-f0-9]{64}$/.test(body.manifestHash)) {
-      return c.json(400, {
-        success: false,
-        error: "manifestHash is required (64-char SHA-256 hex).",
-        code: "VALIDATION_ERROR / MISSING_MANIFEST_HASH",
-      });
-    }
-
-    var now = new Date().toISOString();
-
-    // 3. Find the release
-    var releasesCol = $app.findCollectionByNameOrId("catalog_releases");
-    var releaseRecords = $app.findRecordsByFilter(
-      releasesCol,
-      "releaseId = {:releaseId}",
-      undefined,
-      0,
-      1,
-      { releaseId: body.releaseId }
-    );
-
-    if (releaseRecords.length === 0) {
-      return c.json(404, {
-        success: false,
-        error: "Release not found: " + body.releaseId,
-        code: "NOT_FOUND",
-      });
-    }
-
-    var release = releaseRecords[0];
-    var currentStatus = release.get("status");
-
-    // 4. Verify release is in "ready" status (must go through review first)
-    if (currentStatus !== "ready") {
-      return c.json(409, {
-        success: false,
-        error: "Release must be in 'ready' status to publish. Current status: " + currentStatus,
-        code: "INVALID_STATUS_FOR_PUBLISH",
-        currentStatus: currentStatus,
-      });
-    }
-
-    // 5. Verify release was approved (must have at least one approved review)
-    var reviewsCol = $app.findCollectionByNameOrId("catalog_reviews");
-    var approvedReviews = $app.findRecordsByFilter(
-      reviewsCol,
-      "releaseId = {:releaseId} && decision = 'approved' && isLatest = true",
-      undefined,
-      0,
-      1,
-      { releaseId: body.releaseId }
-    );
-
-    if (approvedReviews.length === 0) {
-      return c.json(409, {
-        success: false,
-        error: "Release has no approved review. Publish requires an approved review record.",
-        code: "NO_APPROVED_REVIEW",
-      });
-    }
-
-    // 6. Verify manifest hash — the client-supplied hash is a concurrency guard;
-    //    the server-authoritative value comes from the immutable release record.
-    var storedManifestHash = release.get("manifestSha256");
-    if (!storedManifestHash || storedManifestHash.length === 0) {
-      return c.json(409, {
-        success: false,
-        error: "Release has no stored manifest hash. Cannot verify package integrity.",
-        code: "MISSING_STORED_MANIFEST_HASH",
-      });
-    }
-    if (storedManifestHash !== body.manifestHash) {
-      return c.json(409, {
-        success: false,
-        error: "Manifest hash mismatch. The submitted hash does not match the immutable release record.",
-        code: "MANIFEST_HASH_MISMATCH",
-        submittedHash: body.manifestHash,
-        storedHash: storedManifestHash,
-      });
-    }
-
-    // 7. Get or create publication singleton
-    var pubCol = $app.findCollectionByNameOrId("catalog_publication");
-    var pubRecord = getOrCreatePublication(pubCol);
-
-    var oldActiveReleaseId = pubRecord.get("activeReleaseId");
-
-    // Idempotent: if already pointing to this release
-    if (oldActiveReleaseId === body.releaseId) {
-      return c.json(200, {
-        success: true,
-        message: "Release is already the active publication.",
-        releaseId: body.releaseId,
-        alreadyActive: true,
-      });
-    }
-
-    // ── Transactional mutation ──
-    // All writes below should commit or fail together.
-    // Order: supersede old → update pointer → activate new → event.
-    // In PB 0.39+, wrap in $app.runInTransaction() if available.
-
-    // 8. Mark old active release as superseded
-    if (oldActiveReleaseId && oldActiveReleaseId.length > 0) {
-      var oldRecords = $app.findRecordsByFilter(
-        releasesCol,
-        "releaseId = {:releaseId}",
-        undefined,
-        0,
-        1,
-        { releaseId: oldActiveReleaseId }
-      );
-      if (oldRecords.length > 0) {
-        var oldRelease = oldRecords[0];
-        oldRelease.set("status", "superseded");
-        appendAuditLog(oldRelease, "superseded_by_publish", pub.identity, "Superseded by " + body.releaseId);
-        $app.save(oldRelease);
+    if (operation === "publish" && (!body.releaseId || typeof body.releaseId !== "string" || !hash(body.manifestHash))) return c.json(400, { success: false, code: "VALIDATION_ERROR / INVALID_RELEASE_IDENTITY", error: "releaseId and manifestHash are required." });
+    var outcome = null;
+    $app.runInTransaction(function (txApp) {
+      var publicationCol = txApp.findCollectionByNameOrId("catalog_publication"), pointers = txApp.findRecordsByFilter(publicationCol, "", undefined, 2, 0, {});
+      if (pointers.length !== 1) { outcome = { status: 409, body: { success: false, code: "CATALOG_PUBLICATION_POINTER_INVALID", error: "Exactly one catalog publication pointer is required." } }; return; }
+      var pointer = pointers[0], releasesCol = txApp.findCollectionByNameOrId("catalog_releases"), now = new Date().toISOString();
+      if (operation === "publish") {
+        var matches = exact(txApp, releasesCol, body.releaseId, body.manifestHash);
+        if (matches.length !== 1) { outcome = { status: matches.length ? 409 : 404, body: { success: false, code: matches.length ? "AMBIGUOUS_RELEASE_IDENTITY" : "RELEASE_IDENTITY_NOT_FOUND", error: "Release identity must match exactly one record." } }; return; }
+        var release = matches[0], priorId = pointer.get("activeReleaseId") || "", priorHash = pointer.get("manifestSha256") || "";
+        if (priorId === body.releaseId && priorHash === body.manifestHash && release.get("status") === "active") { outcome = { status: 200, body: { success: true, alreadyActive: true, releaseId: body.releaseId, manifestHash: body.manifestHash } }; return; }
+        if (release.get("status") !== "ready") { outcome = { status: 409, body: { success: false, code: "INVALID_STATUS_FOR_PUBLISH", error: "Release must be ready before publication." } }; return; }
+        var reviewCol = txApp.findCollectionByNameOrId("catalog_reviews"), approvals = txApp.findRecordsByFilter(reviewCol, "releaseId = {:releaseId} && manifestHash = {:manifestHash} && validationReportHash = {:validationHash} && decision = 'approved' && isLatest = true", undefined, 2, 0, { releaseId: body.releaseId, manifestHash: body.manifestHash, validationHash: release.get("validationReportSha256") });
+        if (approvals.length !== 1) { outcome = { status: 409, body: { success: false, code: approvals.length ? "AMBIGUOUS_LATEST_APPROVAL" : "NO_BOUND_APPROVED_REVIEW", error: "Exactly one latest review bound to both stored hashes is required." } }; return; }
+        if (priorId) { var prior = exact(txApp, releasesCol, priorId, priorHash); if (prior.length !== 1 || prior[0].get("status") !== "active") { outcome = { status: 409, body: { success: false, code: "ACTIVE_RELEASE_IDENTITY_INVALID", error: "Current active release does not match its pointer." } }; return; } prior[0].set("status", "superseded"); audit(prior[0], "superseded_by_publish", actor.identity, "Superseded by " + body.releaseId, now); txApp.save(prior[0]); }
+        pointer.set("previousReleaseId", priorId); pointer.set("activeReleaseId", body.releaseId); pointer.set("manifestSha256", body.manifestHash); pointer.set("activatedAt", now); pointer.set("activatedBy", actor.identity); pointer.set("notes", body.notes || ""); txApp.save(pointer);
+        release.set("status", "active"); release.set("publishedAt", now); audit(release, "published", actor.identity, body.notes || "", now); txApp.save(release);
+        outcome = { status: 200, body: { success: true, releaseId: body.releaseId, manifestHash: body.manifestHash, previousActiveReleaseId: priorId || null, publishedBy: actor.identity, publishedAt: now, publicationEventId: event(txApp, "publish", priorId, body.releaseId, body.manifestHash, actor.identity, body.notes, now) } };
+        return;
       }
-    }
-
-    // 9. Update publication record
-    pubRecord.set("previousReleaseId", oldActiveReleaseId || "");
-    pubRecord.set("activeReleaseId", body.releaseId);
-    pubRecord.set("manifestSha256", storedManifestHash);
-    pubRecord.set("activatedAt", now);
-    pubRecord.set("activatedBy", pub.identity);
-    pubRecord.set("notes", body.notes || "");
-    $app.save(pubRecord);
-
-    // 10. Mark new release as active
-    release.set("status", "active");
-    release.set("publishedAt", now);
-    appendAuditLog(release, "published", pub.identity, "Published as active release.");
-    $app.save(release);
-
-    // 11. Create append-only publication event
-    var eventId = createPublicationEvent(
-      "publish",
-      oldActiveReleaseId || "",
-      body.releaseId,
-      storedManifestHash,
-      pub.identity,
-      body.notes || ""
-    );
-
-    return c.json(200, {
-      success: true,
-      releaseId: body.releaseId,
-      manifestHash: storedManifestHash,
-      previousActiveReleaseId: oldActiveReleaseId || null,
-      publishedBy: pub.identity,
-      publishedAt: now,
-      publicationEventId: eventId,
+      var currentId = pointer.get("activeReleaseId") || "", currentHash = pointer.get("manifestSha256") || "", targetId = body.targetReleaseId || pointer.get("previousReleaseId") || "";
+      if (!currentId || !currentHash) { outcome = { status: 409, body: { success: false, code: "NO_ACTIVE_RELEASE", error: "No active release to roll back from." } }; return; }
+      if (!targetId || typeof targetId !== "string") { outcome = { status: 409, body: { success: false, code: "NO_ROLLBACK_TARGET", error: "No rollback target is available." } }; return; }
+      if (targetId === currentId) { outcome = { status: 409, body: { success: false, code: "ALREADY_ACTIVE", error: "Target release is already active." } }; return; }
+      var candidates = txApp.findRecordsByFilter(releasesCol, "releaseId = {:releaseId}", undefined, 2, 0, { releaseId: targetId });
+      if (candidates.length !== 1) { outcome = { status: candidates.length ? 409 : 404, body: { success: false, code: candidates.length ? "AMBIGUOUS_RELEASE_IDENTITY" : "TARGET_NOT_FOUND", error: "Rollback target must match exactly one record." } }; return; }
+      var targetHash = candidates[0].get("manifestSha256"), target = exact(txApp, releasesCol, targetId, targetHash), current = exact(txApp, releasesCol, currentId, currentHash);
+      if (target.length !== 1 || current.length !== 1 || current[0].get("status") !== "active") { outcome = { status: 409, body: { success: false, code: "ACTIVE_RELEASE_IDENTITY_INVALID", error: "Publication pointer does not match a unique active release." } }; return; }
+      if (["active", "superseded"].indexOf(target[0].get("status")) === -1) { outcome = { status: 409, body: { success: false, code: "TARGET_NOT_ELIGIBLE", error: "Rollback target was not previously published." } }; return; }
+      current[0].set("status", "superseded"); audit(current[0], "superseded_by_rollback", actor.identity, "Rolled back to " + targetId, now); txApp.save(current[0]);
+      pointer.set("previousReleaseId", currentId); pointer.set("activeReleaseId", targetId); pointer.set("manifestSha256", targetHash); pointer.set("activatedAt", now); pointer.set("activatedBy", actor.identity); pointer.set("notes", body.notes || ""); txApp.save(pointer);
+      target[0].set("status", "active"); target[0].set("publishedAt", now); audit(target[0], "activated_by_rollback", actor.identity, body.notes || "", now); txApp.save(target[0]);
+      outcome = { status: 200, body: { success: true, rolledBackFrom: currentId, rolledBackTo: targetId, manifestHash: targetHash, rolledBackBy: actor.identity, rolledBackAt: now, publicationEventId: event(txApp, "rollback", currentId, targetId, targetHash, actor.identity, body.notes, now) } };
     });
-  } catch (e) {
-    return c.json(500, {
-      success: false,
-      error: String(e),
-      code: "INTERNAL_ERROR",
-    });
-  }
-});
-
-// =========================================================================
-// POST /api/catalog/rollback
-// =========================================================================
-routerAdd("POST", "/api/catalog/rollback", function (c) {
-  try {
-    var info = c.requestInfo();
-    var body = (typeof info.body === "string") ? JSON.parse(info.body) : (info.body || {});
-
-    // 1. Authenticate + authorize
-    var pub = resolvePublisher(c);
-    if (pub.isCaptureToken) {
-      return c.json(403, {
-        success: false,
-        error: "Capture credentials cannot roll back releases. Use PocketBase authentication with catalog_admin role.",
-        code: "FORBIDDEN / CAPTURE_CLIENT_NOT_ALLOWED",
-      });
-    }
-    if (pub.reason === "unauthenticated") {
-      return c.json(401, {
-        success: false,
-        error: "Authentication required.",
-        code: "UNAUTHORIZED",
-      });
-    }
-    if (!pub.authorized) {
-      return c.json(403, {
-        success: false,
-        error: "Insufficient permissions. Rollback requires catalog_admin role or canPublishCatalog flag.",
-        code: "FORBIDDEN / INSUFFICIENT_ROLE",
-      });
-    }
-
-    var now = new Date().toISOString();
-
-    // 2. Get current publication record
-    var pubCol = $app.findCollectionByNameOrId("catalog_publication");
-    var pubRecords = $app.findRecordsByFilter(pubCol, "", undefined, 0, 1, {});
-
-    if (pubRecords.length === 0) {
-      return c.json(409, {
-        success: false,
-        error: "No publication record exists. Nothing to roll back.",
-        code: "NO_PUBLICATION_RECORD",
-      });
-    }
-
-    var pubRecord = pubRecords[0];
-    var currentActiveId = pubRecord.get("activeReleaseId");
-
-    if (!currentActiveId || currentActiveId.length === 0) {
-      return c.json(409, {
-        success: false,
-        error: "No active release to roll back from.",
-        code: "NO_ACTIVE_RELEASE",
-      });
-    }
-
-    var previousId = pubRecord.get("previousReleaseId") || "";
-    // Allow explicit target via request body
-    if (body.targetReleaseId && typeof body.targetReleaseId === "string" && body.targetReleaseId.length > 0) {
-      previousId = body.targetReleaseId;
-    }
-
-    if (!previousId || previousId.length === 0) {
-      return c.json(409, {
-        success: false,
-        error: "No previous release to roll back to. Provide targetReleaseId in the request body.",
-        code: "NO_ROLLBACK_TARGET",
-      });
-    }
-
-    // Cannot roll back to the currently active release
-    if (previousId === currentActiveId) {
-      return c.json(409, {
-        success: false,
-        error: "Target release is already active.",
-        code: "ALREADY_ACTIVE",
-      });
-    }
-
-    // 3. Verify target release exists and is eligible for activation.
-    //    Only previously published releases (status superseded or active)
-    //    can be rollback targets — not arbitrary candidate or rejected releases.
-    var releasesCol = $app.findCollectionByNameOrId("catalog_releases");
-    var targetRecords = $app.findRecordsByFilter(
-      releasesCol,
-      "releaseId = {:releaseId}",
-      undefined,
-      0,
-      1,
-      { releaseId: previousId }
-    );
-
-    if (targetRecords.length === 0) {
-      return c.json(404, {
-        success: false,
-        error: "Target release not found: " + previousId,
-        code: "TARGET_NOT_FOUND",
-      });
-    }
-
-    var targetRelease = targetRecords[0];
-    var targetStatus = targetRelease.get("status");
-    var eligibleStatuses = ["active", "superseded"];
-
-    if (eligibleStatuses.indexOf(targetStatus) === -1) {
-      return c.json(409, {
-        success: false,
-        error: "Target release is not eligible for rollback. Status '" + targetStatus + "' is not a previously published state. Allowed: " + eligibleStatuses.join(", "),
-        code: "TARGET_NOT_ELIGIBLE",
-        targetStatus: targetStatus,
-      });
-    }
-
-    // ── Transactional mutation ──
-    // All writes below should commit or fail together.
-    // Order: supersede current → swap pointer → activate target → event.
-
-    // 4. Mark current active as superseded (no re-ingestion, no content rewrite)
-    var currentRecords = $app.findRecordsByFilter(
-      releasesCol,
-      "releaseId = {:releaseId}",
-      undefined,
-      0,
-      1,
-      { releaseId: currentActiveId }
-    );
-    if (currentRecords.length > 0) {
-      var currentRelease = currentRecords[0];
-      currentRelease.set("status", "superseded");
-      appendAuditLog(currentRelease, "superseded_by_rollback", pub.identity, "Deactivated by rollback to " + previousId);
-      $app.save(currentRelease);
-    }
-
-    // 5. Swap the active pointer
-    var targetManifestHash = targetRelease.get("manifestSha256") || "";
-    pubRecord.set("previousReleaseId", currentActiveId);
-    pubRecord.set("activeReleaseId", previousId);
-    pubRecord.set("manifestSha256", targetManifestHash);
-    pubRecord.set("activatedAt", now);
-    pubRecord.set("activatedBy", pub.identity);
-    pubRecord.set("notes", body.notes || "Rolled back from " + currentActiveId + " to " + previousId);
-    $app.save(pubRecord);
-
-    // 6. Mark target release as active
-    targetRelease.set("status", "active");
-    targetRelease.set("publishedAt", now);
-    appendAuditLog(targetRelease, "activated_by_rollback", pub.identity, "Activated by rollback from " + currentActiveId);
-    $app.save(targetRelease);
-
-    // 7. Create append-only publication event.
-    //    Forward history is preserved: the old active release still exists
-    //    in catalog_releases with full metadata, and this event records
-    //    the rollback action. C can be re-activated later deliberately.
-    var eventId = createPublicationEvent(
-      "rollback",
-      currentActiveId,
-      previousId,
-      targetManifestHash,
-      pub.identity,
-      body.notes || "Rolled back to " + previousId
-    );
-
-    return c.json(200, {
-      success: true,
-      rolledBackFrom: currentActiveId,
-      rolledBackTo: previousId,
-      manifestHash: targetManifestHash,
-      rolledBackBy: pub.identity,
-      rolledBackAt: now,
-      publicationEventId: eventId,
-    });
-  } catch (e) {
-    return c.json(500, {
-      success: false,
-      error: String(e),
-      code: "INTERNAL_ERROR",
-    });
-  }
+    return c.json(outcome.status, outcome.body);
+  } catch (e) { return c.json(500, { success: false, code: "INTERNAL_ERROR", error: String(e) }); }
 });

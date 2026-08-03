@@ -7,6 +7,7 @@ import {
 } from "../lib/db";
 import { spriteURL } from "../lib/sprites";
 import { interpolateAbilityDescription, formatTime } from "../lib/textNormalization";
+import { isPassiveUnlocked, passiveLabel, passiveRequirement } from "../lib/passives";
 
 interface ManagerDetailModalProps {
   manager: CatalogManager;
@@ -16,23 +17,6 @@ interface ManagerDetailModalProps {
 }
 
 import { equipmentDisplayName } from "../lib/equipment-display-names";
-
-const PASSIVE_LABELS: Record<string, string> = {
-  MSB: "Mining Speed Boost",
-  CR: "Cash Rate",
-  MLSB: "Movement & Loading Speed",
-  EBE: "Elevator Beam",
-  BUCR: "Building Upgrade Cost Reduction",
-  MIF: "Mining Income Factor",
-  CIF: "Cash Income Factor",
-  WMSB: "Warehouse Mining Speed Boost",
-  MSUCR: "Mine Shaft Upgrade Cost Reduction",
-};
-
-function passiveLabel(passive: NonNullable<CatalogManager["passives"]>[number]): string {
-  const code = passive.type?.trim();
-  return (code && PASSIVE_LABELS[code]) || passive.description || code || "Passive ability";
-}
 
 function isKnownFragments(progress: PlayerManager): boolean {
   return progress.fragmentSource === "kolibri" || progress.fragmentSource === "manual";
@@ -52,6 +36,7 @@ export function ManagerDetailModal({ manager, progress, equipmentNameMap, onClos
   const knownFragments = progress ? isKnownFragments(progress) : false;
   const fragmentGoal = progress ? rankThreshold(progress.rank) : undefined;
   const filledStars = Math.max(0, Math.min(progress?.rank ?? 0, 5));
+  const activeValue = progress?.unlocked ? effectiveActiveValue(manager, progress) : manager.active?.multiplier;
 
   return (
     <div className="dialog-backdrop" role="presentation" onClick={onClose}>
@@ -106,10 +91,10 @@ export function ManagerDetailModal({ manager, progress, equipmentNameMap, onClos
         <section className="detail-section">
           <h3 className="detail-section-title">Active Ability</h3>
           <p className="detail-ability-description">
-            {interpolateAbilityDescription(manager.active?.description, manager.active?.multiplier, manager.active?.cooldown, manager.active?.duration)}
+            {interpolateAbilityDescription(manager.active?.description, activeValue, manager.active?.cooldown, manager.active?.duration)}
           </p>
           <div className="detail-ability-stats">
-            <div className="detail-ability-stat"><div className="detail-ability-stat-value">{manager.active?.multiplier ? `${manager.active.multiplier}x` : "—"}</div><div className="detail-ability-stat-label">Value</div></div>
+            <div className="detail-ability-stat"><div className="detail-ability-stat-value">{activeValue ? `${activeValue.toFixed(2)}x` : "—"}</div><div className="detail-ability-stat-label">Value</div></div>
             <div className="detail-ability-stat"><div className="detail-ability-stat-value">{formatTime(manager.active?.cooldown)}</div><div className="detail-ability-stat-label">Cooldown</div></div>
             <div className="detail-ability-stat"><div className="detail-ability-stat-value">{formatTime(manager.active?.duration)}</div><div className="detail-ability-stat-label">Duration</div></div>
           </div>
@@ -118,15 +103,21 @@ export function ManagerDetailModal({ manager, progress, equipmentNameMap, onClos
         {manager.passives && manager.passives.length > 0 && (
           <section className="detail-section">
             <h3 className="detail-section-title">Passive Abilities <span className="detail-section-chevron">⌃</span></h3>
-            {manager.passives.map((passive, index) => (
-              <div key={index} className="detail-passive">
-                <span className="detail-passive-name">{passiveLabel(passive)}</span>
+            {manager.passives.map((passive, index) => {
+              const unlocked = isPassiveUnlocked(passive, progress);
+              const requirement = passiveRequirement(passive);
+              return (
+              <div key={`${passive.passiveId ?? passive.type ?? index}`} className={`detail-passive ${unlocked ? "unlocked" : "locked"}`}>
+                <span className="detail-passive-copy">
+                  <span className="detail-passive-name">{passiveLabel(passive)}</span>
+                  <small>{unlocked ? "Unlocked" : requirement ? `Unlocks at ${requirement}` : "Not unlocked"}</small>
+                </span>
                 <span className="detail-passive-value">
                   {passive.multiplier != null ? `${passive.multiplier.toFixed(2)}x` : "—"}
-                  {passive.promoReq !== undefined && <small> (P{passive.promoReq})</small>}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </section>
         )}
 

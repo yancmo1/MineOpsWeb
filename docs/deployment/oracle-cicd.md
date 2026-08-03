@@ -1,62 +1,48 @@
-# Oracle CI/CD (main -> GHCR -> Oracle VM)
+# Oracle CI/CD (GitHub Actions → GHCR → Watchtower)
 
-This repository now includes `.github/workflows/main-deploy-oracle.yml`.
+The frontend deployment workflow is `.github/workflows/main-deploy-oracle.yml`. GitHub Actions verifies and publishes multi-architecture images; it does not SSH to Oracle. Oracle's `mineopsweb-watchtower-1` container polls GHCR every 60 seconds and recreates a watched container only when its image digest changes.
 
-## Flow
+## Automatic flow
 
-1. Push to `main` (or run manually via workflow dispatch).
-2. Verify job runs frontend tests, typecheck, and production build.
-3. Build and push multi-arch images to GHCR:
+1. A push to `main` starts the workflow.
+2. The verify job runs frontend tests, TypeScript checking, and a production Vite build.
+3. The build job publishes `linux/amd64` and `linux/arm64` images to GHCR:
    - `ghcr.io/yancmo1/mineopsweb-web:latest`
-   - `ghcr.io/yancmo1/mineopsweb-pocketbase:latest`
-   - plus immutable `sha-*` tags
-4. Deploy job SSHes to Oracle VM, writes deployment files and `.env`, pulls images, restarts services, and runs health checks.
+   - `ghcr.io/yancmo1/mineopsweb-web:sha-<commit>`
+   - the corresponding legacy `mineopsweb-pocketbase` tags unless a manual web-only run is requested
+4. Watchtower detects changed watched images and performs a rolling restart. The public Cloudflare route continues to target the existing local origin.
 
-## Required GitHub secrets
+The active production catalog API is the separate `infra-new-mineops-pb-1` service. A frontend deployment must not recreate it, alter its data, or rotate its credentials.
 
-- `ORACLE_VM_HOST` — Oracle host/IP
-- `ORACLE_VM_USER` — SSH user (e.g., `ubuntu`)
-- `ORACLE_VM_SSH_KEY` — private SSH key for deploy user
-- `ORACLE_APP_DIR` — optional app path on VM (defaults to `/opt/infra-new/apps/mineopsweb`)
-- `GHCR_USERNAME` — GHCR username for server-side image pull
-- `GHCR_TOKEN` — GHCR token for server-side image pull (`read:packages`)
-- `MINEOPS_PROD_ENV` — full multiline production env file content
+## Manual web-only deployment
 
-### Example `MINEOPS_PROD_ENV`
+Use the `web_only` workflow-dispatch input when publishing a frontend change without publishing the legacy PocketBase image:
 
-```dotenv
-WEB_IMAGE_TAG=latest
-PB_IMAGE_TAG=latest
-PB_ADMIN_EMAIL=replace-me@example.com
-PB_ADMIN_PASSWORD=replace-with-strong-password
+```bash
+gh workflow run main-deploy-oracle.yml --ref <branch-or-commit> -f web_only=true
 ```
 
-## Oracle host files used
+Confirm the completed run reports both **Docker metadata (pocketbase)** and **Build and push pocketbase image** as skipped. The workflow's default remains unchanged for pushes to `main`.
 
-- `${ORACLE_APP_DIR}/docker-compose.prod.yml`
-- `${ORACLE_APP_DIR}/oracle-deploy.sh`
-- `${ORACLE_APP_DIR}/.env`
+## Required GitHub permissions
 
-## Safety recommendation
+The workflow grants its GitHub token `contents: read` and `packages: write`. No Oracle SSH or production environment secret is required for the build-and-publish path. Oracle already has read access to the private GHCR images used by its compose project.
 
-## Server-side state (manual changes)
+## Post-deploy verification
 
-The CI/CD pipeline deploys container images. Some server-side configuration was applied manually and must be preserved across redeploys. See:
+After the build completes, allow one Watchtower polling interval, then verify:
 
-- `docs/deployment/oracle-server-manifest.md` — full live state record
+```bash
+ssh oracle-vm "docker inspect mineopsweb-web-1 --format '{{.Image}} {{.State.StartedAt}}'"
+ssh oracle-vm "docker logs --since 5m mineopsweb-watchtower-1"
+curl -fsS -I https://mineops.shepswork.com/
+curl -fsS https://mineops-pb.shepswork.com/api/health
+```
 
-Key items that must survive redeployment:
-
-- PB hooks bind mount in compose (`/opt/infra-new/apps/mineopsweb/pb_hooks:/pb/pb_hooks:ro`)
-- `capture_clients` collection + `ubuntumac` client record
-- Re-run `scripts/oracle/setup-capture-client.sh` after fresh image deploy if needed
-
-Use GitHub **Environment protection rules** for `production` (required reviewers) so pushes to `main` build automatically but deploy only after approval.
+Record the frontend digest and start time. For a web-only deployment, also compare the image IDs and start times of `infra-new-mineops-pb-1` and `mineopsweb-pocketbase-1` with their pre-deploy values. They must remain unchanged.
 
 ## Rollback
 
-On Oracle, pin image tags in `.env` to previous `sha-*` tags and rerun deploy script:
+Every successful build publishes an immutable `sha-<commit>` tag. Pin the frontend service to the last known-good immutable tag, then recreate only the web service using its existing compose project. Do not run `docker compose down`, recreate PocketBase, or change the `infra-new` project as part of a frontend rollback.
 
-```bash
-APP_DIR=/opt/infra-new/apps/mineopsweb /opt/infra-new/apps/mineopsweb/oracle-deploy.sh
-```
+After rollback, repeat the public HTTP, container image/start-time, and PocketBase health checks. See `docs/deployment/oracle-server-manifest.md` for the current live digest and rollback target.

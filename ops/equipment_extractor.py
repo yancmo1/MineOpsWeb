@@ -16,6 +16,8 @@ Also reads:
 from __future__ import annotations
 
 import json
+import base64
+import hashlib
 import struct
 import re
 from dataclasses import dataclass, field, asdict
@@ -58,6 +60,7 @@ class EquipmentCatalog:
     materials: list[EquipmentMaterial]
     loca_entries: list[EquipmentEffectLoca]
     balancing: list[EquipmentBalancing]
+    raw_records: list[dict[str, Any]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +204,35 @@ def read_material_config(config_bytes: bytes) -> list[EquipmentMaterial]:
 # Main extraction
 # ---------------------------------------------------------------------------
 
+def _config_raw_records(env: Any, serialized_file: Any, bundle_name: str) -> list[dict[str, Any]]:
+    """Preserve every named equipment configuration object byte-for-byte.
+
+    Binary layouts evolve more often than the handful of layouts we currently
+    understand.  Keeping the original bytes and object provenance means a
+    later parser can be added without recapturing an APK.
+    """
+    records: list[dict[str, Any]] = []
+    for key, pptr in env.container.items():
+        asset_name = key.rsplit("/", 1)[-1]
+        if "SuperManagerEquipment" not in asset_name:
+            continue
+        obj = serialized_file.objects.get(pptr.path_id)
+        if obj is None:
+            continue
+        raw = obj.get_raw_data()
+        records.append({
+            "sourceBundle": bundle_name,
+            "sourceAssetPath": key,
+            "sourceObjectPathId": getattr(pptr, "path_id", None),
+            "assetName": asset_name,
+            "rawEncoding": "base64",
+            "rawBytes": base64.b64encode(raw).decode("ascii"),
+            "rawSha256": hashlib.sha256(raw).hexdigest(),
+            "rawByteLength": len(raw),
+        })
+    return sorted(records, key=lambda record: (record["sourceAssetPath"], record["sourceObjectPathId"] or -1))
+
+
 def extract_equipment(release_dir: Path | str) -> EquipmentCatalog:
     """Extract all equipment data from a release directory."""
     import UnityPy
@@ -236,14 +268,96 @@ def extract_equipment(release_dir: Path | str) -> EquipmentCatalog:
     for item in equipment:
         item.effects = [{"level": b.level, "value": b.value} for b in bal_by_id.get(item.equipment_id, [])]
 
-    return EquipmentCatalog(equipment=equipment, materials=materials, loca_entries=loca_entries, balancing=balancing)
+    return EquipmentCatalog(
+        equipment=equipment,
+        materials=materials,
+        loca_entries=loca_entries,
+        balancing=balancing,
+        raw_records=_config_raw_records(cf_env, cf_sf, config_bundles[0].name),
+    )
 
 
 def serialize_equipment(catalog: EquipmentCatalog) -> dict:
     """Serialize equipment catalog to a JSON-compatible dict."""
     items = [{"equipmentId": item.equipment_id, "nameKey": item.name_key, "effects": item.effects} for item in catalog.equipment]
     materials_out = [{"materialId": mat.material_id, "nameKey": mat.name_key, "sourceTooltipKey": mat.source_tooltip_key} for mat in catalog.materials]
-    return {"equipment": items, "materials": materials_out}
+    return {
+        "equipment": items,
+        "materials": materials_out,
+        "localization": [
+            {"equipmentId": row.equipment_id, "effectType": row.effect_type, "locaKeySuffix": row.loca_key_suffix}
+            for row in catalog.loca_entries
+        ],
+        "balancing": [
+            {"equipmentId": row.equipment_id, "level": row.level, "value": row.value}
+            for row in catalog.balancing
+        ],
+        "sourceRecords": catalog.raw_records,
+    }
+
+
+def _source_for(catalog: EquipmentCatalog, token: str) -> dict[str, Any] | None:
+    for record in catalog.raw_records:
+        if token in str(record.get("assetName", "")):
+            return {
+                "bundle": record.get("sourceBundle"),
+                "assetPath": record.get("sourceAssetPath"),
+                "objectType": "MonoBehaviour",
+                "pathId": record.get("sourceObjectPathId"),
+            }
+    return None
+
+
+def _record(record_id: str, canonical_id: str, item: dict[str, Any], source: dict[str, Any] | None) -> dict[str, Any]:
+    value = {"recordId": record_id, "canonicalId": canonical_id, "name": None, "sourceFields": item, "raw": item}
+    if source is not None:
+        value["source"] = source
+    return value
+
+
+def build_equipment_domain(
+    catalog: EquipmentCatalog,
+    release_id: str,
+    *,
+    catalog_version: str | None = None,
+    generated_at: str | None = None,
+    source: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return the lossless equipment packaging input without semantic guesses."""
+    serialized = serialize_equipment(catalog)
+    equipment_source = _source_for(catalog, "SuperManagerEquipmentConfig")
+    material_source = _source_for(catalog, "SuperManagerEquipmentMaterialConfig")
+    balancing_source = _source_for(catalog, "SuperManagerEquipmentBalancingConfig")
+    localization_source = _source_for(catalog, "SuperManagerEquipmentEffectLocaConfig")
+    equipment_rows = [_record(f"equipment:{item['equipmentId']}", f"equipment:{item['equipmentId']}", item, equipment_source) for item in serialized["equipment"]]
+    balancing_rows = [_record(f"balancing:{item['equipmentId']}:{item['level']}:{index}", f"equipment:{item['equipmentId']}", item, balancing_source) for index, item in enumerate(serialized["balancing"])]
+    localization_rows = [_record(f"localization:{item['equipmentId']}:{item['effectType']}:{index}", f"equipment:{item['equipmentId']}", item, localization_source) for index, item in enumerate(serialized["localization"])]
+    known_equipment = {row["canonicalId"] for row in equipment_rows}
+    unresolved = []
+    for group, rows in (("balancing", balancing_rows), ("localization", localization_rows)):
+        for row in rows:
+            if row["canonicalId"] not in known_equipment:
+                unresolved.append({
+                    "evidenceId": f"equipment-dangling-{row['recordId']}",
+                    "domain": "equipment",
+                    "subjectId": row["canonicalId"],
+                    "fieldPath": group,
+                    "status": "partial",
+                    "severity": "warning",
+                    "reason": f"Parsed {group} row references an equipment ID not present in the parsed equipment definition table.",
+                    "rawValue": row["raw"],
+                })
+    return {
+        "schemaVersion": "1.0.0",
+        "catalogVersion": catalog_version or release_id,
+        "releaseId": release_id,
+        "generatedAt": generated_at or datetime.now(timezone.utc).isoformat(),
+        "source": {**(source or {"kind": "apk_capture", "extraction": "equipment binary configs"}), "rawRecords": serialized["sourceRecords"], "unresolved": unresolved},
+        "equipment": equipment_rows,
+        "materials": [_record(f"material:{item['materialId']}", f"material:{item['materialId']}", item, material_source) for item in serialized["materials"]],
+        "balancing": balancing_rows,
+        "localization": localization_rows,
+    }
 
 
 # ---------------------------------------------------------------------------

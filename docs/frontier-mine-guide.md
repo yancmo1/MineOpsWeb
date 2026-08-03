@@ -82,7 +82,24 @@ available FC = current FC + checkpoint reward + selected shop/Edgar FC
 next decision = wait, recharge Sparks, buy a multiplier, or skip barrier
 ```
 
-The MineOps planner currently models the sequential FC checkpoint path using the published “cost after waiting” values. It intentionally does not model wait-time curves, ad watches, Time Jumps, live Edgar behavior, or a player-specific current barrier cost.
+The MineOps planner now accepts a manually entered live barrier cost and remaining wait, plus barrier skips and Time Jumps. It does not automatically read those values from a save or the game UI, so the in-game screen remains the source of truth.
+
+## Live barrier decision rule
+
+On Strategy → Frontier Mine start, enter:
+
+- **Live barrier cost (FC):** the current FC price shown for the barrier. This overrides the first row of the reference checkpoint table.
+- **Wait remaining:** the current barrier timer in minutes. Leave it blank until you have checked the live timer; a blank value produces no rush/burst claim.
+- **Barrier skips:** free barrier skips you are willing to spend now.
+- **Time Jumps:** available Time Jumps. Official help says Time Jumps skip Barrier time and Spark recharge, but do not reduce Super Manager active cooldowns.
+
+The planner returns one of three next actions:
+
+1. **Wait** when the timer is 10 minutes or less, when the live cost is missing, or when no rush resource can cover a longer wait.
+2. **Spend FC** when the timer is longer than 10 minutes, the live cost is present and affordable, and no skip or Time Jump is entered.
+3. **Run a burst** when the timer is already open, or after using an entered barrier skip/Time Jump to remove a long wait.
+
+These are explicit MineOps assumptions, not a complete Frontier simulator. One barrier skip is treated as one free unlock; one Time Jump is treated as enough to remove the current wait; and a burst assumes a usable multiplier, Sparks, and a ready shaft/transport lineup. The rule has no event-end timestamp, Spark balance, manager cooldowns, active multiplier duration, mine cash, or stockpile input, so it cannot prove that spending is optimal. It is a conservative next-action prompt, not an automatic action.
 
 ## FC and barrier planning
 

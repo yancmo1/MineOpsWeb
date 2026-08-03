@@ -1,0 +1,29 @@
+{
+  "catalogVersion": "1.0.0-100000-test",
+  "generatedAt": "2026-07-16T00:00:00.000Z",
+  "records": [
+    {
+      "domain": "unknown",
+      "raw": {
+        "serialized": {
+          "rawByteLength": 1,
+          "rawBytes": "Mg==",
+          "rawEncoding": "base64",
+          "rawSha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+        }
+      },
+      "recordId": "cfg-1",
+      "semanticStatus": "partial",
+      "source": {
+        "assetPath": "x.asset",
+        "bundle": "configfiles",
+        "objectType": "MonoBehaviour"
+      }
+    }
+  ],
+  "releaseId": "test-release",
+  "schemaVersion": "1.0.0",
+  "source": {
+    "kind": "fixture"
+  }
+}
