@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback, Suspense, lazy } from "react";
 import { getSyncMetadata, loadProgress, rankThreshold, saveProgress, setSyncMetadata, strengthScore, getSettings, saveSettings, saveCredentials, getCredentials, type CatalogManager, type PlayerManager, type SyncMetadata, type AppSettings, type PersistedCredentials } from "./lib/db";
 import { fetchKolibri, type KolibriCredentials, type KolibriDiagnostics } from "./lib/kolibri";
 import { type Tab, navigationItems, getTabLabel } from "./lib/navigation";
@@ -11,13 +11,18 @@ import { catalogClient, type LoadState } from "./lib/catalog-client";
 import { managersFromVerifiedPackage } from "./lib/strategy";
 import { TodayPage } from "./pages/TodayPage";
 import { SnapshotHistory } from "./pages/SnapshotHistory";
-import { StrategyPage } from "./pages/StrategyPage";
-import { MorePage } from "./pages/MorePage";
 import { ManagerCard } from "./components/ManagerCard";
 import { ManagerDetailModal } from "./components/ManagerDetailModal";
 import { buildEquipmentNameMap } from "./lib/equipment-lookup";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { compareManagers, defaultOwnership, sortOptions, type ManagersOwnership, type ManagersSortOption } from "./lib/managers-view";
+import { usePrefetch } from "./hooks/usePrefetch";
+import { LoadingSkeleton } from "./components/LoadingSkeleton";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// Lazy load heavy pages
+const StrategyPage = lazy(() => import("./pages/StrategyPage").then(module => ({ default: module.StrategyPage })));
+const MorePage = lazy(() => import("./pages/MorePage").then(module => ({ default: module.MorePage })));
 
 type Department = "All" | "Mine Shaft" | "Elevator" | "Warehouse";
 type Ownership = ManagersOwnership;
@@ -184,6 +189,51 @@ export default function App() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, []);
+
+  // Initialize prefetch hook for hover-based navigation prefetching
+  const { attachHoverPrefetch, prefetchLikelyRoutes, prefetchApi, prefetchRouteChunks } = usePrefetch({ hoverDelay: 50 });
+
+  // Prefetch likely routes on mount and when tab changes
+  useEffect(() => {
+    prefetchLikelyRoutes(`/${tab}`);
+    // Prefetch catalog API data for better performance
+    prefetchApi('/api/catalog/active');
+    prefetchApi('/api/catalog/versions');
+  }, [tab, prefetchLikelyRoutes, prefetchApi]);
+
+  // Attach hover prefetch to navigation buttons (documents + chunks)
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!navRef.current) return;
+    const cleanup = attachHoverPrefetch(navRef.current, ['/strategy', '/more'], 'document');
+    return cleanup;
+  }, [attachHoverPrefetch]);
+
+  // Prefetch route chunks when hovering over nav items
+  useEffect(() => {
+    if (!navRef.current) return;
+    const navButtons = navRef.current.querySelectorAll('button[aria-current], button[data-tab]');
+    navButtons.forEach(button => {
+      const tab = button.getAttribute('data-tab') || button.getAttribute('aria-current');
+      if (tab && tab !== 'page') {
+        const route = `/${tab}`;
+        button.addEventListener('mouseenter', () => {
+          prefetchRouteChunks(route);
+        }, { once: true });
+      }
+    });
+    return () => {
+      navButtons.forEach(button => {
+        const tab = button.getAttribute('data-tab') || button.getAttribute('aria-current');
+        if (tab && tab !== 'page') {
+          const route = `/${tab}`;
+          button.removeEventListener('mouseenter', () => {
+            prefetchRouteChunks(route);
+          });
+        }
+      });
+    };
+  }, [prefetchRouteChunks]);
 
   const byId = useMemo(() => new Map(catalog.map((m) => [m.id, m])), [catalog]);
 
@@ -371,6 +421,7 @@ export default function App() {
       </header>
 
       {/* Page Content */}
+      <ErrorBoundary>
       {tab === "overview" && <TodayPage catalog={catalog} progress={progress} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} />}
       {tab === "managers" && (
         <>
@@ -493,28 +544,34 @@ export default function App() {
           </section>
         </>
       )}
-      {tab === "strategy" && <StrategyPage progress={progress} />}
+      {tab === "strategy" && (
+        <Suspense fallback={<LoadingSkeleton variant="page" />}>
+          <StrategyPage progress={progress} />
+        </Suspense>
+      )}
       {tab === "more" && (
-        <MorePage
-          credentials={credentials}
-          onCredentialsChange={handleCredentialsChange}
-          syncing={syncing}
-          onSyncNow={syncNow}
-          diagnostics={diagnostics}
-          metadata={metadata}
-          catalogCount={catalog.length}
-          settings={settings}
-          onSettingsChange={setSettings}
-          authStatus={authStatus}
-          onAuthChange={() => setAuthStatus(getAuthStatus())}
-          onOpenSnapshotHistory={() => setShowSnapshotHistory(true)}
-          captureStatus={captureStatus}
-          onRefreshCaptureStatus={refreshCaptureStatus}
-        />
+        <Suspense fallback={<LoadingSkeleton variant="page" />}>
+          <MorePage
+            credentials={credentials}
+            onCredentialsChange={handleCredentialsChange}
+            syncing={syncing}
+            onSyncNow={syncNow}
+            diagnostics={diagnostics}
+            metadata={metadata}
+            catalogCount={catalog.length}
+            settings={settings}
+            onSettingsChange={setSettings}
+            authStatus={authStatus}
+            onAuthChange={() => setAuthStatus(getAuthStatus())}
+            onOpenSnapshotHistory={() => setShowSnapshotHistory(true)}
+            captureStatus={captureStatus}
+            onRefreshCaptureStatus={refreshCaptureStatus}
+          />
+        </Suspense>
       )}
 
       {/* Navigation */}
-      <nav aria-label="Primary" data-expanded={navExpanded}>
+      <nav ref={navRef} aria-label="Primary" data-expanded={navExpanded}>
         <button
           className="nav-minimize-btn"
           onClick={() => setNavExpanded(!navExpanded)}
@@ -566,6 +623,7 @@ export default function App() {
           onClose={() => setShowSnapshotHistory(false)}
         />
       )}
+      </ErrorBoundary>
     </main>
   );
 }

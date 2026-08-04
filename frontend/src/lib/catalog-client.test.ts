@@ -28,7 +28,8 @@ import {
   clearCache,
   type CachedCatalogPackage,
 } from "./catalog-cache";
-import { createCatalogClient, type CatalogClientState } from "./catalog-client";
+import { createCatalogClient, resolveStorageBaseUrl, type CatalogClientState } from "./catalog-client";
+import { getBaseUrl } from "./pocketbase";
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -369,5 +370,35 @@ describe("Player state isolation", () => {
     await clearCache();
     const after = await getPackage(pkg.releaseId, pkg.manifestHash);
     expect(after).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// storageBaseUrl resolution (regression: relative URLs hit SPA fallback)
+// ---------------------------------------------------------------------------
+
+describe("resolveStorageBaseUrl", () => {
+  const base = getBaseUrl().replace(/\/+$/, "");
+
+  it("resolves a relative path against the PocketBase base URL", () => {
+    const resolved = resolveStorageBaseUrl("/api/catalog/artifacts");
+    expect(resolved).toBe(`${base}/api/catalog/artifacts`);
+  });
+
+  it("leaves an absolute PocketBase URL unchanged", () => {
+    const url = `${base}/api/catalog/artifacts`;
+    expect(resolveStorageBaseUrl(url)).toBe(url);
+  });
+
+  it("strips trailing slashes from the base path", () => {
+    expect(resolveStorageBaseUrl("/api/catalog/artifacts/")).toBe(
+      `${base}/api/catalog/artifacts`,
+    );
+  });
+
+  it("resolves a bare path without a leading slash", () => {
+    expect(resolveStorageBaseUrl("api/catalog/artifacts")).toBe(
+      `${base}/api/catalog/artifacts`,
+    );
   });
 });

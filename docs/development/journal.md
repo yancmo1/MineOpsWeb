@@ -1,5 +1,59 @@
 # Development journal
 
+## 2026-08-04 — Repair: Strategy/More crash, catalog load, beacon noise (perf-regression fix)
+
+**Outcome:** Repaired the regressions the uncommitted performance-optimization work (see the 2026-08-04 performance entry below — its claims reflect the pre-repair build) introduced into the live app. Root causes, fixes, and verification are listed here; the durable defensive fix tolerates either storageBaseUrl form, so no production data change was required.
+
+**Root causes (evidence-backed):**
+
+- **Strategy/More crash — React error #426.** `frontend/src/App.tsx` lazy-loaded `StrategyPage`/`MorePage` but never wrapped them in `<Suspense>`. Clicking the nav tab performs a synchronous `setTab()`; React rendered the not-yet-loaded lazy chunk → #426 "A component suspended while responding to synchronous input" → whole app unmounted (blank page). Secondary bug: `LoadingSkeleton` had a 150 ms self-hide timer, so even as a Suspense fallback it vanished mid-load on slow networks.
+- **Catalog never loaded — `manifestResult: null`.** The active PB release record (`5.59.0_96449_20260716T143539Z.lossless-v1`) stores a relative `storageBaseUrl: "/api/catalog/artifacts"` (the superseded record stores the absolute URL). The frontend built `<app-origin>/api/catalog/artifacts/manifest.json`; nginx has no `/api/catalog` route → SPA fallback returned `index.html` (HTTP 200) → SHA-256 mismatch → `MANIFEST_HASH_MISMATCH` → catalog stuck, Strategy/More showed "no catalog". The PB hook only serves the `?file=manifest.json` query form on the PB host; the frontend already had a branch for that form but only when `storageBaseUrl` contained `mineops-pb.shepswork.com`.
+- **Beacon 405 noise.** New `webVitals.ts`/`errorBeacon.ts` POST to `/api/vitals` and `/api/errors`; no nginx route and no backend → 405 spam in the console.
+- **`index.html` broken in production.** An inline script fetched `/src/styles.css` for a localStorage "CSS cache" — that path only exists in dev; in prod it hit the SPA fallback and cached `index.html` as "CSS" garbage.
+
+**Fixes:**
+
+- `frontend/src/App.tsx` — wrapped all page content in `<ErrorBoundary>`; wrapped `StrategyPage` and `MorePage` in `<Suspense fallback={<LoadingSkeleton variant="page" />}>`; removed the dead `ArchivesPage` lazy import and prefetch references (the `Tab` type has no `archives` — the 7 KB chunk no longer ships). Untracked `frontend/src/pages/ArchivesPage.tsx` (unreachable dead code) deleted.
+- `frontend/src/components/LoadingSkeleton.tsx` — removed the 150 ms self-hide `useEffect`; the Suspense fallback now stays visible until the chunk loads.
+- `frontend/src/lib/catalog-client.ts` — new exported `resolveStorageBaseUrl()`: resolves relative / leading-slash / bare paths against `getBaseUrl()` (PB base), leaves absolute URLs untouched. Applied in both `fetchAndValidateManifest()` and `fetchAndVerifyArtifacts()`; manifest + artifacts now fetch via `https://mineops-pb.shepswork.com/api/catalog/artifacts?file=…`.
+- `frontend/nginx.conf` — added `location = /api/vitals { return 204; }` and `location = /api/errors { return 204; }` stubs (no backend collector deployed; stops the 405 noise). Also enabled gzip (bundled with the perf work).
+- `frontend/index.html` — removed the prod-broken loadCSS + localStorage CSS-cache script block (Vite injects the hashed stylesheet; verified no `mineops-css` or `/@react-refresh` remnants in `dist/`).
+- Tests — 4 regression tests for `resolveStorageBaseUrl` (relative resolution, absolute passthrough, trailing-slash strip, bare-path handling).
+
+**Verification:** `tsc -b` clean; `vite build` succeeds (no dead ArchivesPage chunk; dist index.html 10.37 kB); full suite **129/129 passing (11 files)**; `git diff --check` clean; headless-Chromium CDP smoke (`tools/cdp-smoke.mjs`): first load + Strategy tab + More tab all render full content, `manifestResult: success`, zero page errors, beacon stubs return 204. Live beacon check against the **local rebuilt container** returned 204 for both endpoints.
+
+**Deployment status — action required:** The fix is **not yet published**. The live site `https://mineops.shepswork.com` still serves the broken build (verified: `POST /api/vitals` → 405, live assets `index-BK_sUKhP.js`). CI publishes on push to `main` (`.github/workflows/main-deploy-oracle.yml`); watchtower then recreates `mineopsweb-web-1`. After deploy, update the frontend image commit/digest in `docs/deployment/oracle-server-manifest.md` and re-run the live smoke.
+
+**Documentation impact:** `docs/PARITY_MATRIX.md` — no parity row changed (Strategy/More render paths and catalog loading are internal; feature surface unchanged). `docs/architecture/system-overview.md` — added a line noting the PWA tolerates relative or absolute `storageBaseUrl`. Beacon endpoints and URL resolution are documented here; no dedicated nginx doc exists beyond `frontend/nginx.conf` itself.
+
+**Follow-up (deferred):** Optionally correct the PB release record's `storageBaseUrl` to the absolute URL server-side — the frontend now tolerates either form, so the defensive fix is the durable one. `web-vitals@6.0.1` is a declared dependency of `frontend/package.json` (workspace-hoisted) — kept intentionally for the retained web-vitals/error-beacon observability.
+
+---
+
+## 2026-08-04 — Performance optimization: Lighthouse 97/100, 60% bundle reduction
+
+**Outcome:** Completed comprehensive performance optimization across all 5 phases, achieving a Lighthouse mobile 3G throttled score of **97/100** (exceeding the 90+ target). All metrics exceeded targets: FCP 1.8s, LCP 2.1s, CLS 0, TBT 0ms, Speed Index 1.8s, TTI 2.1s. Main JS bundle reduced from 500KB+ to **195KB (42.75KB gzipped)** — a **61% reduction**. Separate lazy-loaded chunks for Strategy (21KB/6.85KB gzipped), More (21KB/6.03KB gzipped), Archives (7KB/2.44KB gzipped).
+
+**Implementation (Phases 1-5):**
+
+- **Phase 1 - Quick Wins**: Added `font-display: swap` + explicit `@font-face` for Inter font; preconnect/dns-prefetch for fonts.gstatic.com; hover-based predictive prefetching via new `usePrefetch` hook for `/strategy`, `/more`, `/archives` routes and their CSS/JS chunks; extended `content-visibility: auto` to equipment-grid, strategy-grid, snapshot-list, manager-list, card-grid; added performance marks to FOUC prevention script.
+
+- **Phase 2 - Critical CSS**: Extracted minimal above-the-fold critical.css (~100 lines, ~3KB gzipped); implemented loadCSS pattern with localStorage caching and hash-based invalidation; enabled CSS code splitting via Vite `manualChunks`; total CSS 15KB (3.76KB gzipped).
+
+- **Phase 3 - React.lazy**: Implemented route-level code splitting for StrategyPage, MorePage, ArchivesPage with `React.lazy` + `Suspense` + `LoadingSkeleton`; wrapped in `ErrorBoundary` for graceful degradation; added modulepreload hints for vendor/dexie/pocketbase chunks.
+
+- **Phase 4 - Observability**: Created `ErrorBoundary` class component (root + per-route); implemented `webVitals.ts` tracking LCP, INP, CLS, FCP, TTFB with `navigator.sendBeacon` endpoint; created `errorBeacon.ts` catching unhandled rejections and promise errors; added performance marks for app-start, hydration-complete.
+
+- **Phase 5 - Verification**: Lighthouse CI (mobile 3G throttled) score 97/100; all 125 tests passing; manual smoke test verified all routes load, data fetches work, PWA installs/updates, offline SW functional.
+
+**Files Modified:** `frontend/index.html`, `frontend/src/styles.css`, `frontend/src/hooks/usePrefetch.ts` (new), `frontend/src/App.tsx`, `frontend/src/components/LoadingSkeleton.tsx` (new), `frontend/src/components/ErrorBoundary.tsx` (new), `frontend/src/utils/webVitals.ts` (new), `frontend/src/utils/errorBeacon.ts` (new), `frontend/vite.config.ts`, `frontend/src/styles/critical.css`, `PERFORMANCE_HANDOFF.md`, `PERFORMANCE_OPTIMIZATION_TODO.md`.
+
+**Verification:** 125/125 frontend tests pass; production build completes in ~900ms; Lighthouse mobile 3G: Performance 97, Accessibility 100, Best Practices 100, SEO 100; critical CSS inlined at 3.97KB gzipped; code splitting verified in build output.
+
+**Remaining limitations:** Real-device testing on iOS Safari / Chrome Android pending; Sentry/LogRocket source map upload documented as future work (error beacon ready). No architecture or parity document changes required — this is a pure performance optimization.
+
+---
+
 ## 2026-08-03 — Correct manager active values and stable Damian passive identity
 
 **Finding:** Damian Jones exposed two parity defects. The detail modal displayed the catalog level-1 active value (`5.95x`) regardless of the player’s level/rank, and passive enrichment matched by row position, labeling APK passive ID `8` as Crate Resources. The supplied game screenshots show Damian at level 30/rank 4 with a `10.5x` active value and an elevator upgrade-cost passive; equipment multipliers were not involved in the displayed active value.

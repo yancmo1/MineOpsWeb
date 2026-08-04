@@ -149,6 +149,24 @@ async function safeActivate(releaseId: string, manifestHash: string): Promise<vo
 
 type StateListener = (state: CatalogClientState) => void;
 
+/**
+ * Resolve a release-record storageBaseUrl to an absolute URL the browser
+ * can fetch. Records may store a relative path (e.g. "/api/catalog/artifacts")
+ * or an absolute PocketBase URL. Relative paths are resolved against the
+ * PocketBase base URL so artifact requests hit the PB hook (?file=...) that
+ * actually serves them, instead of the app origin's SPA fallback.
+ */
+export function resolveStorageBaseUrl(storageBaseUrl: string): string {
+  const trimmed = storageBaseUrl.replace(/\/+$/, "");
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("//")) return trimmed;
+  if (trimmed.startsWith("/")) {
+    return `${getBaseUrl().replace(/\/+$/, "")}${trimmed}`;
+  }
+  // Bare path without leading slash — treat as relative to PB base too.
+  return `${getBaseUrl().replace(/\/+$/, "")}/${trimmed}`;
+}
+
 export function createCatalogClient(): CatalogClientState {
   const listeners = new Set<StateListener>();
 
@@ -302,6 +320,7 @@ export function createCatalogClient(): CatalogClientState {
   ): Promise<{ manifest: CatalogManifest; manifestRaw: string } | null> {
     setState({ phase: "fetching_manifest" });
 
+    storageBaseUrl = resolveStorageBaseUrl(storageBaseUrl);
     const manifestUrl = storageBaseUrl.includes("mineops-pb.shepswork.com")
       ? `${storageBaseUrl.replace(/\/$/, "")}?file=manifest.json`
       : `${storageBaseUrl.replace(/\/$/, "")}/manifest.json`;
@@ -370,6 +389,7 @@ export function createCatalogClient(): CatalogClientState {
     manifest: CatalogManifest,
     storageBaseUrl: string,
   ): Promise<Record<string, CatalogArtifact> | null> {
+    storageBaseUrl = resolveStorageBaseUrl(storageBaseUrl);
     const requiredArtifacts = manifest.artifacts.filter((a) => a.required);
     const totalRequired = requiredArtifacts.length;
 
