@@ -10,14 +10,20 @@ describe("iOS-derived manager calculations", () => {
   it("uses the documented rank thresholds", () => { expect(rankThreshold(0)).toBe(15); expect(rankThreshold(1)).toBe(30); expect(rankThreshold(2)).toBe(50); expect(rankThreshold(3)).toBe(80); expect(rankThreshold(4)).toBeUndefined(); });
   it("returns a deterministic score from effective active value and progress", () => { expect(strengthScore(manager, progress)).toBeCloseTo(Math.log10(10) * 100 + 15 + 40 + 20 + 25, 1); });
   it("effectiveActiveValue falls back to active.multiplier when no multiplierAt100", () => { expect(effectiveActiveValue(manager, progress)).toBe(10); });
-  it("effectiveActiveValue interpolates when multiplierAt100 is available", () => {
+  it("effectiveActiveValue never interpolates: uses level-1 base when no exact row exists", () => {
     const p: PlayerManager = { managerId: "dr_steiner", level: 50, rank: 0, promoted: 0, fragments: 0, unlocked: true, updatedAt: "" };
-    // level 50 → ratio 0.5 → 5 + (80 - 5) * 0.5 = 5 + 37.5 = 42.5
-    expect(effectiveActiveValue(managerWithScaling, p)).toBeCloseTo(42.5, 1);
+    // No activeLevels table → the documented level-1 base (5) is returned.
+    // Linear interpolation (5 + (80-5)*0.5 = 42.5) is intentionally forbidden.
+    expect(effectiveActiveValue(managerWithScaling, p)).toBe(5);
   });
-  it("effectiveActiveValue caps at 1.0 ratio for level > 100", () => {
-    const p: PlayerManager = { managerId: "dr_steiner", level: 999, rank: 0, promoted: 0, fragments: 0, unlocked: true, updatedAt: "" };
-    expect(effectiveActiveValue(managerWithScaling, p)).toBe(80);
+  it("effectiveActiveValue uses the exact row when present (any level)", () => {
+    const exact: CatalogManager = {
+      id: "dr_steiner", name: "Dr Steiner", rarity: "Epic", type: "Mine Shaft", elements: [],
+      active: { multiplier: 5, multiplierAt100: 80 },
+      activeLevels: [{ level: 50, value: 42.5 }, { level: 999, value: 80 }],
+    };
+    const p: PlayerManager = { managerId: "dr_steiner", level: 50, rank: 0, promoted: 0, fragments: 0, unlocked: true, updatedAt: "" };
+    expect(effectiveActiveValue(exact, p)).toBe(42.5);
   });
   it("rarityWeight returns correct weights", () => { expect(rarityWeight("Legendary")).toBe(25); expect(rarityWeight("Epic")).toBe(18); expect(rarityWeight("Rare")).toBe(12); expect(rarityWeight("Common")).toBe(6); expect(rarityWeight("Unknown")).toBe(0); });
   it("raritySortWeight returns integer sort weights", () => { expect(raritySortWeight("Legendary")).toBe(4); expect(raritySortWeight("Epic")).toBe(3); expect(raritySortWeight("Rare")).toBe(2); expect(raritySortWeight("Common")).toBe(1); expect(raritySortWeight("Unknown")).toBe(0); });

@@ -13,11 +13,13 @@
  */
 
 import type { CatalogManager, CatalogPassive, PlayerManager } from "./db";
-import { strengthScore, effectiveActiveValue, rarityWeight, rankThreshold } from "./db";
+import { strengthScore, effectiveActiveValue, rarityWeight, rankThreshold, hasExactActiveLevelRow } from "./db";
 import type { CachedCatalogPackage } from "./catalog-cache";
 import { APK_MANAGER_NAMES } from "./manager-name-fallback";
 import { MANAGER_ENRICHMENT } from "./manager-enrichment";
 import { isPlaceholderPassiveType, passiveTypeForId } from "./passives";
+import { isVariantId, variantOf } from "./manager-variants";
+import { applyEquipmentBoost, equipmentBoostFor, type EquipmentBoostTable } from "./equipment-effects";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -66,6 +68,8 @@ export interface Recommendation {
   limitedData: boolean;
   /** Missing data flags, if any */
   missingData: string[];
+  /** Verified equipment boost applied to the score (0 when none). */
+  equipmentBoost: number;
 }
 
 export interface StrategyEvaluation {
@@ -140,16 +144,24 @@ export function evaluateLineup(
   catalog: CatalogManager[],
   progress: PlayerManager[],
   packageIdentity: Pick<CachedCatalogPackage, "catalogVersion" | "releaseId" | "manifestHash"> | null = null,
+  boostTable: EquipmentBoostTable = new Map(),
 ): StrategyEvaluation {
   const byId = new Map(catalog.map((m) => [m.id, m]));
-  const progressMap = new Map(progress.map((p) => [p.managerId, p]));
+  // Duplicate/legacy manager pairs share one gameplay identity. Progress that
+  // references a variant id counts as progress for its canonical twin, and
+  // variant records are never scored as independent roster candidates.
+  const progressMap = new Map<string, PlayerManager>();
+  for (const player of progress) {
+    progressMap.set(variantOf(player.managerId) ?? player.managerId, player);
+  }
   const catalogVersion = packageIdentity?.catalogVersion ?? null;
 
   const recommendations: Recommendation[] = [];
   const unevaluated: Array<{ managerId: string; name: string; reason: string }> = [];
 
   for (const player of progress) {
-    if (player.unlocked && !byId.has(player.managerId)) {
+    const effectiveId = variantOf(player.managerId) ?? player.managerId;
+    if (player.unlocked && !byId.has(effectiveId)) {
       unevaluated.push({
         managerId: player.managerId,
         name: player.managerId,
@@ -159,6 +171,11 @@ export function evaluateLineup(
   }
 
   for (const manager of catalog) {
+    if (manager.variantOf) {
+      // Variant records share the canonical twin's identity; they are
+      // represented by the canonical record and never scored independently.
+      continue;
+    }
     const player = progressMap.get(manager.id);
 
     if (!player || !player.unlocked) {
@@ -175,8 +192,18 @@ export function evaluateLineup(
       limitedData = true;
     }
 
+    // Exact active-level rows only: never interpolate. When the manager has a
+    // level table but the player's level is missing from it (or the table is
+    // absent), the value is a documented base, not an exact curve point.
+    if (!hasExactActiveLevelRow(manager, player.level)) {
+      missingData.push(`exact active value at level ${player.level}`);
+      limitedData = true;
+    }
+
     const activeValue = effectiveActiveValue(manager, player);
-    const score = strengthScore(manager, player);
+    let score = strengthScore(manager, player);
+    const equipmentBoost = equipmentBoostFor(boostTable, player.equipmentIds);
+    score = applyEquipmentBoost(score, equipmentBoost);
     const rarityScore = rarityWeight(manager.rarity);
 
     // Level and rank contributions
@@ -205,6 +232,7 @@ export function evaluateLineup(
       catalogVersion,
       limitedData,
       missingData,
+      equipmentBoost,
     });
   }
 
@@ -359,6 +387,18 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
         })).filter(p => p.level != null)
       : undefined;
 
+    // Read verified promotion milestones (level, promotion, cost, passive unlock)
+    const promotions = domainParams(domainManager?.promotionMilestones).flatMap((row) => {
+      if (typeof row.Level !== "number") return [];
+      return [{
+        level: row.Level,
+        promotion: typeof row.Promotion === "number" ? row.Promotion : undefined,
+        cost: typeof row.PromotionCost === "number" ? row.PromotionCost : undefined,
+        unlocksPassive: row.UnlocksPassive === 1,
+        passiveId: typeof row.PassiveId === "number" && row.PassiveId !== 0 ? row.PassiveId : undefined,
+      }];
+    });
+
     // Read sprite refs
     const spriteRefs = Array.isArray(item.spriteRefs) && item.spriteRefs.length > 0
       ? item.spriteRefs.map((s: Record<string, unknown>) => ({
@@ -381,6 +421,7 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
       rarity: typeof item.rarity === "string" ? item.rarity : "unknown",
       type: typeof item.role === "string" ? item.role : (typeof item.type === "string" ? item.type : "Unknown area"),
       gameId,
+      variantOf: isVariantId(id) ? variantOf(id) ?? undefined : undefined,
       sprite: typeof item.sprite === "string" ? item.sprite : enrichment?.sprite,
       elements,
       active: active ? {
@@ -451,6 +492,7 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
         multiplier: typeof equipment.multiplier === "number" ? equipment.multiplier : undefined,
       })) : undefined,
       progression,
+      promotions,
       spriteRefs,
       fragmentIds,
     }];

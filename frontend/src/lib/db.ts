@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 
 export type CatalogPassive = { passiveId?: number; unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number };
-export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; activeLevels?: Array<{ level: number; value: number }>; rankEffects?: Array<{ rank: number; activeIncrease?: number; passiveIncrease?: number }>; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: CatalogPassive[]; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }> };
+export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; variantOf?: string; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; activeLevels?: Array<{ level: number; value: number }>; rankEffects?: Array<{ rank: number; activeIncrease?: number; passiveIncrease?: number }>; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: CatalogPassive[]; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; promotions?: Array<{ level?: number; promotion?: number; cost?: number; unlocksPassive?: boolean; passiveId?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }> };
 export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; fragmentSource?: "kolibri" | "manual" | "unavailable"; equipmentIds?: number[]; unlocked: boolean; updatedAt: string };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
 export type AppSettings = { autoSync: boolean };
@@ -12,7 +12,7 @@ class MineOpsDb extends Dexie {
   metadata!: EntityTable<{ id: "sync"; value: SyncMetadata }, "id">;
   settings!: EntityTable<{ id: "app"; value: AppSettings }, "id">;
   credentials!: EntityTable<{ id: "kolibri"; value: PersistedCredentials }, "id">;
-  constructor() { super("mineops"); this.version(4).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id", settings: "id", credentials: "id" }); }
+  constructor() { super("mineops"); this.version(5).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id", settings: "id", credentials: "id", strategy_plans: "++id, kind, createdAt", dismissed_recommendations: "&id, managerId, kind" }); }
 }
 export const db = new MineOpsDb();
 
@@ -37,18 +37,15 @@ export async function getCredentials(): Promise<PersistedCredentials | undefined
 // ---------------------------------------------------------------------------
 
 export function effectiveActiveValue(manager: CatalogManager, progress: PlayerManager): number {
+  // Exact active-level rows only — NEVER linear interpolation. The lossless
+  // package carries the full 1-100 table per manager, so the exact row exists
+  // for every in-game level. When it does not (legacy/partial package shape),
+  // the documented level-1 base is returned instead of fabricating a curve;
+  // callers flag `limitedData` when they need to show provenance.
   const exactLevel = manager.activeLevels?.find((row) => row.level === progress.level);
-  const baseValue = exactLevel?.value ?? (() => {
-    const activeL1 = manager.active?.multiplier ?? 1;
-    const activeL100 = manager.active?.multiplierAt100;
-
-    if (activeL100 != null && progress.level >= 1) {
-      const ratio = Math.min(progress.level / 100.0, 1.0);
-      return activeL1 + (activeL100 - activeL1) * ratio;
-    }
-
-    return activeL1;
-  })();
+  const baseValue = exactLevel?.value != null && Number.isFinite(exactLevel.value)
+    ? exactLevel.value
+    : manager.active?.multiplier ?? 1;
 
   const rankEffect = manager.rankEffects?.find((row) => row.rank === progress.rank)?.activeIncrease;
   if (rankEffect == null || !Number.isFinite(rankEffect)) return baseValue;
@@ -56,6 +53,12 @@ export function effectiveActiveValue(manager: CatalogManager, progress: PlayerMa
   // but accept an already-expanded factor as well for older package shapes.
   const rankFactor = rankEffect >= 1 ? rankEffect : 1 + rankEffect;
   return baseValue * rankFactor;
+}
+
+/** True when the manager has an exact active-value row for the player's level. */
+export function hasExactActiveLevelRow(manager: CatalogManager, level: number): boolean {
+  const row = manager.activeLevels?.find((candidate) => candidate.level === level);
+  return row?.value != null && Number.isFinite(row.value);
 }
 
 // ---------------------------------------------------------------------------

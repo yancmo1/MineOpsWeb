@@ -13,9 +13,10 @@ from typing import Any
 from equipment_extractor import build_equipment_domain, extract_equipment
 from il2cpp_extractor import RARITY_MAP, build_manager_domain, run_batch
 from strategy_data import extract_strategy_configs, write_canonical_json
+from strategy_semantics import build_semantic_domains
 
 
-DOMAIN_FILES = ("manager-domain.json", "equipment-domain.json", "strategy-configs.json", "unresolved-evidence.json")
+DOMAIN_FILES = ("manager-domain.json", "equipment-domain.json", "strategy-configs.json", "unresolved-evidence.json", "research-domain.json", "mine-economy-domain.json", "frontier-domain.json", "power-score-domain.json")
 STANDARD_FILES = ("catalog-core.json", "validation-report.json", "relationships.json", "mappings.json", "localization.json", "assets.json", "changelog.json")
 STRATEGY_ROLE_MAP = {1: "Mine Shaft", 2: "Warehouse", 3: "Elevator"}
 
@@ -221,6 +222,21 @@ def _validate(domains: dict[str, dict[str, Any]]) -> None:
         serialized = record.get("raw", {}).get("serialized")
         if serialized is not None:
             validate_raw_bytes(serialized, f"strategy config {record['recordId']}")
+    # Semantic-lift artifacts must be internally consistent with the raw configs.
+    config_ids = {row["recordId"] for row in configs}
+    for filename in ("research-domain.json", "mine-economy-domain.json", "frontier-domain.json"):
+        for record in domains[filename].get("records", []) or domains[filename].get("configRecords", []):
+            if record.get("recordId") not in config_ids:
+                raise ValueError(f"{filename} references a recordId absent from strategy-configs")
+    for entry in domains["research-domain.json"]["records"]:
+        if entry.get("region") is not None and entry["region"] not in {1, 2, 3}:
+            raise ValueError("research-domain has an out-of-range region")
+        if entry.get("continentType") is not None and entry["continentType"] not in domains["mine-economy-domain.json"].get("continents", []) and not any(
+            c["continentType"] == entry["continentType"] for c in domains["mine-economy-domain.json"].get("continents", [])
+        ):
+            raise ValueError("research-domain references an unknown continent type")
+    if domains["power-score-domain.json"]["count"] > 1:
+        raise ValueError("power-score-domain must contain at most one settings record")
 
 
 def build_candidate(release_dir: Path | str, output_dir: Path | str | None = None) -> Path:
@@ -237,8 +253,9 @@ def build_candidate(release_dir: Path | str, output_dir: Path | str | None = Non
     manager_domain = build_manager_domain(managers, metadata["releaseId"], catalog_version=metadata["releaseId"], generated_at=generated_at, source=artifact_source)
     equipment_domain = build_equipment_domain(extract_equipment(release_dir), metadata["releaseId"], catalog_version=metadata["releaseId"], generated_at=generated_at, source=artifact_source)
     configs = extract_strategy_configs(release_dir, catalog_version=metadata["releaseId"], generated_at=generated_at, source=artifact_source)
+    semantic_domains = build_semantic_domains(configs)
     unresolved = _unresolved_evidence(metadata, generated_at, manager_domain, equipment_domain, configs)
-    domains = {"manager-domain.json": manager_domain, "equipment-domain.json": equipment_domain, "strategy-configs.json": configs, "unresolved-evidence.json": unresolved}
+    domains = {"manager-domain.json": manager_domain, "equipment-domain.json": equipment_domain, "strategy-configs.json": configs, "unresolved-evidence.json": unresolved, **semantic_domains}
     _validate(domains)
     artifacts = {**_standard_artifacts(metadata, generated_at, manager_domain, equipment_domain, unresolved), **domains}
     candidate_dir.mkdir(parents=True, exist_ok=False)
@@ -248,9 +265,11 @@ def build_candidate(release_dir: Path | str, output_dir: Path | str | None = Non
         entries.append({"filename": filename, "path": filename, "contentType": "application/json", "sha256": digest, "bytes": byte_count,
                         "schemaVersion": "1.0.0", "recordCount": _record_count(artifacts[filename]), "required": filename in {"catalog-core.json", "validation-report.json", "manager-domain.json"}})
     core = artifacts["catalog-core.json"]
+    research_count = len(artifacts["research-domain.json"]["records"])
+    continent_count = len(artifacts["mine-economy-domain.json"]["continents"])
     manifest = {"manifestSchemaVersion": "2.0.0", "catalogVersion": metadata["releaseId"], "releaseId": metadata["releaseId"], "gameVersion": metadata["versionName"], "gameVersionCode": metadata["versionCode"],
                 "generatedAt": generated_at, "generator": {"name": "MineOpsWeb lossless-strategy-package", "version": "1.0.0"}, "status": "review_required" if unresolved["entries"] else "candidate",
-                "artifacts": entries, "counts": {"managers": len(core["managers"]), "mines": 0, "equipment": len(core["equipment"]), "research": 0, "collectibles": 0, "artifacts": 0, "relationships": 0, "unresolvedObjects": len(unresolved["entries"])}, "previousCatalogVersion": None, "storage": {"baseUrl": "./", "cdnUrl": None}}
+                "artifacts": entries, "counts": {"managers": len(core["managers"]), "mines": continent_count, "equipment": len(core["equipment"]), "research": research_count, "collectibles": 0, "artifacts": 0, "relationships": 0, "unresolvedObjects": len(unresolved["entries"])}, "previousCatalogVersion": None, "storage": {"baseUrl": "./", "cdnUrl": None}}
     # Manifest intentionally follows every artifact so it only ever describes complete content.
     write_canonical_json(candidate_dir / "manifest.json", manifest)
     return candidate_dir

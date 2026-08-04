@@ -27,7 +27,7 @@ This document records changes made directly on the Oracle VM that must survive f
 
 The public frontend and artifact endpoint are already reachable through the existing public route. No new Cloudflare hostname or DNS record is required for the current setup. Cloudflare tunnel/published-route configuration remains managed in Cloudflare One; treat the public URL checks below as the source-of-truth smoke test after future route or origin changes.
 
-The currently published package verified on 2026-08-02 is release `5.59.0_96449_20260716T143539Z.lossless-v1`, with 118 managers, 11 manifest-listed artifacts, manifest SHA-256 `2ea925ea0c66b7f047d20b4e1be0784fe4a5d7a869769f2eb4dcde76f25fe1ee`, and validation-report SHA-256 `9be9525e33350102be3056aa285737011608be9e871387e19443012feb9aa3bd`. The prior release `5.59.0_96449_20260716T143539Z` is retained as the rollback target.
+The currently published package (updated 2026-08-04) is release `5.59.0_96449_20260716T143539Z.lossless-v2`, with 118 managers, 15 manifest-listed artifacts (the four semantic-lift domains added: `research-domain.json`, `mine-economy-domain.json`, `frontier-domain.json`, `power-score-domain.json`), manifest SHA-256 `3d9ec0037ed30890a6288b825c3e9a2aad7373941396e52fe905507952b17d41`, and validation-report SHA-256 `f66968eed6811a930702afbb02875645e197404d211e71d68483629fb0166a50`. The prior release `5.59.0_96449_20260716T143539Z.lossless-v1` is retained as the rollback target (manifest `2ea925ea0c66…`).
 
 ### Lossless strategy catalog publication
 
@@ -132,7 +132,7 @@ docker compose -p infra-new up -d mineops-pocketbase
 
 ### Roll back the active catalog
 
-Authenticate as a PocketBase superuser or catalog admin, then call `POST /api/catalog/rollback` with `targetReleaseId` set to `5.59.0_96449_20260716T143539Z`. The route was exercised successfully against the restored production backup. Verify the pointer, the old manifest SHA-256 `9feee2bde22c82fc3fbec74d60dbb2905bb6283b9aa5f4d5d6161e793a59f7be`, and the release statuses after rollback.
+Authenticate as a PocketBase superuser or catalog admin, then call `POST /api/catalog/rollback` with `targetReleaseId` set to `5.59.0_96449_20260716T143539Z.lossless-v1` (the pre-semantic-lift package). The route was exercised successfully against the restored production backup. Verify the pointer, the old manifest SHA-256 `2ea925ea0c66b7f047d20b4e1be0784fe4a5d7a869769f2eb4dcde76f25fe1ee`, and the release statuses after rollback.
 
 Do not restore a database backup merely to change the active catalog, and do not overwrite either release directory. For control-plane recovery, restore the verified cold backup and `predeploy-live-files/`, then recreate only `mineops-pocketbase` with `docker compose -p infra-new`.
 

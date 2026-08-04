@@ -1,5 +1,45 @@
 # Development journal
 
+## 2026-08-04 — Strategy engine depth: verified planner on the semantic-lift catalog
+
+**Outcome:** Phases 2–4 of the robust planner delivered on the published `lossless-v2` catalog (see the publication entry below). All numbers come from verified APK data; idle-miners.com is a documented reference + validation cross-check only. Test suite grew to **193 passing across 21 files**; production build clean; no interpolation anywhere.
+
+**Web-side verified scoring (Phase 2):**
+- `manager-variants.ts` — the six duplicate/legacy manager pairs classified from manager-domain evidence (the twin with `rankEffects`+`effectFactors`+`fragmentMappings` is canonical; the other is the variant; Rabbid Blingsley inverted). `CatalogManager.variantOf` + strategy wiring: variant progress remaps to the canonical twin, variants never score independently.
+- `power-score.ts` — the game's `SuperManagerPowerScoreSettings` payload structurally decoded: Unity header + **26 Q16.16 fixed-point custom fields** (`[0,1,0,1,4,1,1,10,2,2,40,3,4,150,4,6,400,1,2,16,8,2,2,5,5,2]`); field NAMES remain unverified (no game class definition) per the no-fabrication rule. `strengthScoreBreakdown` documents the heuristic terms; parity fixtures await the cross-check. See `docs/power-score-parity.md`.
+- `equipment-effects.ts` — equipment-aware scoring from the VERIFIED `equipment-domain.json` balancing rows only (e.g. 14091 @ L5 = 0.05); undecoded effects never fabricated. Before/after fixtures.
+- **Scoring invariants** — removed linear interpolation from `effectiveActiveValue` (exact rows only, documented level-1 base fallback); `hasExactActiveLevelRow` + `limitedData` flagging; formula lock tests; the two interpolation-locking `db.test.ts` cases updated.
+
+**Strategy engine depth (Phase 3):**
+- `lineup.ts` — balanced lineups: up to 3 picks per area with verified score + equipment boost, coverage roles (income/cost-reducer/burst from the frontier classification), and reference-labeled element notes (never scored).
+- `upgrade-roi.ts` — level/promotion/rank ROI: exact marginal level gains, verified `PromotionCost` (from `promotionMilestones`, now exposed as `CatalogManager.promotions`), rank gains vs fragment costs; level-up costs are honestly `cost: null` (curve not published). "Next useful investment" highlight.
+- `research.ts` — roster-based bottleneck detection (weakest top-pick area) + research priorities from the published research-domain (region/continent-matched, identity-level only).
+- `barrier-tables.ts` — schema-ready verified barrier-table swap (`verifiedBarrierTableFromDomain`) + roster-gated prestige timing; the Frontier plan now shows a data-source banner (reference vs APK-verified) and a prestige note.
+- `planner-storage.ts` — Dexie v5 tables: save/list/delete strategy plans and dismiss/undismiss recommendations (PRD §9.1), wired into the Strategy page.
+
+**Calculator suite + reference (Phase 4):**
+- `docs/reference/idle-miners.com.md` — reverse-engineering record: 8 tools, API shapes (`sm-data`/`sm-actives`/`sm_passive_tables`/`fm-data`/`calculate`), and the FM barrier model matching the hardcoded `FRONTIER_BARRIERS`.
+- `sm-comparison.ts` — side-by-side comparison + S/A/B/C tierlist on verified data, with a "Tier list & compare" plan card (heuristic label, never "game power").
+- `tools/validate-active-tables.py` + `docs/validation/active-table-diff.md` — validation diff: **105/112 exact matches** at levels 1/100, 7 drifts are a systematic ×100 display convention on income-passive managers, and the 6 unmatched are exactly the variant twins (independent confirmation of the classification).
+
+**Deployment status:** All Phase 2–4 code + docs are uncommitted on `dev`. The catalog side (lossless-v2) is already live on Oracle. Phase 5 ships the frontend.
+
+---
+
+## 2026-08-04 — Lossless-v2: semantic-lift domains published to the live catalog
+
+**Outcome:** Published `5.59.0_96449_20260716T143539Z.lossless-v2` as the active Oracle catalog. It adds four conservative semantic-lift domain artifacts on top of the lossless-v1 data: `research-domain.json` (33 skill-node/skill-config identities with region/continent evidence), `mine-economy-domain.json` (9-continent identity map + 63 config records), `frontier-domain.json` (31 event/season/battle-pass configs with parsed fields), and `power-score-domain.json` (the `SuperManagerPowerScoreSettings` evidence with an opaque decoded int32 payload — field names intentionally unverified). No effect magnitudes were invented; values that live only in raw serialized bytes stay unresolved per the repo's rules-first policy.
+
+**Engine-side work (UbuntuMac):** New `ops/strategy_semantics.py` (conservative lift, 8/8 unit tests) integrated into `ops/strategy_package.py` (DOMAIN_FILES, `build_candidate`, `_validate`, manifest counts). The release-store shadowing fix (deployed 08-03) was verified live: `is_complete(5.59...Z)=True`, `is_complete(test_enriched)=False`, so the incomplete test release can no longer shadow a real capture. New immutable revision `lossless-v2` was hard-linked from v1 with a rewritten `release.json` identity; candidate built on UbuntuMac (15 artifacts), release-level `validate` identical to v1 (fatal 0, no regression), 21/21 repo lossless tests pass, all 15 candidate artifacts match the manifest (verified via `tools/verify-candidate.py`).
+
+**Publication (Oracle, gated):** Backup `/opt/infra-new/backups/mineops-catalog/20260804T150514Z` (SHA256SUMS verified, SQLite `integrity_check: ok`, 21 collections) — the first attempt used the wrong volume name and was detected empty and removed. Artifacts staged root-owned under `/opt/infra-new/catalog-artifacts/releases/5.59.0_96449_20260716T143539Z.lossless-v2/`. Registered `6fxubc8w3tt4rei` (status candidate), reviewed/approved `2rdiqf7wypzg1qv` (server-bound to manifest `3d9ec0037ed3…` and validation `f66968eed681…`), published via event `x3gagw34kp5qkfr` at `2026-08-04T15:08:11.719Z`. Live verification: pointer active=v2 (previous=v1), all 15 artifacts fetched over the public endpoint and hash-verified.
+
+**Rollback:** `POST /api/catalog/rollback` with `targetReleaseId: 5.59.0_96449_20260716T143539Z.lossless-v1` (its manifest `2ea925ea0c66…` remains the fallback). The frontend fix tolerates the relative `storageBaseUrl` (`/api/catalog/artifacts`) stored on both v1 and v2 records.
+
+**Notes:** The live frontend still serves the broken pre-repair build (repair commit `926e449` is on `dev`, not deployed); catalog v2 is additive and non-breaking for the client (new artifacts are non-required). Phase 5 deploys the repaired frontend and updates `docs/deployment/oracle-server-manifest.md` with the new active release identity.
+
+---
+
 ## 2026-08-04 — Repair: Strategy/More crash, catalog load, beacon noise (perf-regression fix)
 
 **Outcome:** Repaired the regressions the uncommitted performance-optimization work (see the 2026-08-04 performance entry below — its claims reflect the pre-repair build) introduced into the live app. Root causes, fixes, and verification are listed here; the durable defensive fix tolerates either storageBaseUrl form, so no production data change was required.

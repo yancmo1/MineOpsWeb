@@ -123,3 +123,7 @@ Every new domain should be its own immutable artifact with source identifiers an
 - Localization values and some effect semantics still require a verified join or runtime observation.
 - Static APK data alone cannot provide live mine levels, cash, barrier timer, Sparks, event progress, owned equipment assignments, or current offers.
 - The active production package supplies APK-native passive identity, unlock milestones, and exact manager level tables. Value/effect localization joins and generic config semantics remain review work before they should influence strategy scoring.
+
+## Update 2026-08-04 — semantic-lift implemented and published
+
+The 1,698 strategy-config records were characterized (`docs/strategy-configs-characterization.md`): 100% are `semanticStatus: partial`; ~404 are non-strategy (migration scripts + visual assets); the strategy-relevant core (mine-economy continents, research skill nodes, frontier/event configs, artifacts, power-score) is decodable at extraction time. New conservative semantic-lift artifacts (`research-domain.json`, `mine-economy-domain.json`, `frontier-domain.json`, `power-score-domain.json`) were added via `ops/strategy_semantics.py` and published as `lossless-v2` (control-plane gated, backup `20260804T150514Z`). Effect magnitudes inside raw serialized bytes remain unresolved by design; the web planner consumes only the verified identity-level data and never fabricates values.
