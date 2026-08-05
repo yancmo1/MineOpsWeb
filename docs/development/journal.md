@@ -1,5 +1,22 @@
 # Development journal
 
+## 2026-08-04 — Feature push: idle-miners.com tool suite on verified data (progress tracker, Stella's elevator, crystal planner)
+
+**Outcome:** the remaining idle-miners.com tools that can honestly run on our data are now part of the Strategy page. Suite grew to **225 passing across 24 files**; production build clean; main bundle flat at 201.6 kB (all new code lives in the lazy `StrategyPage` chunk, now 62.25 kB raw / 18.44 kB gzip).
+
+**What was ported (each with tests + a plan card):**
+- **Progress tracker** (`progress-tracker.ts`, 8 tests) — the roster-completion roadmap rebuilt on verified data: 13 stages filter owned managers by rarity, operating area, and stable passive kind (**MIF / CIF / MSUCR** from the APK passive taxonomy via `passiveKindOf`), then check promotion targets (fixed, or per-manager income-passive unlock promo for the legendary stage). "Progress" plan card shows a completion bar and per-stage checkmark cards listing qualifying managers and their `P{current}/{target}`.
+- **Stella's Lucky Elevator** (`stella-elevator.ts`, 17 tests) — faithful TypeScript port of idle-miners.com's `stella-decision.js`/`stella-calc.js`: risk-path counting, revive cost schedule, binomial DP reach probability with p5/p50/p95 percentiles, z-score run-state label (Unlucky/Below average/Average/Above average/Lucky), and the A/B/C option decision with the ~5pp best-pick rule. Event mechanics (safe floors, bomb chance, revive costs, Express start) are **explicit manual inputs** — the APK does not publish them; nothing fabricated. "Stella's Elevator" plan card.
+- **Crystal planner** (`crystal-planner.ts`, 7 tests) — budget calculator porting the game-mechanics rank/promo/level gates (`minPromoForLevel`, `maxPromoForRank`, `minRankForLevel`, `minRankForPromo`), with crystal costs as **manual input** (event-shop data, not in the APK — 13 raw shop/crystal configs in strategy-configs are undecoded `partial`). Discount %, blue/red budget caps (red cap toggle), gate warnings, step breakdown. "Crystal planner" plan card.
+
+**Not ported (documented in `docs/reference/idle-miners.com.md`):** the chrono schedule (community-maintained event-rotation JSON — not our data), and the essence planner (cost tables are server-side on the reference; would need the same manual-input treatment on request).
+
+**Verification:** 225/225 tests, `tsc -b` clean, `npm run build` succeeds, `git diff --check` clean. All three libs keep the "verified-data or honest manual input" rule — no fabricated values anywhere.
+
+**Documentation impact:** `docs/reference/idle-miners.com.md` updated with the port status of each of the 8 tools; `docs/PARITY_MATRIX.md` gains strategy rows for the three new capabilities. No schema changes (no new Dexie tables this push).
+
+---
+
 ## 2026-08-04 — Strategy engine depth: verified planner on the semantic-lift catalog
 
 **Outcome:** Phases 2–4 of the robust planner delivered on the published `lossless-v2` catalog (see the publication entry below). All numbers come from verified APK data; idle-miners.com is a documented reference + validation cross-check only. Test suite grew to **193 passing across 21 files**; production build clean; no interpolation anywhere.

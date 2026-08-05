@@ -9,14 +9,14 @@ A Flask SPA (static assets under `/static/`) for Idle Miner Tycoon. Title: "Idle
 
 | Tool | Assets | MineOps counterpart |
 |---|---|---|
-| FM calculator | `fm-calc-logic.js`, `fm-calc-setup.js`, `fm-calc-chart-init.js` | Frontier playbook + `FRONTIER_BARRIERS` |
-| SM comparison | `sm-comparison-calc.js` | Balanced lineup / manager comparison |
-| Tierlist | `tierlist.js`, `tierlist-standalone.css` | Power-score ranking (Phase 2 fixtures) |
-| Progress tracker | `progress-tracker.js`, `progress-tracker-stages.js` | Today/roster views |
-| Stella elevator | `stella-calc.js`, `stella-bomb.js`, `stella-decision.js` | (no counterpart yet) |
-| Crystal planner | `crystal-planner.js` | (no counterpart yet) |
-| Essence planner | `essence-planner.js` | (no counterpart yet) |
-| Chrono schedule | `chrono-*.js` | (no counterpart yet) |
+| FM calculator | `fm-calc-logic.js`, `fm-calc-setup.js`, `fm-calc-chart-init.js` | Frontier playbook + `FRONTIER_BARRIERS` (ported) |
+| SM comparison | `sm-comparison-calc.js` | Balanced lineup / manager comparison (ported) |
+| Tierlist | `tierlist.js`, `tierlist-standalone.css` | Power-score ranking (ported) |
+| Progress tracker | `progress-tracker.js`, `progress-tracker-stages.js` | `frontend/src/lib/progress-tracker.ts` — rebuilt on verified data (ported) |
+| Stella elevator | `stella-calc.js`, `stella-bomb.js`, `stella-decision.js` | `frontend/src/lib/stella-elevator.ts` — faithful port, mechanics are manual inputs (ported) |
+| Crystal planner | `crystal-planner.js` | `frontend/src/lib/crystal-planner.ts` — structural gates ported, costs manual input (ported) |
+| Essence planner | `essence-planner.js` | Not ported — cost tables are server-side on the reference; would need manual-input treatment |
+| Chrono schedule | `chrono-*.js` | Not ported — community-maintained event-rotation schedule, not our data |
 
 ## API endpoints and data shapes
 
