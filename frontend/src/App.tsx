@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback, Suspense, lazy } from "react";
-import { getSyncMetadata, loadProgress, rankThreshold, saveProgress, setSyncMetadata, strengthScore, getSettings, saveSettings, saveCredentials, getCredentials, type CatalogManager, type PlayerManager, type SyncMetadata, type AppSettings, type PersistedCredentials } from "./lib/db";
+import { getSyncMetadata, loadProgress, loadInventory, rankThreshold, saveProgress, saveInventory, setSyncMetadata, strengthScore, getSettings, saveSettings, saveCredentials, getCredentials, type CatalogManager, type PlayerInventoryEntry, type PlayerManager, type SyncMetadata, type AppSettings, type PersistedCredentials } from "./lib/db";
 import { fetchKolibri, type KolibriCredentials, type KolibriDiagnostics } from "./lib/kolibri";
 import { type Tab, navigationItems, getTabLabel } from "./lib/navigation";
 import { restoreAuth, getAuthStatus, onAuthChange, getClient, getBaseUrl, type AuthStatus } from "./lib/pocketbase";
@@ -14,6 +14,8 @@ import { SnapshotHistory } from "./pages/SnapshotHistory";
 import { ManagerCard } from "./components/ManagerCard";
 import { ManagerDetailModal } from "./components/ManagerDetailModal";
 import { buildEquipmentNameMap } from "./lib/equipment-lookup";
+import { buildEquipmentEffectMap, type EquipmentEffectInfo } from "./lib/equipment-effects";
+import { buildSyncFeedback, type SyncFeedback } from "./lib/sync-feedback";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { compareManagers, defaultOwnership, sortOptions, type ManagersOwnership, type ManagersSortOption } from "./lib/managers-view";
 import { usePrefetch } from "./hooks/usePrefetch";
@@ -31,11 +33,55 @@ type SortOption = ManagersSortOption;
 const departments: Department[] = ["All", "Mine Shaft", "Elevator", "Warehouse"];
 const rarities: string[] = ["legendary", "epic", "rare", "common"];
 
+function DataConfidenceBar({ metadata, catalogLoadState }: { metadata: SyncMetadata; catalogLoadState: LoadState }) {
+  const player = metadata.status === "current"
+    ? "Current imported roster"
+    : metadata.status === "stale"
+      ? "Roster may be out of date"
+      : metadata.status === "offline"
+        ? "Cached roster"
+        : metadata.status === "never"
+          ? "No roster imported"
+          : "Roster sync pending";
+  const catalog = catalogLoadState.phase === "active" || catalogLoadState.phase === "active_current"
+    ? "Published verified catalog"
+    : catalogLoadState.phase === "offline_cached"
+      ? "Cached verified catalog"
+      : catalogLoadState.phase === "active_stale"
+        ? "Stale published catalog"
+        : catalogLoadState.phase === "bootstrap_fallback"
+          ? "Bootstrap catalog"
+          : catalogLoadState.phase === "error" || catalogLoadState.phase === "verification_failed_using_previous"
+            ? "Catalog recovery needed"
+            : "Catalog loading";
+  const cautious = metadata.status !== "current" || ["active_stale", "bootstrap_fallback", "error", "verification_failed_using_previous"].includes(catalogLoadState.phase);
+  const confidence = cautious ? "Review before acting" : "Ready for recommendations";
+  const releaseId = "releaseId" in catalogLoadState ? catalogLoadState.releaseId : null;
+  const catalogVersion = "catalogVersion" in catalogLoadState ? catalogLoadState.catalogVersion : null;
+
+  return <section className={`data-confidence-bar ${cautious ? "caution" : "ready"}`} aria-label="Recommendation data confidence">
+    <div className="data-confidence-heading">
+      <strong>Recommendation data</strong>
+      <span className="data-confidence-state"><span aria-hidden="true" />{confidence}</span>
+    </div>
+    <div className="data-confidence-facts">
+      <span><b>Player</b> {player}</span>
+      <span><b>Catalog</b> {catalog}</span>
+      {releaseId && <details>
+        <summary>Details</summary>
+        <span>{catalogVersion ? `Catalog ${catalogVersion} · ` : ""}Release {releaseId}</span>
+      </details>}
+    </div>
+  </section>;
+}
+
 export default function App() {
   const [catalog, setCatalog] = useState<CatalogManager[]>([]);
+  const [catalogLoadState, setCatalogLoadState] = useState<LoadState>(catalogClient.loadState);
   const [progress, setProgress] = useState<PlayerManager[]>([]);
+  const [inventory, setInventory] = useState<PlayerInventoryEntry[]>([]);
   const [metadata, setMetadata] = useState<SyncMetadata>({ status: "never" });
-  const [settings, setSettings] = useState<AppSettings>({ autoSync: false });
+  const [settings, setSettings] = useState<AppSettings>({ autoSync: false, focusTargetLevel: 30 });
   const [tab, setTab] = useState<Tab>("overview");
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState<Department>("All");
@@ -47,6 +93,8 @@ export default function App() {
   const [selected, setSelected] = useState<CatalogManager | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [credentials, setCredentials] = useState<KolibriCredentials>({ kolibriId: import.meta.env.VITE_KOLIBRI_ID ?? "", authToken: import.meta.env.VITE_KOLIBRI_AUTH_TOKEN ?? "", saveGameKey: import.meta.env.VITE_KOLIBRI_SAVE_GAME_KEY ?? "0" });
+
+  useEffect(() => { void loadInventory().then(setInventory); }, []);
 
   // Load saved credentials from IndexedDB on mount
   useEffect(() => {
@@ -69,6 +117,15 @@ export default function App() {
   const [showSnapshotHistory, setShowSnapshotHistory] = useState(false);
   const [captureStatus, setCaptureStatus] = useState<CaptureStatus>({ healthy: false });
   const [equipmentNameMap, setEquipmentNameMap] = useState<Map<number, string>>(new Map());
+  const [equipmentEffectMap, setEquipmentEffectMap] = useState<ReadonlyMap<number, EquipmentEffectInfo>>(new Map());
+  const [syncFeedback, setSyncFeedback] = useState<SyncFeedback | null>(() => {
+    try {
+      const stored = localStorage.getItem("mineops-last-sync-feedback");
+      return stored ? JSON.parse(stored) as SyncFeedback : null;
+    } catch {
+      return null;
+    }
+  });
   const hasAutoSynced = useRef(false);
 
   // Close sort menu on click outside
@@ -127,6 +184,7 @@ export default function App() {
       console.debug("[app] Applying catalog", { reason, releaseId: pkg.releaseId, source: pkg.source, count: managers.length, sm10066: managers.find((manager) => manager.id === "sm-10066")?.name });
       setCatalog(managers);
       setEquipmentNameMap(buildEquipmentNameMap(pkg));
+      setEquipmentEffectMap(buildEquipmentEffectMap(pkg));
       const localProgress = await loadProgress(managers);
       progressRef = localProgress;
       setProgress(localProgress);
@@ -134,6 +192,7 @@ export default function App() {
     };
 
     unsubCat = catalogClient.subscribe((state) => {
+      setCatalogLoadState(state.loadState);
       const phase = state.loadState.phase;
       if (["active", "active_current", "active_stale", "offline_cached", "bootstrap_fallback"].includes(phase)) {
         void applyActiveCatalog(`state:${phase}`);
@@ -149,7 +208,7 @@ export default function App() {
       const loadedMetadata = await getSyncMetadata();
       setMetadata(loadedMetadata);
       const loadedSettings = await getSettings();
-      setSettings(loadedSettings);
+      setSettings({ ...loadedSettings, focusTargetLevel: loadedSettings.focusTargetLevel ?? 30 });
 
       // Pull newer PB snapshot on launch (cross-device catch-up)
       if (getAuthStatus().authenticated) {
@@ -307,7 +366,12 @@ export default function App() {
         }
         return p;
       });
+      const feedback = buildSyncFeedback(existingProgress, mergedProgress, attemptedAt);
+      setSyncFeedback(feedback);
+      try { localStorage.setItem("mineops-last-sync-feedback", JSON.stringify(feedback)); } catch { /* feedback is best effort */ }
       await saveProgress(mergedProgress);
+      await saveInventory(result.inventory);
+      setInventory(result.inventory);
       setProgress(mergedProgress);
       // Debug: verify stats after sync
       const unlocked = mergedProgress.filter(p => p.unlocked);
@@ -390,6 +454,11 @@ export default function App() {
 
   async function updateManager(p: PlayerManager, patch: Partial<PlayerManager>) { const next = progress.map((item) => item.managerId === p.managerId ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item); setProgress(next); await saveProgress(next); }
 
+  function handleSettingsChange(next: AppSettings) {
+    setSettings(next);
+    void saveSettings(next);
+  }
+
   async function refreshCaptureStatus() {
     const status = await fetchCaptureStatus();
     setCaptureStatus(status);
@@ -422,7 +491,8 @@ export default function App() {
 
       {/* Page Content */}
       <ErrorBoundary>
-      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} />}
+      {tab !== "overview" && <DataConfidenceBar metadata={metadata} catalogLoadState={catalogLoadState} />}
+      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} settings={settings} onSettingsChange={handleSettingsChange} />}
       {tab === "managers" && (
         <>
           {/* Search */}
@@ -546,7 +616,7 @@ export default function App() {
       )}
       {tab === "strategy" && (
         <Suspense fallback={<LoadingSkeleton variant="page" />}>
-          <StrategyPage progress={progress} />
+          <StrategyPage progress={progress} inventory={inventory} />
         </Suspense>
       )}
       {tab === "more" && (
@@ -557,10 +627,11 @@ export default function App() {
             syncing={syncing}
             onSyncNow={syncNow}
             diagnostics={diagnostics}
+            syncFeedback={syncFeedback}
             metadata={metadata}
             catalogCount={catalog.length}
             settings={settings}
-            onSettingsChange={setSettings}
+            onSettingsChange={handleSettingsChange}
             authStatus={authStatus}
             onAuthChange={() => setAuthStatus(getAuthStatus())}
             onOpenSnapshotHistory={() => setShowSnapshotHistory(true)}
@@ -607,6 +678,10 @@ export default function App() {
           manager={selected}
           progress={progress.find((p) => p.managerId === selected.id)}
           equipmentNameMap={equipmentNameMap}
+          equipmentEffectMap={equipmentEffectMap}
+          focusTargetLevel={settings.focusTargetLevel ?? 30}
+          isUpgradeFocus={settings.focusManagerId === selected.id}
+          onSetUpgradeFocus={(targetLevel) => handleSettingsChange({ ...settings, focusManagerId: selected.id, focusTargetLevel: targetLevel })}
           onClose={() => setSelected(null)}
         />
       )}

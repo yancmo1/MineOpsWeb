@@ -14,8 +14,8 @@ A Flask SPA (static assets under `/static/`) for Idle Miner Tycoon. Title: "Idle
 | Tierlist | `tierlist.js`, `tierlist-standalone.css` | Power-score ranking (ported) |
 | Progress tracker | `progress-tracker.js`, `progress-tracker-stages.js` | `frontend/src/lib/progress-tracker.ts` — rebuilt on verified data (ported) |
 | Stella elevator | `stella-calc.js`, `stella-bomb.js`, `stella-decision.js` | `frontend/src/lib/stella-elevator.ts` — faithful port, mechanics are manual inputs (ported) |
-| Crystal planner | `crystal-planner.js` | `frontend/src/lib/crystal-planner.ts` — structural gates ported, costs manual input (ported) |
-| Essence planner | `essence-planner.js` | Not ported — cost tables are server-side on the reference; would need manual-input treatment |
+| Crystal planner | `crystal-planner.js` | `frontend/src/lib/crystal-planner.ts` — structural gates ported, costs manual input (ported); Today upgrade focus now consumes verified manager progression/passive milestones |
+| Essence planner | `frontend/src/lib/essence-planner.ts`, Strategy UI | Rebuilt using active-catalog `elementalRecipe` rows and the user’s synced Kolibri essence inventory. Pouch simulation remains unavailable until APK-backed yields are verified. |
 | Chrono schedule | `chrono-*.js` | Not ported — community-maintained event-rotation schedule, not our data |
 
 ## API endpoints and data shapes
@@ -38,4 +38,5 @@ The barrier table drives the Frontier playbook:
 
 - **Verified APK data wins.** The published `manager-domain.json` exact level tables and `research-domain.json`/`mine-economy-domain.json` identities come from the game files, not this site.
 - **Cross-check only:** the Phase-4 validation diff compares APK-derived exact active/passive tables against `/api/sm-actives` + `sm_passive_tables.json` to catch extraction bugs; any mismatch is investigated, not adopted.
+- The reference crystal planner exposes blue/red crystal budgets, crystal spend schedules, and Mainland income inputs. MineOps does not currently claim those values: the current normalized player/catalog package contains manager progress and progression/passive definitions, but no normalized crystal inventory, crystal price schedule, or blue/red income fields. The UI must label those values unavailable until the capture pipeline proves them.
 - **When the APK frontier bundles are decoded** into a release-scoped barrier table, `verifiedBarrierTableFromDomain` (`frontend/src/lib/barrier-tables.ts`) swaps out the hardcoded reference table automatically. Until then the reference table is labeled patch-sensitive in the UI.

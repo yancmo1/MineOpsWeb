@@ -14,9 +14,10 @@ from equipment_extractor import build_equipment_domain, extract_equipment
 from il2cpp_extractor import RARITY_MAP, build_manager_domain, run_batch
 from strategy_data import extract_strategy_configs, write_canonical_json
 from strategy_semantics import build_semantic_domains
+from passive_extractor import build_passive_domain
 
 
-DOMAIN_FILES = ("manager-domain.json", "equipment-domain.json", "strategy-configs.json", "unresolved-evidence.json", "research-domain.json", "mine-economy-domain.json", "frontier-domain.json", "power-score-domain.json")
+DOMAIN_FILES = ("manager-domain.json", "equipment-domain.json", "passive-domain.json", "strategy-configs.json", "unresolved-evidence.json", "research-domain.json", "mine-economy-domain.json", "frontier-domain.json", "power-score-domain.json")
 STANDARD_FILES = ("catalog-core.json", "validation-report.json", "relationships.json", "mappings.json", "localization.json", "assets.json", "changelog.json")
 STRATEGY_ROLE_MAP = {1: "Mine Shaft", 2: "Warehouse", 3: "Elevator"}
 
@@ -65,10 +66,11 @@ def _ledger_entry(raw: dict[str, Any], index: int) -> dict[str, Any]:
     return entry
 
 
-def _unresolved_evidence(metadata: dict[str, Any], generated_at: str, manager_domain: dict[str, Any], equipment_domain: dict[str, Any], configs: dict[str, Any]) -> dict[str, Any]:
+def _unresolved_evidence(metadata: dict[str, Any], generated_at: str, manager_domain: dict[str, Any], equipment_domain: dict[str, Any], passive_domain: dict[str, Any], configs: dict[str, Any]) -> dict[str, Any]:
     raw_entries = []
     raw_entries.extend(manager_domain.get("source", {}).get("unresolved", []))
     raw_entries.extend(equipment_domain.get("source", {}).get("unresolved", []))
+    raw_entries.extend(passive_domain.get("source", {}).get("unresolved", []))
     raw_entries.extend(configs.get("source", {}).get("unresolved", []))
     entries = [_ledger_entry(item, index) for index, item in enumerate(raw_entries)]
     # Every raw config has intentionally conservative semantics.  The ledger
@@ -253,9 +255,10 @@ def build_candidate(release_dir: Path | str, output_dir: Path | str | None = Non
     manager_domain = build_manager_domain(managers, metadata["releaseId"], catalog_version=metadata["releaseId"], generated_at=generated_at, source=artifact_source)
     equipment_domain = build_equipment_domain(extract_equipment(release_dir), metadata["releaseId"], catalog_version=metadata["releaseId"], generated_at=generated_at, source=artifact_source)
     configs = extract_strategy_configs(release_dir, catalog_version=metadata["releaseId"], generated_at=generated_at, source=artifact_source)
+    passive_domain = build_passive_domain(manager_domain, configs, metadata["releaseId"], generated_at, artifact_source)
     semantic_domains = build_semantic_domains(configs)
-    unresolved = _unresolved_evidence(metadata, generated_at, manager_domain, equipment_domain, configs)
-    domains = {"manager-domain.json": manager_domain, "equipment-domain.json": equipment_domain, "strategy-configs.json": configs, "unresolved-evidence.json": unresolved, **semantic_domains}
+    unresolved = _unresolved_evidence(metadata, generated_at, manager_domain, equipment_domain, passive_domain, configs)
+    domains = {"manager-domain.json": manager_domain, "equipment-domain.json": equipment_domain, "passive-domain.json": passive_domain, "strategy-configs.json": configs, "unresolved-evidence.json": unresolved, **semantic_domains}
     _validate(domains)
     artifacts = {**_standard_artifacts(metadata, generated_at, manager_domain, equipment_domain, unresolved), **domains}
     candidate_dir.mkdir(parents=True, exist_ok=False)

@@ -42,6 +42,14 @@ class EquipmentEffectLoca:
     effect_type: int  # 0 = long, 1 = short
     loca_key_suffix: str
 
+    @property
+    def long_key(self) -> str:
+        return f"SMEquipmentEffectDescription{self.loca_key_suffix}"
+
+    @property
+    def short_key(self) -> str:
+        return f"SMEquipmentEffectDescriptionShort{self.loca_key_suffix}"
+
 @dataclass
 class EquipmentBalancing:
     equipment_id: int
@@ -77,6 +85,20 @@ def _read_string(data: bytes, offset: int) -> tuple[str, int]:
     while offset < len(data) and data[offset] == 0:
         offset += 1
     return s, offset
+
+
+def _read_aligned_string(data: bytes, offset: int) -> tuple[str, int]:
+    """Read a length-prefixed Unity string and consume only its 4-byte padding.
+
+    The effect-localization config places the next integer immediately after
+    the aligned string. The older reader skipped every consecutive zero and
+    could therefore consume the first bytes of that integer.
+    """
+    slen = struct.unpack_from('<i', data, offset)[0]
+    offset += 4
+    value = data[offset:offset+slen].decode('utf-8', errors='replace')
+    offset += slen
+    return value, (offset + 3) & ~3
 
 def _read_header(data: bytes) -> tuple[str, int]:
     """Skip standard MonoBehaviour header fields. m_Enabled is 4 bytes in serialized format."""
@@ -151,15 +173,33 @@ def read_balancing_config(config_bytes: bytes) -> list[EquipmentBalancing]:
 
 def read_loca_config(config_bytes: bytes) -> list[EquipmentEffectLoca]:
     """Parse SuperManagerEquipmentEffectLocaConfig.asset binary."""
-    _, o = _read_header(config_bytes)
+    _read_header(config_bytes)
     entries = []
-    _, o = _read_string(config_bytes, o)  # loca key prefix ("SMEquipmentEffectDescription")
-    _, o = _read_string(config_bytes, o)  # long type name ("Long")
-    _, o = _read_string(config_bytes, o)  # short type name ("Short")
-    while o + 12 <= len(config_bytes):
+    # The header reader intentionally skips legacy null padding, but this
+    # config has three strings followed by packed integer records. Locate the
+    # stable string labels first, then align once at the first record. This
+    # avoids treating a padding zero as part of the next integer.
+    prefix = b"SMEquipmentEffectDescription"
+    prefix_at = config_bytes.find(prefix)
+    long_at = config_bytes.find(b"Long", prefix_at + len(prefix))
+    short_at = config_bytes.find(b"Short", long_at + 4)
+    if min(prefix_at, long_at, short_at) < 0:
+        return entries
+    o = (short_at + len(b"Short") + 3) & ~3
+    if o + 4 > len(config_bytes):
+        return entries
+    entry_count = struct.unpack_from('<i', config_bytes, o)[0]
+    o += 4
+    for _ in range(max(0, entry_count)):
+        if o + 8 > len(config_bytes):
+            break
         eid = struct.unpack_from('<i', config_bytes, o)[0]; o += 4
         etype = struct.unpack_from('<i', config_bytes, o)[0]; o += 4
-        suffix, o = _read_string(config_bytes, o)
+        end = config_bytes.find(b'\x00', o)
+        if end < 0:
+            break
+        suffix = config_bytes[o:end].decode('utf-8', errors='replace')
+        o = (end + 1 + 3) & ~3
         entries.append(EquipmentEffectLoca(equipment_id=eid, effect_type=etype, loca_key_suffix=suffix))
     return entries
 
@@ -279,13 +319,35 @@ def extract_equipment(release_dir: Path | str) -> EquipmentCatalog:
 
 def serialize_equipment(catalog: EquipmentCatalog) -> dict:
     """Serialize equipment catalog to a JSON-compatible dict."""
-    items = [{"equipmentId": item.equipment_id, "nameKey": item.name_key, "effects": item.effects} for item in catalog.equipment]
+    loca_by_id: dict[int, list[EquipmentEffectLoca]] = {}
+    for row in catalog.loca_entries:
+        loca_by_id.setdefault(row.equipment_id, []).append(row)
+    items = [{
+        "equipmentId": item.equipment_id,
+        "nameKey": item.name_key,
+        "effects": item.effects,
+        "effectLocalization": [{
+            "effectType": row.effect_type,
+            "locaKeySuffix": row.loca_key_suffix,
+            "longKey": row.long_key,
+            "shortKey": row.short_key,
+        } for row in loca_by_id.get(item.equipment_id, [])],
+        "effectLocalizationCandidates": [{
+            "compactEffectId": row.equipment_id,
+            "effectType": row.effect_type,
+            "locaKeySuffix": row.loca_key_suffix,
+            "longKey": row.long_key,
+            "shortKey": row.short_key,
+            "joinStatus": "candidate_name_suffix_only",
+        } for row in catalog.loca_entries if item.name_key.removeprefix("SMEquipmentName") == row.loca_key_suffix],
+    } for item in catalog.equipment]
     materials_out = [{"materialId": mat.material_id, "nameKey": mat.name_key, "sourceTooltipKey": mat.source_tooltip_key} for mat in catalog.materials]
     return {
         "equipment": items,
         "materials": materials_out,
         "localization": [
-            {"equipmentId": row.equipment_id, "effectType": row.effect_type, "locaKeySuffix": row.loca_key_suffix}
+            {"equipmentId": row.equipment_id, "effectType": row.effect_type, "locaKeySuffix": row.loca_key_suffix,
+             "longKey": row.long_key, "shortKey": row.short_key}
             for row in catalog.loca_entries
         ],
         "balancing": [

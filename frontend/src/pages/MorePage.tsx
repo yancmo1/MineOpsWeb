@@ -7,6 +7,7 @@ import { catalogClient, type CatalogClientState } from "../lib/catalog-client";
 import type { CachedCatalogPackage } from "../lib/catalog-cache";
 import { listImportRecords } from "../lib/import-history";
 import type { ImportRecord } from "../lib/kolibri-fixtures";
+import type { SyncFeedback } from "../lib/sync-feedback";
 import { describeCache, describeCatalogStatus, redactDiagnostic } from "../lib/operational-status";
 
 interface MorePageProps {
@@ -15,6 +16,7 @@ interface MorePageProps {
   syncing: boolean;
   onSyncNow: () => void;
   diagnostics: KolibriDiagnostics | null;
+  syncFeedback: SyncFeedback | null;
   metadata: SyncMetadata;
   catalogCount: number;
   settings: AppSettings;
@@ -113,6 +115,7 @@ export function MorePage({
   syncing,
   onSyncNow,
   diagnostics,
+  syncFeedback,
   metadata,
   catalogCount,
   settings,
@@ -123,6 +126,21 @@ export function MorePage({
   captureStatus,
   onRefreshCaptureStatus,
 }: MorePageProps) {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof document === "undefined") return "light";
+    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  });
+
+  function handleThemeChange(nextTheme: "light" | "dark") {
+    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+    try {
+      localStorage.setItem("theme", nextTheme);
+    } catch {
+      // Theme still applies for this session when storage is unavailable.
+    }
+  }
+
   const [pbEmail, setPbEmail] = useState("");
   const [pbPassword, setPbPassword] = useState("");
   const [pbError, setPbError] = useState<string | null>(null);
@@ -238,10 +256,10 @@ export function MorePage({
     <div className="more-page">
       <section className="more-hero" aria-labelledby="settings-data-heading">
         <div>
-          <p className="eyebrow">Settings &amp; data</p>
-          <h2 id="settings-data-heading">Keep MineOps current</h2>
+          <p className="eyebrow">Data &amp; recovery</p>
+          <h2 id="settings-data-heading">Keep your MineOps data ready</h2>
           <p>
-            Sync player progress, verify the active game catalog, and recover safely without mixing player data with catalog updates.
+            Update your roster, confirm which catalog powers recommendations, and recover safely without mixing player data with catalog updates.
           </p>
         </div>
         <div className="more-quick-actions" aria-label="Quick actions">
@@ -286,6 +304,11 @@ export function MorePage({
 
       <div className="settings-layout">
         <div className="settings-primary-column">
+          <div className="settings-task-group">
+            <div className="settings-group-heading">
+              <h3>Keep data current</h3>
+              <p>Refresh the player roster and the verified catalog used by Strategy.</p>
+            </div>
           <CollapsibleSection
             title="Player sync"
             description="Kolibri credentials, freshness, and the next player-data sync."
@@ -343,6 +366,24 @@ export function MorePage({
               </button>
             </form>
 
+            {syncFeedback && (
+              <aside className="settings-sync-feedback" aria-live="polite">
+                <div className="settings-sync-feedback-heading">
+                  <strong>Last sync changed</strong>
+                  <time dateTime={syncFeedback.syncedAt}>{formatDate(syncFeedback.syncedAt)}</time>
+                </div>
+                <p>{syncFeedback.managersReceived} managers received · {syncFeedback.managersChanged} manager records changed</p>
+                <div className="settings-sync-feedback-grid">
+                  <span><strong>{syncFeedback.levelsIncreased}</strong> levels increased</span>
+                  <span><strong>{syncFeedback.starsIncreased}</strong> star ranks increased</span>
+                  <span><strong>{syncFeedback.promotionsIncreased}</strong> promotions increased</span>
+                  <span><strong>{syncFeedback.fragmentsIncreased}</strong> fragment totals increased</span>
+                  <span><strong>{syncFeedback.equipmentChanged}</strong> equipment assignments changed</span>
+                  <span><strong>{syncFeedback.passiveValuesFound}</strong> passive values found</span>
+                </div>
+              </aside>
+            )}
+
             {diagnostics && (
               <div className="settings-diagnostic-summary">
                 <strong>Last response</strong>
@@ -351,6 +392,12 @@ export function MorePage({
                 </p>
                 <p>
                   {diagnostics.fragmentFieldCount ?? 0} fragment counts present · {diagnostics.fragmentMissingCount ?? 0} missing from save
+                </p>
+                <p>
+                  {diagnostics.passiveValueManagerCount ?? 0} manager passive values present · {diagnostics.equipmentAssignmentManagerCount ?? 0} managers with equipment assignments
+                </p>
+                <p className="settings-code-line">
+                  {diagnostics.inventoryEntryCount ?? 0} inventory rows parsed · {diagnostics.essenceEntryCount ?? 0} essence · {diagnostics.crystalEntryCount ?? 0} crystals · {diagnostics.materialEntryCount ?? 0} materials · {diagnostics.ownedEquipmentEntryCount ?? 0} owned equipment
                 </p>
                 {diagnostics.unresolvedSampleIds && diagnostics.unresolvedSampleIds.length > 0 && (
                   <p className="settings-code-line">Sample IDs: {diagnostics.unresolvedSampleIds.join(", ")}</p>
@@ -363,7 +410,6 @@ export function MorePage({
             title="Catalog & strategy data"
             description="The verified release used for manager facts and strategy scoring."
             status={<StatusPill tone={catalogTone}>{activePackage ? "Verified" : catalogStatus.label}</StatusPill>}
-            defaultOpen
             ariaLive="polite"
           >
             <div className="catalog-health-heading">
@@ -418,6 +464,13 @@ export function MorePage({
             </button>
           </CollapsibleSection>
 
+          </div>
+
+          <div className="settings-task-group">
+            <div className="settings-group-heading">
+              <h3>Recovery &amp; history</h3>
+              <p>Review what was imported and restore an earlier player state when needed.</p>
+            </div>
           <CollapsibleSection
             title="History & recovery"
             description="Review imports and restore an earlier player snapshot without changing the catalog."
@@ -451,9 +504,15 @@ export function MorePage({
               )}
             </div>
           </CollapsibleSection>
+          </div>
         </div>
 
-        <aside className="settings-secondary-column" aria-label="Connections and preferences">
+        <aside className="settings-secondary-column" aria-label="Account, devices, and maintenance">
+          <div className="settings-task-group">
+            <div className="settings-group-heading">
+              <h3>Account &amp; devices</h3>
+              <p>Choose whether this browser stays local or syncs snapshots across devices.</p>
+            </div>
           <CollapsibleSection
             title="Cloud account"
             description="Optional PocketBase sign-in for cross-device snapshots."
@@ -494,8 +553,31 @@ export function MorePage({
             title="Preferences"
             description="Control when this browser refreshes player data."
             status={<StatusPill tone={settings.autoSync ? "success" : "neutral"}>{settings.autoSync ? "Auto-sync on" : "Manual"}</StatusPill>}
-            defaultOpen
           >
+            <div className="settings-preference-row">
+              <div>
+                <strong>Appearance</strong>
+                <small>Choose the brighter workspace or the night-shift workspace.</small>
+              </div>
+              <div className="theme-switcher" role="group" aria-label="Color theme">
+                <button
+                  type="button"
+                  className={theme === "light" ? "active" : ""}
+                  aria-pressed={theme === "light"}
+                  onClick={() => handleThemeChange("light")}
+                >
+                  Light
+                </button>
+                <button
+                  type="button"
+                  className={theme === "dark" ? "active" : ""}
+                  aria-pressed={theme === "dark"}
+                  onClick={() => handleThemeChange("dark")}
+                >
+                  Dark
+                </button>
+              </div>
+            </div>
             <label className="settings-toggle">
               <span>
                 <strong>Auto-sync on launch</strong>
@@ -504,7 +586,13 @@ export function MorePage({
               <input type="checkbox" checked={settings.autoSync} onChange={() => void handleAutoSyncToggle()} />
             </label>
           </CollapsibleSection>
+          </div>
 
+          <div className="settings-task-group">
+            <div className="settings-group-heading">
+              <h3>Capture &amp; maintenance</h3>
+              <p>Maintain the APK catalog pipeline and inspect technical details only when troubleshooting.</p>
+            </div>
           <CollapsibleSection
             title="Capture bridge"
             description="UbuntuMac APK capture and Oracle ingest status."
@@ -580,6 +668,7 @@ export function MorePage({
               MineOps keeps verified game definitions separate from player progress. Resetting or refreshing the catalog does not delete player snapshots.
             </p>
           </CollapsibleSection>
+          </div>
         </aside>
       </div>
     </div>

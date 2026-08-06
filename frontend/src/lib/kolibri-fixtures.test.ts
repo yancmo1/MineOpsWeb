@@ -31,7 +31,7 @@ import {
   clearImportHistory,
   getImportStats,
 } from "./import-history";
-import { catalogForKolibriSync, extractFragmentsFromSave } from "./kolibri";
+import { catalogForKolibriSync, extractFragmentsFromSave, extractInventoryFromSave, extractPassiveValuesFromManagerRow } from "./kolibri";
 import type { CachedCatalogPackage } from "./catalog-cache";
 
 // ---------------------------------------------------------------------------
@@ -76,6 +76,44 @@ describe("Catalog race protection", () => {
 });
 
 describe("Fragment field extraction", () => {
+  it("preserves resource and owned-equipment rows with source paths", () => {
+    const save = { Data: {
+      SuperManagerResourcesSavegame: {
+        Essences: [{ EssenceId: 1, Quantity: 365 }],
+        Crystals: { Blue: 869000, Red: 572000 },
+        Materials: [{ MaterialId: 12, Amount: 356 }],
+      },
+      SuperManagerEquipmentSavegame: {
+        EquipmentOwned: [{ EquipmentId: 11031, Quantity: 1 }],
+        EquipmentAssignedToSuperManager: [{ SuperManagerId: 10003, EquipmentId: 11031 }],
+      },
+    } };
+    const rows = extractInventoryFromSave(save);
+    expect(rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "essence", quantity: 365, itemId: 1 }),
+      expect.objectContaining({ kind: "crystal", quantity: 869000 }),
+      expect.objectContaining({ kind: "material", quantity: 356, itemId: 12 }),
+      expect.objectContaining({ kind: "equipment", quantity: 1, itemId: 11031 }),
+    ]));
+    expect(rows.every((row) => !row.key.includes("EquipmentAssignedToSuperManager"))).toBe(true);
+  });
+
+  it("extracts elemental essence from the live generic consumables section", () => {
+    const save = { Data: { Inventory: { ConsumableInventory: { Consumables: [
+      { Id: 4100000, Amount: 365 }, { Id: 4100008, Amount: 7 }, { Id: 1301, Amount: 2495 },
+    ] } } } };
+    expect(extractInventoryFromSave(save)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "essence", quantity: 365, itemId: 4100000 }),
+      expect.objectContaining({ kind: "essence", quantity: 7, itemId: 4100008 }),
+    ]));
+    expect(extractInventoryFromSave(save).filter((row) => row.kind === "essence")).toHaveLength(2);
+  });
+
+  it("preserves ordered passive values only when the manager row contains them", () => {
+    expect(extractPassiveValuesFromManagerRow({ Id: 10066, Passives: [{ Value: 1.95 }, { Value: null }] })).toEqual([1.95, null]);
+    expect(extractPassiveValuesFromManagerRow({ Id: 10066, Level: 30, Rank: 3 })).toBeUndefined();
+  });
+
   it("extracts a manager fragment count from a sibling keyed dictionary", () => {
     const save = { Data: { SuperManagers: { Managers: [{ Id: 10066 }], Fragments: { "10066": 17, "10067": 2 } } } };
     expect(extractFragmentsFromSave(save, "10066", save.Data.SuperManagers.Managers[0])).toBe(17);

@@ -1,14 +1,15 @@
-import type { CatalogManager, PlayerManager } from "./db";
+import type { CatalogManager, PlayerInventoryEntry, PlayerManager } from "./db";
 import { resolveIds, fetchOverrides, type MappingEvidence } from "./catalog-mapping";
 import { catalogClient } from "./catalog-client";
 import { managersFromVerifiedPackage } from "./strategy";
 import type { CachedCatalogPackage } from "./catalog-cache";
 
 export type KolibriCredentials = { kolibriId: string; authToken: string; saveGameKey: string };
-export type KolibriDiagnostics = { statusCode: number; payloadFormat: string; rawBytes: number; decodedBytes: number; managerCount: number; unknownManagerCount: number; fragmentFieldCount?: number; fragmentMissingCount?: number; unresolvedSampleIds?: string[] };
+export type KolibriDiagnostics = { statusCode: number; payloadFormat: string; rawBytes: number; decodedBytes: number; managerCount: number; unknownManagerCount: number; fragmentFieldCount?: number; fragmentMissingCount?: number; passiveValueManagerCount?: number; equipmentAssignmentManagerCount?: number; inventoryEntryCount?: number; essenceEntryCount?: number; crystalEntryCount?: number; materialEntryCount?: number; ownedEquipmentEntryCount?: number; unresolvedSampleIds?: string[] };
 
 export interface KolibriResult {
   progress: PlayerManager[];
+  inventory: PlayerInventoryEntry[];
   diagnostics: KolibriDiagnostics;
   /** Resolved mapping evidence for each source manager */
   mappingEvidence: Map<string, MappingEvidence>;
@@ -18,10 +19,106 @@ export interface KolibriResult {
   catalogVersion: string | null;
 }
 
+function numericQuantity(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, value);
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Math.max(0, Number(value));
+  return undefined;
+}
+
+function inventoryKind(text: string): PlayerInventoryEntry["kind"] {
+  const value = text.toLowerCase();
+  if (value.includes("essence")) return "essence";
+  if (value.includes("crystal")) return "crystal";
+  if (value.includes("material")) return "material";
+  if (value.includes("equipment")) return "equipment";
+  return "unknown";
+}
+
+/** Preserve resource/equipment ownership with its original save path. */
+export function extractInventoryFromSave(root: unknown): PlayerInventoryEntry[] {
+  const data = ((root as Record<string, unknown>)?.Data ?? root) as unknown;
+  const entries: PlayerInventoryEntry[] = [];
+  const consumables = (data as Record<string, unknown>)?.Inventory && typeof (data as Record<string, unknown>).Inventory === "object"
+    ? (((data as Record<string, unknown>).Inventory as Record<string, unknown>).ConsumableInventory as Record<string, unknown> | undefined)?.Consumables
+    : undefined;
+  // Live Kolibri saves store elemental essence as generic consumables. The
+  // APK's ElementalEssenceConfig establishes the stable 4100000–4100011 IDs.
+  if (Array.isArray(consumables)) {
+    consumables.forEach((item, index) => {
+      if (!item || typeof item !== "object") return;
+      const row = item as Record<string, unknown>;
+      const itemId = numericQuantity(row.Id ?? row.id);
+      const quantity = numericQuantity(row.Amount ?? row.amount ?? row.Quantity ?? row.quantity);
+      if (itemId == null || quantity == null || itemId < 4100000 || itemId > 4100011) return;
+      entries.push({ key: `Data.Inventory.ConsumableInventory.Consumables[${index}]`, kind: "essence", quantity, sourcePath: "Data.Inventory.ConsumableInventory.Consumables", sourceKey: "Consumables", itemId });
+    });
+  }
+  const seen = new Set<object>();
+  const quantityKey = /quantity|amount|count|owned|number|total/i;
+  const idKey = /^(id|.*id)$/i;
+  const visit = (node: unknown, path: string, context: string): void => {
+    if (!node || typeof node !== "object" || seen.has(node as object)) return;
+    seen.add(node as object);
+    if (Array.isArray(node)) { node.forEach((item, index) => visit(item, `${path}[${index}]`, context)); return; }
+    const object = node as Record<string, unknown>;
+    for (const [key, value] of Object.entries(object)) {
+      const nextPath = path ? `${path}.${key}` : key;
+      const nextContext = `${context} ${key}`;
+      if (/assignedtosupermanager/i.test(nextContext)) continue;
+      const kind = inventoryKind(nextContext);
+      if (kind !== "unknown" && Array.isArray(value)) {
+        value.forEach((item, index) => {
+          if (!item || typeof item !== "object") return;
+            const row = item as Record<string, unknown>;
+            const quantity = Object.entries(row).find(([k, v]) => quantityKey.test(k) && numericQuantity(v) != null);
+            const id = Object.entries(row).find(([k, v]) => idKey.test(k) && numericQuantity(v) != null);
+            if (quantity || (kind === "equipment" && id)) {
+              entries.push({ key: `${nextPath}[${index}]`, kind, quantity: quantity ? numericQuantity(quantity[1])! : 1, sourcePath: nextPath, sourceKey: key, itemId: id ? numericQuantity(id[1]) : undefined });
+            }
+          visit(item, `${nextPath}[${index}]`, nextContext);
+        });
+      } else if (kind !== "unknown" && numericQuantity(value) != null) {
+        entries.push({ key: nextPath, kind, quantity: numericQuantity(value)!, sourcePath: path, sourceKey: key });
+      } else if (value && typeof value === "object") visit(value, nextPath, nextContext);
+    }
+  };
+  visit(data, "Data", "Data");
+  return entries.filter((entry, index, all) => all.findIndex((candidate) => candidate.key === entry.key) === index);
+}
+
 function numericFragmentValue(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, value);
   if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Math.max(0, Number(value));
   return undefined;
+}
+
+function numericPassiveValue(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Number(value);
+  return undefined;
+}
+
+/** Preserve player-specific passive values only when the Kolibri manager row contains them. */
+export function extractPassiveValuesFromManagerRow(row: Record<string, unknown>): Array<number | null> | undefined {
+  const candidates: unknown[] = [];
+  for (const [key, value] of Object.entries(row)) {
+    if (!/passive/i.test(key)) continue;
+    if (Array.isArray(value)) candidates.push(...value);
+    else if (value && typeof value === "object") candidates.push(value);
+    else if (numericPassiveValue(value) != null) candidates.push(value);
+  }
+  if (candidates.length === 0) return undefined;
+  const values = candidates.map((candidate) => {
+    if (numericPassiveValue(candidate) != null) return numericPassiveValue(candidate)!;
+    if (!candidate || typeof candidate !== "object") return null;
+    for (const [key, value] of Object.entries(candidate as Record<string, unknown>)) {
+      if (!/(value|multiplier|amount|effect)/i.test(key)) continue;
+      const numeric = numericPassiveValue(value);
+      if (numeric != null) return numeric;
+    }
+    return null;
+  });
+  return values.some((value) => value != null) ? values : undefined;
 }
 
 /**
@@ -159,6 +256,7 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
   const decoded = await decodePayload(raw);
   const root = JSON.parse(new TextDecoder().decode(decoded.json)) as Record<string, unknown>;
   const data = (root.Data ?? root) as Record<string, unknown>;
+  const inventory = extractInventoryFromSave(root);
   const managers = (((data.SuperManagers ?? {}) as Record<string, unknown>).Managers ?? []) as Array<Record<string, unknown>>;
 
   // Direct fragment/equipment extraction from save fields
@@ -198,6 +296,7 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
   if (!pkg) {
     return {
       progress: [],
+      inventory,
       diagnostics: { statusCode: 0, payloadFormat: "no-catalog", rawBytes: 0, decodedBytes: 0, managerCount: managers.length, unknownManagerCount: managers.length, unresolvedSampleIds: managers.map((r) => String(r.Id ?? "")).slice(0, 10) },
       mappingEvidence: new Map(),
       unresolved: managers.map((r) => ({ sourceValue: String(r.Id ?? ""), sourceKind: "kolibri_id", canonicalId: null, resolution: "unresolved" as const, confidence: null, catalogVersion: "", releaseId: "", displayName: null })),
@@ -263,6 +362,8 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
   let resolvedByGameIdFallback = 0;
   let unresolvedCount = 0;
   let fragmentFieldCount = 0;
+  let passiveValueManagerCount = 0;
+  let equipmentAssignmentManagerCount = 0;
 
   for (const row of managers) {
     const srcValue = String(row.Id ?? "").trim();
@@ -305,6 +406,11 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     if (fragQty != null) fragmentFieldCount += 1;
     // Equipment assignments from SuperManagerEquipmentSavegame
     item.equipmentIds = equipAssignments.get(Number(srcValue)) ?? [];
+    const passiveValues = extractPassiveValuesFromManagerRow(row);
+    item.passiveValues = passiveValues;
+    item.passiveValueSource = passiveValues ? "kolibri" : "unavailable";
+    if (passiveValues) passiveValueManagerCount += 1;
+    if (item.equipmentIds.length > 0) equipmentAssignmentManagerCount += 1;
     item.updatedAt = new Date().toISOString();
   }
 
@@ -342,6 +448,7 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
 
   return {
     progress,
+    inventory,
     diagnostics: {
       statusCode: response.status,
       payloadFormat: decoded.format,
@@ -351,6 +458,13 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
       unknownManagerCount: unresolvedCount,
       fragmentFieldCount,
       fragmentMissingCount: Math.max(0, resolved - fragmentFieldCount),
+      passiveValueManagerCount,
+      equipmentAssignmentManagerCount,
+      inventoryEntryCount: inventory.length,
+      essenceEntryCount: inventory.filter((entry) => entry.kind === "essence").length,
+      crystalEntryCount: inventory.filter((entry) => entry.kind === "crystal").length,
+      materialEntryCount: inventory.filter((entry) => entry.kind === "material").length,
+      ownedEquipmentEntryCount: inventory.filter((entry) => entry.kind === "equipment").length,
       unresolvedSampleIds: unresolved.length > 0
         ? unresolved.map((u) => u.sourceValue).slice(0, 10)
         : undefined,

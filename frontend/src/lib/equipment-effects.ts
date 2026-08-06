@@ -16,6 +16,30 @@ export interface EquipmentBalancingRow {
   value: number;
 }
 
+export interface EquipmentEffectInfo {
+  description?: string;
+  multiplier?: number;
+}
+
+/** Read explicit effect fields when the verified package exposes them. */
+export function buildEquipmentEffectMap(pkg: CachedCatalogPackage | undefined): ReadonlyMap<number, EquipmentEffectInfo> {
+  const map = new Map<number, EquipmentEffectInfo>();
+  if (!pkg) return map;
+  const domain = pkg.artifacts["equipment-domain.json"]?.content as Record<string, unknown> | undefined;
+  const core = pkg.artifacts["catalog-core.json"]?.content as Record<string, unknown> | undefined;
+  const sources = [domain?.equipment, domain?.definitions, domain?.records, core?.equipment].filter(Array.isArray) as Array<Record<string, unknown>[]>;
+  for (const records of sources) {
+    for (const record of records) {
+      const id = Number(record.equipmentId ?? record.id);
+      if (!Number.isFinite(id)) continue;
+      const description = Object.entries(record).find(([key, value]) => /effect|description|tooltip/i.test(key) && typeof value === "string")?.[1] as string | undefined;
+      const multiplier = Object.entries(record).find(([key, value]) => /multiplier/i.test(key) && typeof value === "number" && Number.isFinite(value))?.[1] as number | undefined;
+      if (description || multiplier != null) map.set(id, { description, multiplier });
+    }
+  }
+  return map;
+}
+
 /** equipmentId -> strongest verified balancing value (max level row). */
 export type EquipmentBoostTable = ReadonlyMap<number, number>;
 

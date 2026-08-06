@@ -495,6 +495,8 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
       promotions,
       spriteRefs,
       fragmentIds,
+      elementalMapping: Array.isArray(extensions.elementalMapping) ? extensions.elementalMapping.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object").flatMap((row) => typeof row.id === "number" && typeof row.rankToUnlock === "number" ? [{ id: row.id, rankToUnlock: row.rankToUnlock, isPrimary: row.isPrimary === true }] : []) : undefined,
+      elementalRecipe: Array.isArray(extensions.elementalRecipe) ? extensions.elementalRecipe.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object").flatMap((row) => typeof row.rank === "number" && Array.isArray(row.ingredients) ? [{ rank: row.rank, ingredients: row.ingredients.filter((ingredient): ingredient is Record<string, unknown> => Boolean(ingredient) && typeof ingredient === "object").flatMap((ingredient) => typeof ingredient.id === "number" && typeof ingredient.amount === "number" ? [{ id: ingredient.id, amount: ingredient.amount }] : []) }] : []) : undefined,
     }];
   });
   console.debug("[catalog-names] Hydrated manager names", {

@@ -4,12 +4,13 @@
 
 Read these files in order:
 1. `docs/development/journal.md` — **session history, known issues, and all recent decisions.** This is the single source of truth for what has been done and what is known to be broken.
-2. `PRD.md` — the V3 product requirements document (authoritative).
-3. `AGENTS.md` — this file.
-4. `docs/architecture/*.md` — architecture decisions and data/sync models.
-5. `docs/server-guide` — if it exists; production deployment details.
-6. `SERVER_MASTER_GUIDE.md` — the canonical server reference for UbuntuMac (symlinked in repo root). Consult before any server-side operations.
-7. `docs/ORACLE_VM_SETUP_REFERENCE.md`, `docs/ORACLE-VM-DEPLOY-SETUP.md`, `docs/ORACLE-VM-GUIDE.md` — Oracle VM infrastructure reference. Consult before any Oracle VM operations.
+2. `docs/development/HANDOFF_TO_NEXT_AGENT.md` — tool-call conventions, environment gotchas, and the exact current state at handoff. Read before touching servers or the workflow tools.
+3. `PRD.md` — the V3 product requirements document (authoritative).
+4. `AGENTS.md` — this file.
+5. `docs/architecture/*.md` — architecture decisions and data/sync models.
+6. `docs/server-guide` — if it exists; production deployment details.
+7. `SERVER_MASTER_GUIDE.md` — the canonical server reference for UbuntuMac (symlinked in repo root). Consult before any server-side operations.
+8. `docs/ORACLE_VM_SETUP_REFERENCE.md`, `docs/ORACLE-VM-DEPLOY-SETUP.md`, `docs/ORACLE-VM-GUIDE.md` — Oracle VM infrastructure reference. Consult before any Oracle VM operations.
 
 The iOS project at `../mineops-companion` is the behavioral reference until the parity matrix (`docs/PARITY_MATRIX.md`) says the web has achieved parity.
 

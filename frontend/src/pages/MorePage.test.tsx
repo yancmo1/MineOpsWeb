@@ -13,6 +13,7 @@ function renderMorePage() {
       syncing: false,
       onSyncNow: () => undefined,
       diagnostics: null,
+      syncFeedback: null,
       metadata: { status: "never" },
       catalogCount: 118,
       settings: { autoSync: true },

@@ -92,11 +92,12 @@ UnityPy v1.25.2:
 | SuperManagerEquipmentMaterialShopConfig | shop pricing (identified, not yet parsed) |
 | SuperManagerEquipmentInfoPanelConfig | UI panel colors (skipped) |
 
-**Output:** `exports/extracted_equipment/equipment.json`
+**Output:** `exports/extracted_equipment/equipment.json` and the candidate package `equipment-domain.json`. Equipment rows now preserve long/short localization keys alongside numeric balancing rows.
 
 **Limitations per journal:**
 - Equipment display names are localization keys (SMEquipmentName01–19)
-- Equipment-to-SuperManager assignment not yet extracted
+- Equipment-to-SuperManager assignment is player-save data and is now captured separately from Kolibri when an owned-equipment section is present
+- The APK capture still has no decoded localized effect text for equipment 11031; its `SMEquipmentEffectLocaConfig` key is preserved and remains unresolved until the localization bundle is decoded
 - MaterialShopConfig shop price data not parsed
 
 ### 2.3 Game Objects Inventory — 4,035 entries (heuristic/placeholder)

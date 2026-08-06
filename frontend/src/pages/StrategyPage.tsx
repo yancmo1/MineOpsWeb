@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { PlayerManager } from "../lib/db";
+import type { PlayerInventoryEntry, PlayerManager, CatalogManager } from "../lib/db";
 import { catalogClient, type CatalogClientState, type LoadState } from "../lib/catalog-client";
 import { evaluateVerifiedLineup, managersFromVerifiedPackage, type StrategyEvaluation } from "../lib/strategy";
 import { buildFrontierRoster, planFrontierCheckpoints, recommendFrontierAction, type FrontierActionRecommendation, type FrontierPass, type FrontierRosterEntry, FRONTIER_BARRIERS } from "../lib/frontier-guide";
@@ -12,12 +12,14 @@ import { buildTierlist, compareManagersSideBySide, type TierlistEntry, type Mana
 import { evaluateProgressStages, progressSummary, type ProgressStageResult } from "../lib/progress-tracker";
 import { computeBombDecision, assessRunState, type StellaMechanics, type StellaDecision } from "../lib/stella-elevator";
 import { planCrystalSpend, minPromoForLevel, type CrystalPlanResult, type CrystalCostTable } from "../lib/crystal-planner";
+import { emptyEssenceInventory, essenceInventoryFromEntries, planEssenceUpgrade, type EssenceInventory } from "../lib/essence-planner";
 
 interface StrategyPageProps {
   progress: PlayerManager[];
+  inventory: PlayerInventoryEntry[];
 }
 
-type StrategyPlanId = "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal";
+type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal" | "essence";
 
 /** Check whether a load state represents an active package (any source). */
 function isActive(ls: LoadState): boolean {
@@ -39,7 +41,7 @@ function parseNonNegative(value: string): number {
   return parseOptionalNonNegative(value) ?? 0;
 }
 
-export function StrategyPage({ progress }: StrategyPageProps) {
+export function StrategyPage({ progress, inventory }: StrategyPageProps) {
   const [evaluation, setEvaluation] = useState<StrategyEvaluation | null>(null);
   const [frontierRoster, setFrontierRoster] = useState<FrontierRosterEntry[]>([]);
   const [balancedLineups, setBalancedLineups] = useState<BalancedLineup[]>([]);
@@ -52,6 +54,7 @@ export function StrategyPage({ progress }: StrategyPageProps) {
   const [dismissed, setDismissed] = useState<DismissedRecommendation[]>([]);
   const [tierlist, setTierlist] = useState<TierlistEntry[]>([]);
   const [comparisonRows, setComparisonRows] = useState<ManagerComparisonRow[]>([]);
+  const [catalogManagers, setCatalogManagers] = useState<CatalogManager[]>([]);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [progressResults, setProgressResults] = useState<ProgressStageResult[]>([]);
   const [stellaMechanics, setStellaMechanics] = useState<StellaMechanics>({
@@ -131,6 +134,7 @@ export function StrategyPage({ progress }: StrategyPageProps) {
       if (current) {
         const nextEvaluation = pkg ? evaluateVerifiedLineup(pkg, progress) : null;
         const managers = pkg ? managersFromVerifiedPackage(pkg) : [];
+        setCatalogManagers(managers);
         const nextRoster = pkg ? buildFrontierRoster(managers, progress) : [];
         setEvaluation(nextEvaluation);
         setFrontierRoster(nextRoster);
@@ -179,15 +183,26 @@ export function StrategyPage({ progress }: StrategyPageProps) {
 
   return (
     <>
-      <StrategyPlanMenu
-        selectedPlan={selectedPlan}
-        onSelect={setSelectedPlan}
-        hasFrontierRoster={frontierRoster.length > 0}
-        lineupCount={evaluation.totalManagersConsidered}
-        upgradeCount={roiItems.length}
-        tierlistCount={tierlist.length}
-        progressCount={progressSummary(progressResults).complete}
+      <StrategyRecommendation
+        upgrade={nextUsefulInvestment(roiItems)}
+        lineup={balancedLineups[0]?.picks[0] ?? null}
+        frontier={frontierRecommendation}
+        catalogVersion={evaluation.catalogVersion}
+        catalogReleaseId={evaluation.catalogReleaseId}
+        onOpen={setSelectedPlan}
       />
+      <details className="strategy-tools-disclosure" open={selectedPlan !== "recommendations"}>
+        <summary>Explore strategy tools</summary>
+        <StrategyPlanMenu
+          selectedPlan={selectedPlan}
+          onSelect={setSelectedPlan}
+          hasFrontierRoster={frontierRoster.length > 0}
+          lineupCount={evaluation.totalManagersConsidered}
+          upgradeCount={roiItems.length}
+          tierlistCount={tierlist.length}
+          progressCount={progressSummary(progressResults).complete}
+        />
+      </details>
       {selectedPlan === "frontier" && <FrontierPlaybook
         roster={frontierRoster}
         barrierId={frontierBarrierId}
@@ -266,6 +281,7 @@ export function StrategyPage({ progress }: StrategyPageProps) {
       </section>}
       {selectedPlan === "stella" && <StellaElevatorPanel mechanics={stellaMechanics} onMechanicsChange={setStellaMechanics} input={stellaInput} onInputChange={setStellaInput} />}
       {selectedPlan === "crystal" && <CrystalPlannerPanel input={crystalInput} onInputChange={setCrystalInput} costTable={crystalCosts} onCostTableChange={setCrystalCosts} />}
+      {selectedPlan === "essence" && <EssencePlannerPanel managers={catalogManagers} progress={progress} entries={inventory} />}
       {selectedPlan === "tierlist" && <section className="card-container">
         <h2 className="card-title">Tier list & compare</h2>
         <p className="muted" style={{ fontSize: "0.8rem", marginTop: "-0.5rem" }}>Ranked by the documented heuristic score (verified exact tables + equipment). Game-parity power score is not yet available, so this is labeled heuristic, never game power.</p>
@@ -325,17 +341,80 @@ function StrategyPlanMenu({ selectedPlan, onSelect, hasFrontierRoster, lineupCou
     { id: "progress", title: "Progress tracker", detail: "The roadmap: which promotion milestones are done across your roster.", badge: `${progressCount} done` },
     { id: "stella", title: "Stella's Elevator", detail: "Mid-run bomb-decision calculator for Stella's Lucky Elevator events.", badge: "run stats" },
     { id: "crystal", title: "Crystal planner", detail: "Level/promo crystal budget calculator with discount and structural gates.", badge: "budget" },
+    { id: "essence", title: "Essence planner", detail: "Choose a Super Manager rank target and see the essence surplus or shortfall from your synced save.", badge: "save-backed" },
   ];
   return <section className="card-container strategy-plan-menu">
-    <p className="eyebrow">Strategy library</p>
-    <h2 className="card-title">Choose a plan</h2>
-    <p className="muted strategy-plan-menu-intro">Strategies are short, actionable playbooks. They use your synced roster when the required data is available.</p>
+    <p className="eyebrow">Explore</p>
+    <h2 className="card-title">Strategy tools</h2>
+    <p className="muted strategy-plan-menu-intro">Start with the recommendation above, or open a focused playbook when you know what you want to investigate.</p>
     <div className="strategy-plan-grid">
       {plans.map((plan) => <button key={plan.id} className={`strategy-plan-card ${selectedPlan === plan.id ? "active" : ""}`} onClick={() => onSelect(plan.id)} aria-pressed={selectedPlan === plan.id}>
         <span className="strategy-plan-card-top"><strong>{plan.title}</strong><em>{plan.badge}</em></span>
         <span>{plan.detail}</span>
         <b>{selectedPlan === plan.id ? "Open plan" : "View plan"} →</b>
       </button>)}
+    </div>
+  </section>;
+}
+
+function StrategyRecommendation({
+  upgrade,
+  lineup,
+  frontier,
+  catalogVersion,
+  catalogReleaseId,
+  onOpen,
+}: {
+  upgrade: UpgradeRoiItem | null;
+  lineup: BalancedLineup["picks"][number] | null;
+  frontier: FrontierActionRecommendation;
+  catalogVersion: string | null;
+  catalogReleaseId: string | null;
+  onOpen: (plan: StrategyPlanId) => void;
+}) {
+  const primary = upgrade
+    ? {
+        eyebrow: "Highest verified return",
+        title: `${upgrade.name}: ${upgrade.kind === "level" ? `level ${upgrade.to}` : upgrade.kind === "promotion" ? `promotion ${upgrade.to}` : `rank ${upgrade.to}`}`,
+        reason: upgrade.rationale,
+        action: "Open upgrade focus",
+        plan: "upgrades" as const,
+      }
+    : lineup
+      ? {
+          eyebrow: "Best starting lineup",
+          title: `${lineup.name} for ${lineup.area}`,
+          reason: lineup.why,
+          action: "Open general lineup",
+          plan: "lineup" as const,
+        }
+      : {
+          eyebrow: "Frontier next action",
+          title: frontier.title,
+          reason: frontier.reason,
+          action: "Open Frontier playbook",
+          plan: "frontier" as const,
+        };
+
+  return <section className="strategy-recommendation" aria-labelledby="strategy-recommendation-title">
+    <div className="strategy-recommendation-heading">
+      <div>
+        <p className="eyebrow">Start here</p>
+        <h2 id="strategy-recommendation-title">Your next useful move</h2>
+      </div>
+      <span className="strategy-recommendation-confidence">Verified data</span>
+    </div>
+    <p className="strategy-recommendation-eyebrow">{primary.eyebrow}</p>
+    <h3>{primary.title}</h3>
+    <p className="strategy-recommendation-reason">{primary.reason}</p>
+    <button type="button" onClick={() => onOpen(primary.plan)}>{primary.action} →</button>
+    <p className="strategy-source-note">
+      Based on verified catalog <strong>{catalogVersion ?? "unavailable"}</strong> · release <span>{catalogReleaseId ?? "unavailable"}</span>. Unknown effects are excluded rather than estimated.
+    </p>
+    <div className="strategy-recommendation-secondary" aria-label="Other useful paths">
+      {upgrade && primary.plan !== "upgrades" && <button type="button" onClick={() => onOpen("upgrades")}>Review upgrade targets</button>}
+      {lineup && primary.plan !== "lineup" && <button type="button" onClick={() => onOpen("lineup")}>Build a general lineup</button>}
+      {primary.plan !== "frontier" && <button type="button" onClick={() => onOpen("frontier")}>Plan Frontier</button>}
     </div>
   </section>;
 }
@@ -595,5 +674,37 @@ function CrystalPlannerPanel({ input, onInputChange, costTable, onCostTableChang
       {plan.gates.filter((gate) => !gate.ok).map((gate) => <div key={gate.message}>⚠️ {gate.message}</div>)}
     </div>}
     {plan.steps.length > 0 && <details><summary>Step breakdown ({plan.steps.length})</summary><table style={{ width: "100%", fontSize: "0.8rem" }}><thead><tr><th>Step</th><th>From</th><th>To</th><th>Cost</th></tr></thead><tbody>{plan.steps.map((step) => <tr key={`${step.kind}-${step.to}`}><td>{step.kind === "level" ? "Level" : "Promo"}</td><td>{step.kind === "level" ? `L${step.from}` : `P${step.from}`}</td><td>{step.kind === "level" ? `L${step.to}` : `P${step.to}`}</td><td>{step.cost.toLocaleString()}</td></tr>)}</tbody></table></details>}
+  </section>;
+}
+
+function EssencePlannerPanel({ managers, progress, entries }: { managers: CatalogManager[]; progress: PlayerManager[]; entries: PlayerInventoryEntry[] }) {
+  const ownedManagers = managers.filter((manager) => progress.some((player) => player.managerId === manager.id && player.unlocked));
+  const steiner = ownedManagers.find((manager) => /steiner/i.test(manager.name));
+  const [managerId, setManagerId] = useState(steiner?.id ?? ownedManagers[0]?.id ?? "");
+  const [targetRank, setTargetRank] = useState(3);
+  const parsed = useMemo(() => essenceInventoryFromEntries(entries), [entries]);
+  const [inventory, setInventory] = useState<EssenceInventory>(emptyEssenceInventory());
+  useEffect(() => setInventory(parsed.inventory), [parsed.inventory]);
+  useEffect(() => { const fallback = steiner?.id ?? ownedManagers[0]?.id; if (fallback && (!managerId || !ownedManagers.some((candidate) => candidate.id === managerId))) setManagerId(fallback); }, [managerId, ownedManagers, steiner]);
+  const manager = managers.find((candidate) => candidate.id === managerId);
+  const player = progress.find((candidate) => candidate.managerId === managerId);
+  const currentRank = Math.min(5, Math.max(0, player?.rank ?? 0));
+  const boundedTarget = Math.max(currentRank, Math.min(5, targetRank));
+  const plan = manager ? planEssenceUpgrade(manager, currentRank, boundedTarget, inventory) : null;
+  const updateInventory = (key: keyof EssenceInventory, value: string) => setInventory((current) => ({ ...current, [key]: Math.max(0, Number(value) || 0) }));
+  return <section className="card-container essence-planner">
+    <div className="strategy-section-heading"><div><p className="eyebrow">Save-backed materials</p><h2 className="card-title">Essence planner</h2></div><span className="strategy-recommendation-confidence">APK recipe + Kolibri inventory</span></div>
+    <p className="muted" style={{ fontSize: "0.8rem", marginTop: 0 }}>Pick the Super Manager you want to rank. Costs come from extracted elemental recipes when the active catalog includes them; owned quantities come from your latest Kolibri sync.</p>
+    <div className="essence-planner-controls">
+      <label>Super Manager<select value={managerId} onChange={(event) => { setManagerId(event.target.value); const next = progress.find((item) => item.managerId === event.target.value)?.rank ?? 0; setTargetRank(Math.min(5, next + 1)); }}>{ownedManagers.length === 0 ? <option value="">Sync unlocked managers first</option> : ownedManagers.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name} · R{progress.find((item) => item.managerId === candidate.id)?.rank ?? 0}</option>)}</select></label>
+      <label>Current rank<input type="number" value={currentRank} readOnly /></label>
+      <label>Target rank<select value={boundedTarget} onChange={(event) => setTargetRank(Number(event.target.value))}>{[0, 1, 2, 3, 4, 5].filter((rank) => rank >= currentRank).map((rank) => <option key={rank} value={rank}>Rank {rank}</option>)}</select></label>
+      <div className="essence-focus-note"><strong>{manager?.name ?? "No manager selected"}</strong><span>{player ? `${player.fragments.toLocaleString()} fragments · Level ${player.level}` : "No synced progress"}</span></div>
+    </div>
+    {manager && !plan?.available && <div className="planner-data-warning"><strong>Rank costs unavailable for this manager in the active catalog.</strong><span>The APK extraction has the recipe, but this published package does not carry it yet. Inventory is still shown below; no cost is estimated.</span></div>}
+    {manager && plan?.available && <div className="essence-plan-summary"><strong>{plan.recipeCount} rank step{plan.recipeCount === 1 ? "" : "s"}</strong><span>{plan.rows.filter((row) => row.needed > 0 && row.delta < 0).length === 0 ? "All required essence covered" : `${plan.rows.filter((row) => row.needed > 0 && row.delta < 0).length} essence shortfall${plan.rows.filter((row) => row.needed > 0 && row.delta < 0).length === 1 ? "" : "s"}`}</span></div>}
+    <div className="essence-inventory-heading"><div><h3>Essence inventory</h3><span>{parsed.totalRows === 0 ? "No essence rows were found in the latest save." : `${parsed.matchedRows}/${parsed.totalRows} synced essence rows mapped to named types.`}</span></div><span className="data-source-chip">Source: Kolibri save</span></div>
+    <div className="essence-inventory-grid">{plan?.rows.map((row) => <label key={row.key} className={row.needed > 0 ? row.delta >= 0 ? "essence-row covered" : "essence-row short" : "essence-row"}><span><strong>{row.label}</strong>{row.needed > 0 && <em>{row.delta >= 0 ? `+${row.delta.toLocaleString()} surplus` : `${Math.abs(row.delta).toLocaleString()} needed`}</em>}</span><input aria-label={`${row.label} essence`} type="number" min="0" value={inventory[row.key]} onChange={(event) => updateInventory(row.key, event.target.value)} /><small>{row.needed > 0 ? `Need ${row.needed.toLocaleString()}` : "Not required"}</small></label>) ?? <p className="detail-empty-note">Select an unlocked manager to see its essence rows.</p>}</div>
+    <p className="planner-footnote">Pouch simulation is intentionally not enabled yet: average pouch yields are not verified from your APK data, so the planner never invents them.</p>
   </section>;
 }

@@ -1,10 +1,15 @@
 import Dexie, { type EntityTable } from "dexie";
 
 export type CatalogPassive = { passiveId?: number; unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number };
-export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; variantOf?: string; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; activeLevels?: Array<{ level: number; value: number }>; rankEffects?: Array<{ rank: number; activeIncrease?: number; passiveIncrease?: number }>; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: CatalogPassive[]; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; promotions?: Array<{ level?: number; promotion?: number; cost?: number; unlocksPassive?: boolean; passiveId?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }> };
-export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; fragmentSource?: "kolibri" | "manual" | "unavailable"; equipmentIds?: number[]; unlocked: boolean; updatedAt: string };
+export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; variantOf?: string; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; activeLevels?: Array<{ level: number; value: number }>; rankEffects?: Array<{ rank: number; activeIncrease?: number; passiveIncrease?: number }>; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: CatalogPassive[]; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; promotions?: Array<{ level?: number; promotion?: number; cost?: number; unlocksPassive?: boolean; passiveId?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }>; elementalMapping?: Array<{ id: number; rankToUnlock: number; isPrimary: boolean }>; elementalRecipe?: Array<{ rank: number; ingredients: Array<{ id: number; amount: number }> }> };
+export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; fragmentSource?: "kolibri" | "manual" | "unavailable"; passiveValues?: Array<number | null>; passiveValueSource?: "kolibri" | "unavailable"; equipmentIds?: number[]; unlocked: boolean; updatedAt: string };
+export type PlayerInventoryEntry = { key: string; kind: "essence" | "crystal" | "material" | "equipment" | "unknown"; quantity: number; sourcePath: string; sourceKey: string; itemId?: number };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
-export type AppSettings = { autoSync: boolean };
+export type AppSettings = {
+  autoSync: boolean;
+  focusManagerId?: string;
+  focusTargetLevel?: number;
+};
 export type PersistedCredentials = { kolibriId: string; authToken: string; saveGameKey: string };
 
 class MineOpsDb extends Dexie {
@@ -12,7 +17,8 @@ class MineOpsDb extends Dexie {
   metadata!: EntityTable<{ id: "sync"; value: SyncMetadata }, "id">;
   settings!: EntityTable<{ id: "app"; value: AppSettings }, "id">;
   credentials!: EntityTable<{ id: "kolibri"; value: PersistedCredentials }, "id">;
-  constructor() { super("mineops"); this.version(5).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id", settings: "id", credentials: "id", strategy_plans: "++id, kind, createdAt", dismissed_recommendations: "&id, managerId, kind" }); }
+  inventory!: EntityTable<PlayerInventoryEntry, "key">;
+  constructor() { super("mineops"); this.version(5).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id", settings: "id", credentials: "id", strategy_plans: "++id, kind, createdAt", dismissed_recommendations: "&id, managerId, kind" }); this.version(6).stores({ progress: "managerId, updatedAt, unlocked", metadata: "id", settings: "id", credentials: "id", inventory: "key, kind, sourcePath", strategy_plans: "++id, kind, createdAt", dismissed_recommendations: "&id, managerId, kind" }); }
 }
 export const db = new MineOpsDb();
 
@@ -22,6 +28,8 @@ export async function loadProgress(catalog: CatalogManager[]): Promise<PlayerMan
   return catalog.map((manager) => byId.get(manager.id) ?? { managerId: manager.id, level: 1, rank: 0, promoted: 0, fragments: 0, unlocked: false, updatedAt: new Date(0).toISOString() });
 }
 export async function saveProgress(progress: PlayerManager[]): Promise<void> { await db.progress.bulkPut(progress); }
+export async function loadInventory(): Promise<PlayerInventoryEntry[]> { return db.inventory.toArray(); }
+export async function saveInventory(entries: PlayerInventoryEntry[]): Promise<void> { await db.transaction("rw", db.inventory, async () => { await db.inventory.clear(); if (entries.length) await db.inventory.bulkPut(entries); }); }
 export async function getSyncMetadata(): Promise<SyncMetadata> { return (await db.metadata.get("sync"))?.value ?? { status: "never" }; }
 export async function setSyncMetadata(value: SyncMetadata): Promise<void> { await db.metadata.put({ id: "sync", value }); }
 export async function getSettings(): Promise<AppSettings> { return (await db.settings.get("app"))?.value ?? { autoSync: false }; }

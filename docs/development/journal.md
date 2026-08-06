@@ -1,5 +1,163 @@
 # Development journal
 
+## 2026-08-05 — Handoff document for the next agent
+
+**Outcome:** created `docs/development/HANDOFF_TO_NEXT_AGENT.md` — a practical handoff for any agent continuing this repo: the tool-call environment (macOS, no `rg`/`go`; writes confined to the workspace), the serial `todo_write`/`complete_step` workflow rules (one in_progress item, verbatim evidence matching, files-cited-this-turn), the ssh patterns that avoid evidence-matching failures (stdin-piped `ops/` scripts + absolute remote paths), server conventions (UbuntuMac / OracleVM, catalog backup→register→review→publish, watchtower deploy path), house rules (no fabrication, exact rows only, mandatory journal entries), the exact current state at the time of writing (branch `main`==`dev` at `de4749c`, live assets, catalog `lossless-v2`, 225/225 tests), the honest gaps for future extraction passes, and a proven session skeleton. No code changes. **Note:** this entry was written while separate in-flight essence-planner work (Kolibri consumable essence inventory parsing) was uncommitted on `dev`; that work is unrelated and untouched.
+
+---
+
+## 2026-08-05 — Parse live Kolibri consumable essence inventory
+
+**Outcome:** Diagnosed the empty Essence Planner against the live configured Kolibri save. The save does not use the fixture-only `SuperManagerResourcesSavegame.Essences` shape; elemental essence is stored in `Data.Inventory.ConsumableInventory.Consumables[]`, with APK-backed IDs `4100000` through `4100011` and `Amount` values. The parser now extracts those rows as essence inventory.
+
+**Evidence:** A read-only live save inspection returned the same quantities shown in the user’s game: Nature 365, Frost 318, Flame 101, Light 62, Dark 127, Wind 404, Sand 24, Water 71, Epic 7, Chaos 100, and Order 180. No credentials or raw save payload were printed or stored.
+
+**Artifacts:** Updated [`frontend/src/lib/kolibri.ts`](../../frontend/src/lib/kolibri.ts) and [`frontend/src/lib/kolibri-fixtures.test.ts`](../../frontend/src/lib/kolibri-fixtures.test.ts).
+
+**Verification:** Live-shaped parser test passed, Essence Planner tests passed, production build passed, `git diff --check` passed, and the dev compose stack was rebuilt. Run Sync once in the browser to refresh IndexedDB inventory.
+
+## 2026-08-05 — Add APK-backed Essence Planner
+
+**Outcome:** Strategy now includes an Essence Planner that selects an unlocked Super Manager, defaults toward Dr. Steiner when present, reads the latest synced Kolibri essence inventory, and calculates rank-step surplus/shortfall from extracted `elementalRecipe` rows. The planner displays all twelve essence types, keeps inventory values editable for correction, and labels missing recipe or save mappings as unavailable rather than estimating.
+
+**Data boundary:** Rank recipes are accepted only from the active verified catalog’s manager `elementalRecipe` data. Essence quantities are accepted only from the normalized IndexedDB inventory populated by Kolibri sync. Pouch simulation and unmapped essence rows remain explicitly unavailable because pouch yields and some save item identities are not yet verified.
+
+**Artifacts:** Added [`frontend/src/lib/essence-planner.ts`](../../frontend/src/lib/essence-planner.ts) and tests; updated [`frontend/src/pages/StrategyPage.tsx`](../../frontend/src/pages/StrategyPage.tsx), [`frontend/src/lib/db.ts`](../../frontend/src/lib/db.ts), [`frontend/src/lib/strategy.ts`](../../frontend/src/lib/strategy.ts), [`frontend/src/App.tsx`](../../frontend/src/App.tsx), and [`frontend/src/styles.css`](../../frontend/src/styles.css). The reference page was used for interaction shape only: [Idle Master’s Hub Essence Planner](https://idle-miners.com/#essence).
+
+**Verification:** 27 frontend test files / 234 tests passed; TypeScript/Vite production build passed; Impeccable detector returned no findings; `git diff --check` passed; and the dev compose stack was rebuilt successfully for `http://localhost:8080/`.
+
+## 2026-08-05 — Expand APK passive/equipment evidence and Kolibri inventory extraction
+
+**Outcome:** Extended the APK candidate pipeline with `passive-domain.json`, which joins every extracted passive ID to its manager unlock milestones and rank passive-increase rows. It preserves candidate passive-related source records and emits explicit blocked evidence when no rarity/rank/promotion value table is present. Equipment output now preserves long/short localization keys next to balancing data. The current capture still does not contain a decoded passive value table or the localized `8%` Investor Earpiece text; no community value was inserted.
+
+Kolibri sync now scans resource-shaped save sections for essence, crystal, material, and owned-equipment rows, preserves their source paths/keys, stores them in the local IndexedDB `inventory` table, and reports counts in More diagnostics. Assigned equipment remains excluded from the generic scan and continues through its dedicated manager-assignment parser.
+
+**Artifacts:** [`ops/passive_extractor.py`](../../ops/passive_extractor.py), [`ops/strategy_package.py`](../../ops/strategy_package.py), [`ops/equipment_extractor.py`](../../ops/equipment_extractor.py), [`frontend/src/lib/kolibri.ts`](../../frontend/src/lib/kolibri.ts), [`frontend/src/lib/db.ts`](../../frontend/src/lib/db.ts), [`frontend/src/App.tsx`](../../frontend/src/App.tsx), and [`frontend/src/pages/MorePage.tsx`](../../frontend/src/pages/MorePage.tsx). Updated [`docs/architecture/data-model.md`](../architecture/data-model.md) and [`docs/APK_DATA_INVENTORY.md`](../APK_DATA_INVENTORY.md).
+
+**Verification:** Kolibri fixture suite passed (22 tests), production TypeScript/Vite build passed, passive extractor test passed, and `git diff --check` passed. A full real-save validation remains pending because the browser save payload is not stored in the repository.
+
+## 2026-08-05 — Add persistent sync feedback summary
+
+**Outcome:** More → Player sync now includes a compact “Last sync changed” area. After each successful Kolibri import it compares the normalized roster before and after sync and reports received managers, changed records, level increases, star-rank increases, promotions, fragment increases, equipment assignment changes, and manager rows containing passive values. The summary is stored locally so it remains visible after reload; it never stores raw save data or credentials.
+
+**Why:** A successful request alone did not make it obvious whether player state was actually changing. This provides an immediate, low-noise proof of normalized data movement while keeping raw payload inspection in diagnostics/developer tooling.
+
+**Artifacts:** Added [`frontend/src/lib/sync-feedback.ts`](../../frontend/src/lib/sync-feedback.ts) and its tests; updated [`frontend/src/App.tsx`](../../frontend/src/App.tsx), [`frontend/src/pages/MorePage.tsx`](../../frontend/src/pages/MorePage.tsx), and [`frontend/src/styles.css`](../../frontend/src/styles.css).
+
+**Verification:** 26 frontend test files / 231 tests passed, TypeScript/Vite production build passed, detector returned no findings, and `git diff --check` passed.
+
+## 2026-08-05 — Preserve Kolibri passive/equipment evidence in manager details
+
+**Outcome:** Manager detail now separates player-save evidence from catalog facts. The Kolibri adapter preserves ordered passive values when a manager row actually contains them, records passive/equipment coverage in diagnostics, and continues to preserve assigned equipment IDs. The modal uses those imported passive values for unlocked passives, shows `Locked` for locked passives, and uses a high-visibility red X when a value is missing. Assigned equipment now displays the known equipment name and save provenance; its effect is shown only when the verified package exposes an explicit effect description or multiplier, otherwise it also receives a red X.
+
+**Data boundary:** No 1.95x passive value or 8% Investor Earpiece effect was manufactured. The current checked-in bootstrap package does not expose those personal/effect fields, so the next real Kolibri sync will either populate them or make the missing evidence visible for investigation. Existing fragment, level, rank, and promotion fields remain unchanged.
+
+**Artifacts:** Updated [`frontend/src/lib/kolibri.ts`](../../frontend/src/lib/kolibri.ts), [`frontend/src/lib/db.ts`](../../frontend/src/lib/db.ts), [`frontend/src/lib/equipment-effects.ts`](../../frontend/src/lib/equipment-effects.ts), [`frontend/src/components/ManagerDetailModal.tsx`](../../frontend/src/components/ManagerDetailModal.tsx), [`frontend/src/App.tsx`](../../frontend/src/App.tsx), [`frontend/src/pages/MorePage.tsx`](../../frontend/src/pages/MorePage.tsx), [`frontend/src/lib/kolibri-fixtures.test.ts`](../../frontend/src/lib/kolibri-fixtures.test.ts), and [`frontend/src/styles.css`](../../frontend/src/styles.css). Updated [`docs/architecture/data-model.md`](../architecture/data-model.md) to document the evidence boundary.
+
+**Verification:** 25 frontend test files / 229 tests passed, TypeScript/Vite production build passed, and `git diff --check` passed. Browser visual QA is still pending in this session; use the dev server, run a real Sync player data, then open Dr. Steiner’s modal and inspect More → Player sync diagnostics.
+
+## 2026-08-05 — Add persisted Super Manager upgrade focus
+
+**Outcome:** Added a personal upgrade-focus workflow. Users can choose an unlocked Super Manager and a milestone target (levels 10, 20, 30, 40, or 50) from Today, or set the focus directly from the manager detail modal. The focus persists in IndexedDB settings. Today now shows the current level, target, remaining levels, progress bar, target promotion, next passive, and any verified catalog cash reference for the milestone.
+
+**Data boundary:** The current verified package includes manager progression and passive unlock definitions, so Steiner’s level-30 milestone can be shown from captured data. It does not currently include normalized blue/red crystal inventory, crystal price schedules, or blue/red Mainland income. The UI explicitly marks crystal totals unavailable instead of borrowing community values or estimating them. Updated [`docs/reference/idle-miners.com.md`](../reference/idle-miners.com.md) to preserve that boundary.
+
+**Artifacts:** Updated [`frontend/src/lib/db.ts`](../../frontend/src/lib/db.ts), [`frontend/src/lib/upgrade-focus.ts`](../../frontend/src/lib/upgrade-focus.ts), [`frontend/src/lib/upgrade-focus.test.ts`](../../frontend/src/lib/upgrade-focus.test.ts), [`frontend/src/pages/TodayPage.tsx`](../../frontend/src/pages/TodayPage.tsx), [`frontend/src/components/ManagerDetailModal.tsx`](../../frontend/src/components/ManagerDetailModal.tsx), [`frontend/src/App.tsx`](../../frontend/src/App.tsx), and [`frontend/src/styles.css`](../../frontend/src/styles.css).
+
+**Verification:** 25 test files / 228 tests passed, TypeScript/Vite production build passed, detector returned no findings, and `git diff --check` passed. The reference site was consulted as a behavioral reference only; no reference-site values were added to MineOps runtime data.
+
+## 2026-08-05 — Soften Light-mode manager sprite panels
+
+**Outcome:** Reduced the Light-mode manager card media panels from solid dark teal to a brighter, approximately 50%-tint teal gradient. Locked cards receive a softer version. Dark mode remains unchanged.
+
+**Why:** The light workspace was still carrying visually heavy teal blocks behind manager artwork, competing with the brighter page background.
+
+**Verification:** Frontend tests, TypeScript/Vite production build, detector scan, and `git diff --check` run after the change.
+
+## 2026-08-05 — Normalize manager card media height
+
+**Outcome:** Manager cards now use a shared fixed-height sprite rail and stretch their content columns consistently, so different sprite aspect ratios cannot move the white information surface up or down from card to card.
+
+**Why:** Compact manager-grid screenshots showed Damian Jones and other cards ending the dark media panel at different heights, creating uneven card tops and rhythm.
+
+**Verification:** Frontend tests, TypeScript/Vite production build, detector scan, and `git diff --check` run after the change.
+
+## 2026-08-05 — Keep compact filter hover states inside their rows
+
+**Outcome:** Removed horizontal overflow clipping from the manager filter group, added explicit borders, and replaced the generic button hover shadow with a contained two-pixel focus halo. Segmented and sort controls now suppress the global lift/shadow treatment that was creating clipped edges and stacked rings at compact widths.
+
+**Why:** Small-screen screenshots showed hovered filter chips clipped at the row boundary and the active Common chip receiving a visually tangled outer shadow.
+
+**Verification:** Frontend tests, TypeScript/Vite production build, detector scan, and `git diff --check` run after the change.
+
+## 2026-08-05 — Add a brighter light workspace while locking dark mode
+
+**Outcome:** Preserved the current night-shift geological control-room palette as an explicit dark mode and added a brighter mineral-paper light mode. New sessions default to Light; users can switch between Light and Dark from More → Preferences, with the choice persisted in local storage.
+
+**Why:** The user prefers the earlier light direction for everyday use but wants the current dark design retained as an intentional alternate mode. The light theme changes backgrounds, surfaces, borders, field treatment, and readable text tones while keeping the shared teal/amber signals, hierarchy, spacing, responsive behavior, and focus states.
+
+**Artifacts:** Updated [`frontend/src/styles.css`](../../frontend/src/styles.css), [`frontend/src/pages/MorePage.tsx`](../../frontend/src/pages/MorePage.tsx), [`frontend/index.html`](../../frontend/index.html), [`DESIGN.md`](../../DESIGN.md), and [`.impeccable/design.json`](../../.impeccable/design.json). No data, sync, or strategy behavior changed.
+
+**Verification:** 225 frontend tests passed, TypeScript/Vite production build passed, detector returned no findings, and `git diff --check` passed. The dev container still needs its normal rebuild/restart before the production bundle changes are deployed; local development uses the mounted Vite source.
+
+## 2026-08-05 — Repair small-screen manager detail modal
+
+**Outcome:** Reworked the manager detail modal for mobile reading: dark-theme contrast now applies consistently to the header, stats, progression, and ability cards; passive rows have separated label/value layout; the modal exposes dialog semantics; and passive abilities, element affinities, and equipment are progressively disclosed instead of competing with the active ability on first view.
+
+**Why:** Shared-browser screenshot review showed legacy white surfaces becoming unreadable against the new dark theme, passive text colliding because its layout primitives were missing, and too much secondary information appearing at once on a small viewport.
+
+**Verification:** 225 frontend tests passed, TypeScript/Vite production build passed, and `git diff --check` passed. Browser automation was unavailable for a post-change screenshot in this session; the implementation was verified against the supplied small-screen capture and source-level responsive rules.
+
+## 2026-08-05 — Distill the UI around the next decision
+
+**Outcome:** Reduced first-view cognitive load without removing functionality. Strategy now leads directly with the recommendation and puts the seven expert tools behind an explicit “Explore strategy tools” disclosure. Today’s calculation explanation is collapsed until needed, and More now opens only the primary Player sync task by default; Catalog and Preferences remain available but closed.
+
+**Why:** The distill pass identified the recommendation, data confidence, and next action as the 20% that delivers most of the product value. Secondary calculators, technical explanations, and implementation detail should not compete with that path.
+
+**Verification:** Frontend tests, TypeScript/Vite production build, detector scan, and `git diff --check` run after the change. No strategy calculations, data models, or import behavior were removed.
+
+## 2026-08-04 — Visual redesign: night-shift geological control room
+
+**Outcome:** Replaced the pale iOS-style card treatment with a new UI/UX world for the current web app: mineral-slate surfaces, oxidized-teal actions, amber signal states, responsive control-rail navigation, stronger hover/focus states, and reduced-motion handling. The product behavior, data model, and strategy calculations remain unchanged.
+
+**Direction contract:** The assigned Impeccable direction seed was `c8c7b84c`, direction 5. The committed thesis is a night-shift geological control room: make the next decision, data confidence, and caution states visually unmistakable without turning the app into a fake simulator.
+
+**Artifacts:** Updated [`frontend/src/styles.css`](../../frontend/src/styles.css), [`frontend/index.html`](../../frontend/index.html), [`DESIGN.md`](../../DESIGN.md), and [`.impeccable/design.json`](../../.impeccable/design.json). The emitted body contains the redesign contract comment required by the new-work workflow.
+
+**Verification:** 225 frontend tests passed, TypeScript/Vite production build passed, `git diff --check` passed, detector returned no findings for `frontend/src` and `frontend/index.html`, and the built output contains the direction contract key. Browser visual QA remains pending because browser automation is unavailable in this session.
+
+## 2026-08-04 — Polish data confidence, document the visual system, and reorganize More
+
+**Outcome:** Completed the remaining critique-driven P1/P2 work. App now shows a shared recommendation-data confidence bar on Managers, Strategy, and More with player freshness, catalog source, confidence, and expandable release details. Strategy repeats the verified catalog basis beside the primary recommendation. More is grouped by user tasks: Keep data current, Recovery & history, Account & devices, and Capture & maintenance; technical details remain progressively disclosed.
+
+**Visual system:** Added shared semantic tokens, explicit keyboard focus rings, targeted transitions, responsive More-page primitives, and the incumbent-system documentation [`DESIGN.md`](../../DESIGN.md) plus [`.impeccable/design.json`](../../.impeccable/design.json). No visual world was replaced; the documentation records the existing iOS-derived MineOps system.
+
+**Verification:** Frontend tests, TypeScript/Vite build, detector scan, and `git diff --check` run after the combined change. No data model, parity, or architecture document changes were required.
+
+## 2026-08-04 — Clarify Today recommendation and data-status copy
+
+**Outcome:** Replaced roadmap-oriented “Mine Intelligence” copy on Today with a concise explanation of how recommendations are calculated. Added a visible data-status message with recovery guidance for never-synced, failed, offline, stale, and current states. Tightened empty and no-rank-up messages and renamed “Empire Snapshot” to “Roster snapshot.”
+
+**Why:** The clarify pass found that Today exposed implementation backlog instead of current user value and did not explain what the user should do when data was missing or stale.
+
+**Verification:** Frontend tests, TypeScript/Vite build, detector scan, and `git diff --check` run after the change. No data model, parity, or architecture document changes were required.
+
+## 2026-08-04 — Strategy recommendation-first hierarchy
+
+**Outcome:** Distilled the Strategy page around a new “Your next useful move” recommendation panel. It chooses the highest verified upgrade return when available, otherwise a best starting lineup, otherwise the Frontier next action. Existing Frontier, lineup, upgrade, tier list, progress, Stella, and crystal tools remain available below as focused expert paths.
+
+**Why:** The critique found that Strategy presented a toolbox before answering the player’s primary question. The new hierarchy reduces the first decision to one clear action while preserving the full planner suite.
+
+**Verification:** 225 frontend tests passed, the TypeScript/Vite production build passed, `git diff --check` passed, and the visual detector passed after removing the shared fragment-progress layout animation flagged during the craft-floor review. No data model or parity document changes were required.
+
+## 2026-08-04 — Impeccable product context captured
+
+**Outcome:** Added [`PRODUCT.md`](../../PRODUCT.md) through the `teach-impeccable` initialization workflow. It records the confirmed product truth: MineOpsWeb is a personal Idle Miner Tycoon strategy tool, inspired by idle-miners.com's ideas but powered by the user's own captured and verified data.
+
+**Preserved constraints:** The product record captures the verified-data/no-fabrication rule, IndexedDB/offline-first behavior, safe queued sync, mobile-first keyboard accessibility, the iOS behavioral reference, catalog/player/workspace separation, and the known Kolibri fragment uncertainty.
+
+**Verification:** Reviewed the V3 PRD, architecture data/sync/system documents, current strategy implementation, and idle-miners.com reference notes before writing the record. No application code or visual styles changed; no additional pertinent architecture or parity document required an update.
+
 ## 2026-08-04 — Feature push: idle-miners.com tool suite on verified data (progress tracker, Stella's elevator, crystal planner)
 
 **Outcome:** the remaining idle-miners.com tools that can honestly run on our data are now part of the Strategy page. Suite grew to **225 passing across 24 files**; production build clean; main bundle flat at 201.6 kB (all new code lives in the lazy `StrategyPage` chunk, now 62.25 kB raw / 18.44 kB gzip).

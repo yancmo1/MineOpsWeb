@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-04T00:00:00Z",
+  "title": "Design System: MineOpsWeb",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Oxidized Teal", "canonical": "#71E5D1", "tonalRamp": ["#093B38", "#12635D", "#218C82", "#3BB0A4", "#71E5D1", "#9AF3E4", "#C5FBF2", "#E9FFFB"] },
+      "secondary": { "role": "secondary", "displayName": "Amber Signal", "canonical": "#FFB454", "tonalRamp": ["#4E2705", "#79410B", "#A96016", "#D6862C", "#FFB454", "#FFCA7C", "#FFE0AC", "#FFF3DC"] },
+      "neutral-bg": { "role": "neutral", "displayName": "Mineral Night", "canonical": "#0B1214", "tonalRamp": ["#050707", "#0B1214", "#142125", "#1C3035", "#294247", "#466469", "#75928F", "#B7C7C3"] },
+      "surface": { "role": "neutral", "displayName": "Work Surface", "canonical": "#132024", "tonalRamp": ["#081012", "#132024", "#1D3035", "#2C4449", "#466369", "#698681", "#9BB2AC", "#D8E4DF"] },
+      "light-neutral-bg": { "role": "neutral", "displayName": "Mineral Paper", "canonical": "#F4F8F6", "tonalRamp": ["#DCECE7", "#E7F0ED", "#EDF5F2", "#F4F8F6", "#F9FCFB", "#FFFFFF"] },
+      "light-text": { "role": "neutral", "displayName": "Daylight Ink", "canonical": "#172A2A", "tonalRamp": ["#172A2A", "#536966", "#718884", "#A1B6B0", "#C8DAD5", "#E7F0ED"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Control Room Display", "purpose": "Fast page orientation and high-priority decisions." },
+      "body": { "displayName": "Field Note Sans", "purpose": "Compact, readable operational copy." }
+    },
+    "shadows": [
+      { "name": "surface-low", "value": "0 10px 28px rgba(0, 0, 0, 0.2)", "purpose": "Separate work surfaces from the mineral canvas." },
+      { "name": "recommendation", "value": "0 0 0 1px rgba(113,229,209,0.08), 0 16px 34px rgba(0,0,0,0.26)", "purpose": "Make the primary next move unmistakable." }
+    ],
+    "motion": [
+      { "name": "control-response", "value": "160ms ease", "purpose": "Hover, focus, active, and tactile control feedback." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion", "purpose": "Collapse transitions for users who request less motion." }
+    ],
+    "breakpoints": [
+      { "name": "compact", "value": "520px" },
+      { "name": "wide", "value": "780px" },
+      { "name": "desktop", "value": "1240px" }
+    ]
+  },
+  "components": [
+    { "name": "Primary Button", "kind": "button", "refersTo": "button-primary", "description": "Teal action for the next player decision.", "html": "<button class=\"ds-primary\">Sync player data</button>", "css": ".ds-primary { background:#71E5D1; color:#08201E; border:1px solid transparent; border-radius:9px; padding:.625rem 1rem; font:600 1rem -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; } .ds-primary:hover { background:#9AF3E4; box-shadow:0 0 0 3px rgba(113,229,209,.1),0 8px 18px rgba(0,0,0,.24); } .ds-primary:focus-visible { outline:2px solid #71E5D1; outline-offset:3px; }" },
+    { "name": "Secondary Button", "kind": "button", "refersTo": "button-secondary", "description": "Quiet supporting action.", "html": "<button class=\"ds-secondary\">View history</button>", "css": ".ds-secondary { background:#203238; color:#F2F7F4; border:1px solid #2C474C; border-radius:9px; padding:.625rem 1rem; font:600 1rem -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; } .ds-secondary:hover { background:#18282D; color:#71E5D1; border-color:#71E5D1; } .ds-secondary:focus-visible { outline:2px solid #71E5D1; outline-offset:3px; }" },
+    { "name": "Field", "kind": "input", "refersTo": "input", "description": "Dark labeled field for credentials and manual inputs.", "html": "<label class=\"ds-field\"><span>Save game key</span><input class=\"ds-input\" placeholder=\"0\"></label>", "css": ".ds-field { display:grid; gap:.3rem; color:#F2F7F4; font:700 .8rem -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; } .ds-input { width:100%; padding:.625rem .875rem; border:1px solid #2C474C; border-radius:9px; background:#0E1A1D; color:#F2F7F4; font:400 1rem -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; } .ds-input:focus-visible { outline:2px solid #71E5D1; outline-offset:3px; border-color:#71E5D1; }" },
+    { "name": "Recommendation Card", "kind": "custom", "refersTo": "strategy-recommendation", "description": "Primary decision surface with source confidence and one next action.", "html": "<section class=\"ds-recommendation\"><span>START HERE</span><h2>Your next useful move</h2><p>Review the strongest verified upgrade.</p><button>Open upgrade focus</button></section>", "css": ".ds-recommendation { background:#132024; color:#F2F7F4; border:1px solid rgba(113,229,209,.55); border-radius:14px; padding:1.25rem; box-shadow:0 0 0 1px rgba(113,229,209,.08),0 16px 34px rgba(0,0,0,.26); } .ds-recommendation span { color:#71E5D1; font-size:.68rem; letter-spacing:.15em; font-weight:700; } .ds-recommendation h2 { margin:.5rem 0; }" },
+    { "name": "Bottom Navigation", "kind": "nav", "refersTo": "nav", "description": "Dark mobile control rail.", "html": "<nav class=\"ds-nav\"><button class=\"ds-active\">Strategy</button><button>More</button></nav>", "css": ".ds-nav { display:flex; gap:.5rem; padding:.375rem .5rem; background:rgba(11,18,20,.94); border-top:1px solid #2C474C; } .ds-nav button { flex:1; border:0; border-radius:8px; padding:.375rem .5rem; background:transparent; color:#6F8985; font:500 .625rem -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; } .ds-nav .ds-active { color:#71E5D1; background:rgba(113,229,209,.1); }" }
+  ],
+  "narrative": {
+    "northStar": "The Night-Shift Geological Control Room",
+    "overview": "MineOps is a focused instrument panel for a player checking a roster between decisions. Dark mode is the locked night-shift control room; light mode translates the same system into bright mineral-paper surfaces for daytime use. Both keep the next action, confidence state, and warning signal unmistakable.\n\nThe interface uses survey instruments and control-room readouts without pretending to be a simulator. Dense information is allowed when it is structured; technical provenance stays available but never outranks the player's decision.",
+    "keyCharacteristics": ["Mineral slate dark mode", "Mineral-paper light mode", "Oxidized teal actions", "Amber signal states", "Tactile focus and hover", "Linear decision paths"],
+    "rules": [
+      { "name": "The Signal-First Rule", "body": "Teal means act or trust; amber means pause and inspect. Neither accent is decorative.", "section": "colors" },
+      { "name": "The Two-Workspace Rule", "body": "Dark mode preserves the night-shift palette exactly. Light mode changes surface and text tones only; signals, hierarchy, spacing, and interaction behavior remain shared.", "section": "colors" },
+      { "name": "The One Cue Rule", "body": "A surface uses a border or a shadow as its primary separator. A focused recommendation may use both.", "section": "elevation" }
+    ],
+    "dos": ["Do lead with the player's next decision.", "Do make data confidence and source visible before recommendations.", "Do use tactile hover, focus, active, loading, and reduced-motion states.", "Do keep technical provenance expandable and subordinate."],
+    "donts": ["Don't flatten light mode into a generic white dashboard.", "Don't use teal or amber as decoration without meaning.", "Don't make every calculator equally prominent.", "Don't use layout-property animation or hide keyboard focus."]
+  }
+}
