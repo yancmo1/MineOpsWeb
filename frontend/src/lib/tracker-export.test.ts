@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { CatalogManager, PlayerManager } from "./db";
-import { buildTrackerBackup, serializeTrackerBackup } from "./tracker-export";
+import { buildTrackerBackup, serializeTrackerBackup, trackerKeyForName } from "./tracker-export";
 
 const catalog: CatalogManager[] = [
-  { id: "dr-steiner", name: "Dr. Steiner", rarity: "legendary", type: "Mine Shaft", elements: [] },
-  { id: "samantha-reiss", name: "Samantha Reiss", rarity: "legendary", type: "Warehouse", elements: [] },
+  { id: "sm-10003", name: "Dr. Steiner", rarity: "legendary", type: "Mine Shaft", elements: [] },
+  { id: "sm-10004", name: "Samantha Reiss", rarity: "legendary", type: "Warehouse", elements: [] },
 ];
 
 const progress: PlayerManager[] = [{
-  managerId: "dr-steiner",
+  managerId: "sm-10003",
   unlocked: true,
   level: 30,
   rank: 3,
@@ -18,6 +18,12 @@ const progress: PlayerManager[] = [{
 }];
 
 describe("Idle Master's Hub tracker export", () => {
+  it("converts display names to the target site's slug keys", () => {
+    expect(trackerKeyForName("Dr. Steiner")).toBe("dr-steiner");
+    expect(trackerKeyForName("Luna & Stella")).toBe("luna-and-stella");
+    expect(trackerKeyForName("King O'Rekk")).toBe("king-orekk");
+  });
+
   it("emits the strict flat manager format and preserves catalog order", () => {
     const backup = buildTrackerBackup(catalog, progress);
 
@@ -40,6 +46,7 @@ describe("Idle Master's Hub tracker export", () => {
       chronoExcluded: false,
       tierlistExcluded: false,
     });
+    expect(backup["sm-10003"]).toBeUndefined();
   });
 
   it("serializes valid JSON without adding app metadata", () => {

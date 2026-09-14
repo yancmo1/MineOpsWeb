@@ -4,7 +4,8 @@
 
 **Outcome:** Added a Manager-page **Export lineup** action that downloads the
 current catalog-backed roster as `sm-tracker-backup.json`, using the strict flat
-manager-keyed format accepted by Idle Master's Hub. Each entry contains only
+name-slug-keyed format accepted by Idle Master's Hub. Catalog IDs are converted
+from names such as `Dr. Steiner` to keys such as `dr-steiner`. Each entry contains only
 `unlocked`, `rank`, `level`, `promoted`, `fragments`, `chronoExcluded`, and
 `tierlistExcluded`; the two tracker-only flags default to `false`.
 
