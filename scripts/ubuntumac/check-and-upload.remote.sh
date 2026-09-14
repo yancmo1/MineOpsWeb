@@ -16,6 +16,7 @@ RUN_STARTED_AT="$(date -Is)"
 CURRENT_INSTALLED=""
 CURRENT_LATEST=""
 REPORT_MODE="run"
+RELEASE_RETENTION_COUNT="${MINEOPS_RELEASE_RETENTION_COUNT:-3}"
 
 # Make adb/emulator available in non-interactive SSH sessions.
 if [[ -d "$HOME/Android/Sdk/platform-tools" ]]; then
@@ -201,6 +202,119 @@ with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as server:
     server.sendmail(os.environ["GMAIL_USER"], [os.environ["ADMIN_EMAIL"]], msg.as_string())
 PY
   echo "[ubuntu-check] status email sent to $admin_email"
+}
+
+prune_local_releases() {
+  if [[ ! "$RELEASE_RETENTION_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+    echo "[ubuntu-check] invalid MINEOPS_RELEASE_RETENTION_COUNT: $RELEASE_RETENTION_COUNT" >&2
+    return 2
+  fi
+  if [[ ! -d "$RELEASE_ROOT" ]]; then
+    echo "[ubuntu-check] release root does not exist; nothing to prune: $RELEASE_ROOT"
+    return 0
+  fi
+
+  local release_root_real inventory_file
+  release_root_real="$(cd "$RELEASE_ROOT" && pwd -P)"
+  inventory_file="$(mktemp)"
+  if ! python3 - "$RELEASE_ROOT" >"$inventory_file" <<'PY'
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+timestamp_pattern = re.compile(r"_(\d{8}T\d{6}Z)(?:$|[._])", re.IGNORECASE)
+required = (
+    "release.json",
+    "apk/APK_PATHS.json",
+    "apk/APK_SET.json",
+    "apk/SHA256SUMS",
+    "manifests/package-dumpsys.txt",
+)
+
+def event_time(payload, directory):
+    captured_at = payload.get("capturedAt")
+    if isinstance(captured_at, str) and captured_at:
+        try:
+            value = datetime.fromisoformat(captured_at.replace("Z", "+00:00"))
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            return value.timestamp()
+        except ValueError:
+            pass
+    release_id = payload.get("releaseId")
+    if isinstance(release_id, str):
+        match = timestamp_pattern.search(release_id)
+        if match:
+            try:
+                return datetime.strptime(match.group(1), "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc).timestamp()
+            except ValueError:
+                pass
+    return directory.stat().st_mtime
+
+for directory in sorted(root.iterdir(), key=lambda item: item.name):
+    if directory.is_symlink() or not directory.is_dir():
+        continue
+    payload = {}
+    release_file = directory / "release.json"
+    try:
+        payload = json.loads(release_file.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        pass
+
+    complete = (
+        isinstance(payload, dict)
+        and payload.get("releaseId") == directory.name
+        and all((directory / relative).is_file() for relative in required)
+    )
+    priority = 1 if complete else 0
+    print(f"{priority}\t{event_time(payload, directory):.6f}\t{directory.stat().st_mtime_ns}\t{directory}")
+PY
+  then
+    rm -f "$inventory_file"
+    echo "[ubuntu-check] could not inventory release directories; nothing was removed" >&2
+    return 1
+  fi
+
+  local kept_count=0
+  local deleted_count=0
+  local priority event_time modified_at release_dir keep
+  local -a keep_paths=()
+  while IFS=$'\t' read -r priority event_time modified_at release_dir; do
+    [[ -n "$release_dir" ]] || continue
+    if [[ "$priority" == "1" && "$kept_count" -lt "$RELEASE_RETENTION_COUNT" ]]; then
+      keep_paths+=("$release_dir")
+      kept_count=$((kept_count + 1))
+    fi
+  done < <(sort -t $'\t' -k1,1nr -k2,2nr -k3,3nr "$inventory_file")
+
+  while IFS=$'\t' read -r priority event_time modified_at release_dir; do
+    [[ -n "$release_dir" ]] || continue
+    keep=0
+    for kept_path in "${keep_paths[@]}"; do
+      if [[ "$release_dir" == "$kept_path" ]]; then
+        keep=1
+        break
+      fi
+    done
+    if [[ "$keep" == "1" ]]; then
+      continue
+    fi
+    if [[ "$(dirname "$release_dir")" != "$release_root_real" || ! -d "$release_dir" ]]; then
+      echo "[ubuntu-check] refusing unsafe release prune target: $release_dir" >&2
+      rm -f "$inventory_file"
+      return 1
+    fi
+    echo "[ubuntu-check] purging old/incomplete release: $(basename "$release_dir")"
+    rm -rf -- "$release_dir"
+    deleted_count=$((deleted_count + 1))
+  done < "$inventory_file"
+
+  rm -f "$inventory_file"
+  echo "[ubuntu-check] release retention complete: kept $kept_count, purged $deleted_count"
+  return 0
 }
 
 latest_release_json() {
@@ -397,6 +511,7 @@ acquire_release() {
   # no-op, but there is nothing new to send to PocketBase.
   if [[ "$acquire_code" == "14" ]]; then
     echo "[ubuntu-check] release is unchanged; nothing to upload"
+    prune_local_releases || return 1
     return 14
   fi
   if [[ "$acquire_code" != "0" ]]; then
@@ -524,6 +639,10 @@ if [[ "$MODE" == "status" || "$MODE" == "--status" ]]; then
   show_status
   exit $?
 fi
+if [[ "$MODE" == "--prune-releases" ]]; then
+  prune_local_releases
+  exit $?
+fi
 
 if [[ "$MODE" == "--no-start" ]]; then
   export NO_EMULATOR_START=1
@@ -554,6 +673,7 @@ trap cleanup EXIT
 start_emulator_if_needed
 ensure_play_current
 if [[ "$ENSURE_ONLY" == "1" ]]; then
+  prune_local_releases
   exit 0
 fi
 if [[ "$UPLOAD_ONLY" == "1" ]]; then
@@ -572,7 +692,11 @@ if [[ "$UPLOAD_ONLY" == "1" ]]; then
   rm -f "$upload_json"
   if [[ "$upload_code" == "14" ]]; then
     echo "[ubuntu-check] latest release was already uploaded"
+    prune_local_releases
     exit 0
+  fi
+  if [[ "$upload_code" == "0" ]]; then
+    prune_local_releases
   fi
   exit "$upload_code"
 fi
@@ -600,4 +724,11 @@ fi
 
 echo "[ubuntu-check] Latest release payload: $release_json"
 enrich_payload "$release_json"
+set +e
 upload_release "$release_json"
+upload_code=$?
+set -e
+if [[ "$upload_code" == "0" || "$upload_code" == "14" ]]; then
+  prune_local_releases
+fi
+exit "$upload_code"

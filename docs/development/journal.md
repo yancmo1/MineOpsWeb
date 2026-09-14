@@ -1,5 +1,27 @@
 # Development journal
 
+## 2026-09-14 — Retain only the three newest UbuntuMac releases
+
+**Change:** Added an idempotent local retention step to the UbuntuMac bridge
+runner. It validates immediate release directories under
+`~/mineops-data/releases/`, keeps the three newest complete captures by
+`capturedAt` (directory modification time breaks ties), and purges older or
+incomplete directories only within that release root. The step runs after a
+successful or duplicate upload and is available explicitly as
+`check-and-upload.sh --prune-releases`.
+
+**Scope:** PocketBase `raw_imports`/`catalog_versions` history and the active
+catalog package are intentionally not deleted; they remain the server-side
+audit and rollback records.
+
+**Verification:** Added a regression test covering four complete releases,
+an incomplete directory, and a second idempotent prune run. Deployed runner
+checksum `502ba9c3282cc67d84cd97f2ef931d06500feff4bd9184614bb38a6c9c764c6f`
+then purged three old/incomplete UbuntuMac directories. A second live prune
+reported `kept 3, purged 0`; the retained directories are
+`5.63.0_97356_20260914T134142Z`, `5.60.0_96765_20260814T121627Z`, and
+`5.59.0_96449_20260716T143539Z.lossless-v2`.
+
 ## 2026-09-14 — Fix stale UbuntuMac version in website bridge status
 
 **Root cause:** PocketBase contains nine catalog releases, including the live

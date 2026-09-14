@@ -69,8 +69,12 @@ from `5.60.0 / 96765` to `5.63.0 / 97356`; release
 `5.63.0_97356_20260914T134142Z` was acquired and ingested with HTTP 200. The
 wrapper still runs successfully every other Sunday, retries the following
 Sunday after a failed run, and leaves no emulator process running after
-cleanup. The latest remote script hashes and full log are authoritative when
-continuing operations.
+cleanup. The deployed checker now keeps three newest complete local release
+directories and purges older/incomplete children of the release root; the
+one-time live purge on 2026-09-14 left `5.63.0_97356_20260914T134142Z`,
+`5.60.0_96765_20260814T121627Z`, and
+`5.59.0_96449_20260716T143539Z.lossless-v2`. The latest remote script hashes
+and full log are authoritative when continuing operations.
 
 ## 6. Typical session skeleton (proven to work)
 

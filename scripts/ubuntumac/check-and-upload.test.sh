@@ -131,4 +131,34 @@ empty_message_report_code=$?
 set -e
 [[ "$empty_message_report_code" == "0" ]] || { echo "expected empty-message report to exit 0, got $empty_message_report_code" >&2; exit 1; }
 
+release_root="$HOME/mineops-data/releases"
+make_release() {
+  local release_id="$1"
+  local captured_at="$2"
+  local release_dir="$release_root/$release_id"
+  mkdir -p "$release_dir/apk" "$release_dir/manifests"
+  printf '{"releaseId":"%s","capturedAt":"%s"}\n' "$release_id" "$captured_at" >"$release_dir/release.json"
+  : >"$release_dir/apk/APK_PATHS.json"
+  : >"$release_dir/apk/APK_SET.json"
+  : >"$release_dir/apk/SHA256SUMS"
+  : >"$release_dir/manifests/package-dumpsys.txt"
+}
+
+make_release "5.60.0_96765_20260814T121627Z" "2026-08-14T12:16:27Z"
+make_release "5.61.0_97000_20260828T121627Z" "2026-08-28T12:16:27Z"
+make_release "5.62.0_97200_20260907T121627Z" "2026-09-07T12:16:27Z"
+make_release "5.63.0_97356_20260914T134142Z" "2026-09-14T13:41:42Z"
+mkdir -p "$release_root/incomplete_capture"
+
+bash "$CHECKER" --prune-releases
+[[ -d "$release_root/5.63.0_97356_20260914T134142Z" ]]
+[[ -d "$release_root/5.62.0_97200_20260907T121627Z" ]]
+[[ -d "$release_root/5.61.0_97000_20260828T121627Z" ]]
+[[ ! -e "$release_root/5.60.0_96765_20260814T121627Z" ]]
+[[ ! -e "$release_root/incomplete_capture" ]]
+
+# Re-running retention is a no-op and leaves the same three directories.
+bash "$CHECKER" --prune-releases
+[[ "$(find "$release_root" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" == "3" ]]
+
 echo "UbuntuMac checker regression test passed"

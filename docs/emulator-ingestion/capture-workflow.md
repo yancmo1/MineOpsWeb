@@ -1,6 +1,14 @@
 # Capture workflow
 
-Capture files stay on `ubuntumac`; the agent never deletes source files. The intended flow is Android emulator → local extraction → `mineops-ingest validate` → HTTPS upload → staged catalog review → validation → explicit activation. Capture payloads must be treated as untrusted input and retained according to the server-guide backup policy.
+UbuntuMac retains the three newest complete release directories locally. After a
+successful or duplicate upload, the runner purges older or incomplete immediate
+children of `~/mineops-data/releases/`; it never deletes files outside that
+release root. PocketBase import history and the active catalog package are
+separate server-side records and are not pruned by this local retention step.
+The intended flow is Android emulator → local extraction → `mineops-ingest
+validate` → HTTPS upload → staged catalog review → validation → explicit
+activation. Capture payloads must be treated as untrusted input and retained
+according to the server-guide backup policy.
 
 Lossless strategy extraction writes a new candidate below the selected complete release; it never overwrites `exports/v3` or an existing candidate. A release is eligible only when every capture prerequisite exists and every safe, release-local APK filename recomputes to the SHA-256 recorded in `release.json`. That metadata supplies the release/game identity, domain files are written canonically with hashes, and `manifest.json` is written last. The repo-owned extractor modules under `ops/` are the reproducible source for the copies installed in `~/mineops-engine/src/mineops_data_engine/`. Candidate generation and publication are separate operations: creating or validating a candidate does not upload, publish, or activate it.
 
@@ -142,3 +150,9 @@ uploads a compact release envelope; the full processed catalog is not sent
 through the PocketBase capture payload-size limit. Manual checks and scheduled
 runs send status email through the existing BingeBox Gmail settings
 (`GMAIL_USER`, `GMAIL_PASS`, and `ADMIN_EMAIL`) without logging credentials.
+
+Retention can also be run directly with
+`~/mineops-data/bin/check-and-upload.sh --prune-releases`. It keeps the three
+newest complete releases by capture time, with directory modification time as
+the tie-breaker for derived revisions of the same capture. Re-running the
+command converges to the same three directories.

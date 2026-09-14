@@ -10,3 +10,10 @@ checker recovers Android `isn't responding` dialogs, opens the explicit Play
 Store app page, waits for the page to be ready, and taps `Update` when needed.
 A stale or un-updatable emulator is never acquired or uploaded. If a biweekly
 run fails, the following Sunday is automatically used as a retry window.
+
+Local release retention is automatic: the runner keeps the three newest
+complete release directories under `~/mineops-data/releases/` and purges older
+or incomplete directories after a successful or already-ingested upload. The
+PocketBase import history is retained separately for audit and rollback. To
+run the local cleanup explicitly, use
+`~/mineops-data/bin/check-and-upload.sh --prune-releases`.
