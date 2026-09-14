@@ -1,5 +1,122 @@
 # Development journal
 
+## 2026-09-14 — Fix stale UbuntuMac version in website bridge status
+
+**Root cause:** PocketBase contains nine catalog releases, including the live
+`5.63.0_97356_20260914T134142Z` ingest, but the Properties/Capture bridge UI
+requested only the first five records. The public `catalog_versions` response
+also omits `created`, so client-side sorting preserved the old default order
+and selected `5.59.0`.
+
+**Fix:** `fetchCaptureStatus()` now reads the complete catalog collection and
+sorts newest-first using `created` when present, otherwise the UTC timestamp
+embedded in the release ID. Added a focused regression test that reproduces a
+truncated, `created`-less response and verifies that the `5.63.0` release is
+selected.
+
+**Verification:** The live PocketBase collection reports the new
+`5.63.0_97356_20260914T134142Z` record. The focused test passes, and the
+frontend test suite plus the production build/typecheck pass. After
+deployment, refresh bridge status in Properties; the latest release should be
+`5.63.0_97356_20260914T134142Z`.
+
+## 2026-09-14 — Repair UbuntuMac Play update recovery and verify live bridge
+
+**Root cause:** The 2026-09-13 scheduled run was not a no-release case. The
+emulator held Idle Miner Tycoon `5.60.0 / 96765` while Google Play reported
+`5.62.1`. The update loop failed because Android displayed a `System UI isn't
+responding` dialog; live reproduction also exposed a `Pixel Launcher isn't
+responding` dialog. The Play Store deep link was not reliable while those
+dialogs were covering the emulator, so the checker never saw an `Update`
+control and correctly failed closed.
+
+**Fix:** The UbuntuMac checker now recovers any Android `isn't responding`
+dialog by locating and tapping its `Wait` button, launches the explicit HTTPS
+Google Play app URL, waits for the MineOps app page to appear, and uses a
+15-minute update timeout for real Play downloads. It writes an atomic report
+state file before cleanup so the wrapper's separate `--report` process keeps
+the original start time and observed versions. The wrapper records the last
+result and opts the next Sunday into a retry after a failure while preserving
+the normal epoch-anchored 14-day cadence after success.
+
+**Live verification:** Deployed and syntax-checked the checker and wrapper on
+UbuntuMac. A clean checker run updated the emulator to `5.63.0 / 97356`,
+acquired release `5.63.0_97356_20260914T134142Z`, and received capture-ingest
+HTTP 200. The full scheduled wrapper then completed freshness verification,
+the process pipeline, extraction of 119 managers, v2 catalog generation, and
+the final upload with HTTP 200; PocketBase `catalog_versions` contains the new
+release. Cron remains `0 2 * * 0`, the report state was cleaned up, and no
+emulator/VNC processes remained after cleanup.
+
+**Tests:** `bash scripts/ubuntumac/check-and-upload.test.sh`, `bash -n` on
+both remote scripts, and `git diff --check` passed. The existing engine still
+logs its known non-blocking `catalog-v2` path warning before the wrapper's
+explicit catalog generator succeeds.
+
+## 2026-08-30 — Diagnose failed UbuntuMac biweekly APK check
+
+**Outcome:** The scheduled biweekly run started normally at `02:00`, booted
+`emulator-5556`, and then failed closed during the Google Play freshness gate.
+The installed Idle Miner Tycoon package was `5.60.0` (`versionCode=96765`),
+while the live Google Play listing reported `5.61.1`. The checker opened the
+Play Store and waited the configured 240 seconds, but the emulator's foreground
+UI was blocked by Android's `System UI isn't responding` dialog; no `Update`
+button was present to tap. The emulator was stopped cleanly at the end of the
+run.
+
+**Safety result:** The process pipeline, manager extraction, catalog generation,
+and PocketBase upload were not reached. The latest local release remains
+`/home/yancmo/mineops-data/releases/5.60.0_96765_20260814T121627Z/release.json`.
+The stored weekly log is the authoritative detail for this failure.
+
+**Reporting defect found:** The weekly wrapper invokes the checker once for the
+freshness gate and then starts a new checker process with `--report` from its
+exit trap. The second process has no access to the first process's captured
+version values or start time, so the email rendered `Installed version: unknown`,
+`Latest Google Play version observed: unknown`, and a new `02:07` start time.
+`MINEOPS_REPORT_MESSAGE` is also passed by the wrapper but is not consumed by
+the checker. No code fix was applied in this diagnostic pass.
+
+**Verification:** Read-only UbuntuMac inspection confirmed the cron entry,
+deployed script hashes, the 2026-08-30 weekly log, clean ADB state after the
+run, the exact installed release metadata, and the Play Store UI error. The
+diagnostic emulator was stopped cleanly. Updated
+[`docs/emulator-ingestion/capture-workflow.md`](../emulator-ingestion/capture-workflow.md)
+with the failure signature and report limitation.
+
+## 2026-08-14 — Live manual updater smoke test reached Google Play 5.60.0
+
+**Outcome:** Ran the deployed command `ssh ubuntumac '~/mineops-data/bin/check-and-upload.sh'`. Google Play updated the emulator from `5.59.0 / 96449` to `5.60.0 / 96765`; the checker acquired release `5.60.0_96765_20260814T121627Z`, uploaded it to PocketBase with HTTP 200, sent the configured status email, and stopped the emulator cleanly.
+
+**Verification:** `mineops-data-engine release show` confirms the new release metadata and APK hashes on UbuntuMac. ADB reports no connected emulator and no updater processes remain.
+
+## 2026-08-14 — Make UbuntuMac APK refresh fail closed, biweekly, and observable
+
+**Outcome:** Repaired the UbuntuMac APK refresh path. The deployed checker now
+discovers the highest app version in the Google Play listing, compares it with
+the installed package, opens the Play Store app page, taps `Update` when
+available, waits for the installed version to advance, and aborts before
+acquisition/upload when the emulator remains stale. The scheduled wrapper now
+runs on an epoch-anchored 14-day cadence, gates the full process pipeline on
+freshness, uploads a compact release envelope after processing, and treats
+already-ingested releases as clean no-ops.
+
+**Notifications:** Manual checks and scheduled runs send success/failure email
+through the existing BingeBox `GMAIL_USER`/`GMAIL_PASS`/`ADMIN_EMAIL` settings;
+credentials are never printed. The upload-only path strips large processed
+object arrays before calling PocketBase so the capture envelope stays below
+the route’s payload limit.
+
+**Verification:** Deployed and syntax-checked both UbuntuMac scripts; verified
+the biweekly cron wrapper; confirmed a stale `5.59.0` emulator against the live
+Play listing (`5.60.0`) fails closed when Android System UI is unresponsive;
+confirmed the current-version path sends email; confirmed the compact upload
+path returns PocketBase HTTP 200 with `rawImportId` and `catalogVersionId`; and
+stopped the smoke-test emulator. The live Play update itself remains dependent
+on the emulator’s Google account/Play Store UI being responsive.
+
+**Artifacts:** [`scripts/ubuntumac/check-and-upload.remote.sh`](../../scripts/ubuntumac/check-and-upload.remote.sh), [`scripts/ubuntumac/weekly-mineops-update.remote.sh`](../../scripts/ubuntumac/weekly-mineops-update.remote.sh), [`docs/emulator-ingestion/capture-workflow.md`](../emulator-ingestion/capture-workflow.md), and [`docs/UBUNTUMAC_CAPTURE_SETUP.md`](../UBUNTUMAC_CAPTURE_SETUP.md).
+
 ## 2026-08-05 — Handoff document for the next agent
 
 **Outcome:** created `docs/development/HANDOFF_TO_NEXT_AGENT.md` — a practical handoff for any agent continuing this repo: the tool-call environment (macOS, no `rg`/`go`; writes confined to the workspace), the serial `todo_write`/`complete_step` workflow rules (one in_progress item, verbatim evidence matching, files-cited-this-turn), the ssh patterns that avoid evidence-matching failures (stdin-piped `ops/` scripts + absolute remote paths), server conventions (UbuntuMac / OracleVM, catalog backup→register→review→publish, watchtower deploy path), house rules (no fabrication, exact rows only, mandatory journal entries), the exact current state at the time of writing (branch `main`==`dev` at `de4749c`, live assets, catalog `lossless-v2`, 225/225 tests), the honest gaps for future extraction passes, and a proven session skeleton. No code changes. **Note:** this entry was written while separate in-flight essence-planner work (Kolibri consumable essence inventory parsing) was uncommitted on `dev`; that work is unrelated and untouched.

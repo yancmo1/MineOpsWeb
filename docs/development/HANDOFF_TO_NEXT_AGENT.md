@@ -63,7 +63,14 @@ The host drives a **serial task list**. Failing to follow these rules cost multi
 - Chrono schedule + essence planner not ported (data not owned).
 - **Out-of-scope known issues** (pre-existing): Kolibri fragment field name unconfirmed (console `[kolibri] First manager raw keys:`), Oracle `player_snapshots` 400, Oracle `sort=-created` 400 on `catalog_versions` (frontend falls back).
 
-**Infrastructure note:** UbuntuMac's next weekly run (Aug 9) exercises the fixed release selection on the current 5.59.0/96449 APK. The superseded capture `5.59.0_96449_20260802T070052Z` was discarded and never ingested — fine to leave.
+**Infrastructure note:** UbuntuMac's deployed freshness checker and weekly
+wrapper were repaired and live-verified on 2026-09-14. The emulator updated
+from `5.60.0 / 96765` to `5.63.0 / 97356`; release
+`5.63.0_97356_20260914T134142Z` was acquired and ingested with HTTP 200. The
+wrapper still runs successfully every other Sunday, retries the following
+Sunday after a failed run, and leaves no emulator process running after
+cleanup. The latest remote script hashes and full log are authoritative when
+continuing operations.
 
 ## 6. Typical session skeleton (proven to work)
 

@@ -60,6 +60,12 @@ export interface CaptureStatus {
   error?: string;
 }
 
+function releaseSortKey(release: CaptureReleaseSummary): [number, string] {
+  if (release.ingestedAt) return [2, release.ingestedAt];
+  const timestamp = release.releaseId.match(/_(\d{8}T\d{6}Z)(?:$|[._])/i)?.[1];
+  return timestamp ? [1, timestamp] : [0, release.releaseId];
+}
+
 /**
  * Fetch capture status from PocketBase.
  */
@@ -69,11 +75,13 @@ export async function fetchCaptureStatus(): Promise<CaptureStatus> {
   try {
     const pb = getClient();
 
-    let catalog;
+    let catalogItems;
     try {
-      // Fetch without sort to avoid 400 on PB setups that reject sort by
-      // system fields (e.g. created). We'll sort client-side instead.
-      catalog = await pb.collection("catalog_versions").getList(1, 5, {
+      // Fetch the complete collection because some deployed PB rules omit
+      // `created`, and a first page can contain only older releases. Sort
+      // locally using `created` when available, otherwise the release's
+      // embedded UTC capture timestamp.
+      catalogItems = await pb.collection("catalog_versions").getFullList({
         fields: "version,source,recordCount,created",
       });
     } catch {
@@ -86,7 +94,7 @@ export async function fetchCaptureStatus(): Promise<CaptureStatus> {
       };
     }
 
-    const recentReleases: CaptureReleaseSummary[] = catalog.items
+    const recentReleases: CaptureReleaseSummary[] = catalogItems
       .map((item) => ({
         releaseId: String(item.version ?? ""),
         ingestedAt: String(item.created ?? ""),
@@ -96,12 +104,11 @@ export async function fetchCaptureStatus(): Promise<CaptureStatus> {
           : (typeof item.recordCount === "string" ? Number(item.recordCount) : undefined),
       }))
       .filter((item) => item.releaseId.length > 0)
-      // Sort newest-first by ingestedAt (client-side to avoid 400 from PB sort)
+      // Sort newest-first without relying on PocketBase system-field sorting.
       .sort((a, b) => {
-        if (!a.ingestedAt && !b.ingestedAt) return 0;
-        if (!a.ingestedAt) return 1;
-        if (!b.ingestedAt) return -1;
-        return b.ingestedAt.localeCompare(a.ingestedAt);
+        const [bRank, bValue] = releaseSortKey(b);
+        const [aRank, aValue] = releaseSortKey(a);
+        return bRank - aRank || bValue.localeCompare(aValue);
       });
 
     const latest = recentReleases[0];
@@ -177,7 +184,7 @@ export async function fetchCaptureStatus(): Promise<CaptureStatus> {
 
     return {
       healthy: true,
-      catalogVersionCount: catalog.totalItems ?? recentReleases.length,
+      catalogVersionCount: catalogItems.length,
       lastReleaseId: latest?.releaseId,
       lastIngestedAt: latest?.ingestedAt,
       lastSource: latest?.source,

@@ -7,7 +7,15 @@ EMULATOR_SERIAL="${EMULATOR_SERIAL:-emulator-5556}"
 PACKAGE_NAME="${PACKAGE_NAME:-com.fluffyfairygames.idleminertycoon}"
 ENGINE="${MINEOPS_DATA_ENGINE:-$HOME/mineops-env/bin/mineops-data-engine}"
 BOOT_TIMEOUT_SECONDS="${EMULATOR_BOOT_TIMEOUT_SECONDS:-180}"
+UI_READY_TIMEOUT_SECONDS="${EMULATOR_UI_READY_TIMEOUT_SECONDS:-120}"
+PLAY_STORE_SETTLE_SECONDS="${EMULATOR_PLAY_STORE_SETTLE_SECONDS:-20}"
+PLAY_STORE_READY_TIMEOUT_SECONDS="${EMULATOR_PLAY_STORE_READY_TIMEOUT_SECONDS:-90}"
+UPDATE_TIMEOUT_SECONDS="${EMULATOR_UPDATE_TIMEOUT_SECONDS:-900}"
 STARTED_EMULATOR=0
+RUN_STARTED_AT="$(date -Is)"
+CURRENT_INSTALLED=""
+CURRENT_LATEST=""
+REPORT_MODE="run"
 
 # Make adb/emulator available in non-interactive SSH sessions.
 if [[ -d "$HOME/Android/Sdk/platform-tools" ]]; then
@@ -23,6 +31,7 @@ fi
 
 CAPTURE_URL="${MINEOPS_CAPTURE_URL:-${CAPTURE_URL:-}}"
 CAPTURE_TOKEN="${MINEOPS_CAPTURE_TOKEN:-${CAPTURE_TOKEN:-}}"
+REPORT_STATE_FILE="${MINEOPS_REPORT_STATE_FILE:-$HOME/mineops-data/logs/check-report-state.json}"
 
 base_url_from_ingest() {
   python3 - "$1" <<'PY'
@@ -103,8 +112,95 @@ stop_started_emulator() {
 
 cleanup() {
   local exit_code=$?
+  write_report_state "$exit_code" || true
+  send_status_email "$exit_code" || true
   stop_started_emulator
   exit "$exit_code"
+}
+
+write_report_state() {
+  local exit_code="$1"
+  local state_dir state_tmp
+  state_dir="$(dirname "$REPORT_STATE_FILE")"
+  mkdir -p "$state_dir"
+  state_tmp="$(mktemp "$REPORT_STATE_FILE.tmp.XXXXXX")"
+  python3 - "$state_tmp" "$REPORT_STATE_FILE" "$exit_code" "$RUN_STARTED_AT" "$REPORT_MODE" \
+    "$CURRENT_INSTALLED" "$CURRENT_LATEST" "${MINEOPS_REPORT_MESSAGE:-}" <<'PY'
+import json
+import os
+import sys
+
+temporary, destination, exit_code, started_at, mode, installed, latest, message = sys.argv[1:]
+state = {
+    "exitCode": int(exit_code),
+    "startedAt": started_at,
+    "mode": mode,
+    "installedVersion": installed,
+    "latestPlayVersion": latest,
+    "message": message,
+}
+with open(temporary, "w", encoding="utf-8") as handle:
+    json.dump(state, handle, separators=(",", ":"))
+    handle.write("\n")
+os.replace(temporary, destination)
+PY
+}
+
+load_report_state() {
+  [[ -f "$REPORT_STATE_FILE" ]] || return 0
+  while IFS=$'\t' read -r key value; do
+    case "$key" in
+      startedAt) RUN_STARTED_AT="$value" ;;
+      mode) REPORT_MODE="$value" ;;
+      installedVersion) CURRENT_INSTALLED="$value" ;;
+      latestPlayVersion) CURRENT_LATEST="$value" ;;
+      message)
+        if [[ -n "$value" ]]; then
+          MINEOPS_REPORT_MESSAGE="$value"
+        fi
+        ;;
+    esac
+  done < <(python3 - "$REPORT_STATE_FILE" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    state = json.load(handle)
+for key in ("startedAt", "mode", "installedVersion", "latestPlayVersion", "message"):
+    print(f"{key}\t{state.get(key, '')}")
+PY
+  )
+}
+
+send_status_email() {
+  [[ "${MINEOPS_EMAIL_SUPPRESS:-0}" == "1" ]] && return 0
+  [[ "${MINEOPS_EMAIL_DISABLED:-0}" == "1" ]] && return 0
+  local email_env="${MINEOPS_EMAIL_ENV_FILE:-$HOME/apps/bingebox/.env}"
+  [[ -f "$email_env" ]] || return 0
+
+  local gmail_user gmail_pass admin_email subject body
+  gmail_user="$(sed -n 's/^GMAIL_USER=//p' "$email_env" | tail -n 1 | sed 's/^"//;s/"$//')"
+  gmail_pass="$(sed -n 's/^GMAIL_PASS=//p' "$email_env" | tail -n 1 | sed 's/^"//;s/"$//')"
+  admin_email="$(sed -n 's/^ADMIN_EMAIL=//p' "$email_env" | tail -n 1 | sed 's/^"//;s/"$//')"
+  [[ -n "$gmail_user" && -n "$gmail_pass" ]] || return 0
+  admin_email="${admin_email:-$gmail_user}"
+
+  if [[ "$1" == "0" ]]; then subject="MineOps UbuntuMac check succeeded"; else subject="MineOps UbuntuMac check FAILED"; fi
+  body="MineOps UbuntuMac check report\n\nStarted: $RUN_STARTED_AT\nFinished: $(date -Is)\nHost: $(hostname)\nMode: ${REPORT_MODE:-run}\nExit code: $1\nInstalled version: ${CURRENT_INSTALLED:-unknown}\nLatest Google Play version observed: ${CURRENT_LATEST:-unknown}\nLatest local release: $(latest_release_json || true)\nMessage: ${MINEOPS_REPORT_MESSAGE:-}\n\nA failure is fail-closed: no stale release was uploaded."
+
+  GMAIL_USER="$gmail_user" GMAIL_PASS="$gmail_pass" ADMIN_EMAIL="$admin_email" \
+    python3 - "$subject" "$body" <<'PY'
+import os, smtplib, sys
+from email.mime.text import MIMEText
+msg = MIMEText(sys.argv[2])
+msg["Subject"] = sys.argv[1]
+msg["From"] = os.environ["GMAIL_USER"]
+msg["To"] = os.environ["ADMIN_EMAIL"]
+with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as server:
+    server.login(os.environ["GMAIL_USER"], os.environ["GMAIL_PASS"])
+    server.sendmail(os.environ["GMAIL_USER"], [os.environ["ADMIN_EMAIL"]], msg.as_string())
+PY
+  echo "[ubuntu-check] status email sent to $admin_email"
 }
 
 latest_release_json() {
@@ -122,6 +218,167 @@ print_apk_version() {
   else
     echo "[ubuntu-check] adb not found; skipping emulator check"
   fi
+}
+
+ui_dump() {
+  local xml
+  xml="$(adb -s "$EMULATOR_SERIAL" shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1 \
+    && adb -s "$EMULATOR_SERIAL" shell cat /sdcard/window.xml 2>/dev/null | tr -d '\r')" || true
+  printf '%s' "$xml"
+}
+
+ui_text_bounds() {
+  local text="$1" xml="${2:-}"
+  if [[ -z "$xml" ]]; then
+    xml="$(ui_dump)"
+  fi
+  python3 - "$text" "$xml" <<'PY'
+import re
+import sys
+
+needle, xml = sys.argv[1:]
+for node in re.findall(r"<node[^>]+>", xml):
+    if re.search(rf'(?:text|content-desc)="{re.escape(needle)}"', node, re.I):
+        match = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node)
+        if match:
+            x1, y1, x2, y2 = map(int, match.groups())
+            print((x1 + x2) // 2, (y1 + y2) // 2)
+            break
+PY
+}
+
+recover_system_ui_prompt() {
+  local elapsed=0 xml bounds x y
+  while (( elapsed < UI_READY_TIMEOUT_SECONDS )); do
+    xml="$(ui_dump)"
+    if [[ "$xml" != *"isn't responding"* ]]; then
+      return 0
+    fi
+
+    bounds="$(ui_text_bounds "Wait" "$xml" || true)"
+    if [[ "$bounds" =~ ^([0-9]+)[[:space:]]+([0-9]+)$ ]]; then
+      x="${BASH_REMATCH[1]}"; y="${BASH_REMATCH[2]}"
+      echo "[ubuntu-check] recovering Android nonresponsive prompt by tapping Wait"
+      adb -s "$EMULATOR_SERIAL" shell input tap "$x" "$y" >/dev/null 2>&1 || true
+    else
+      echo "[ubuntu-check] Android nonresponsive prompt has no visible Wait control" >&2
+    fi
+    sleep 3
+    elapsed=$((elapsed + 3))
+  done
+
+  echo "[ubuntu-check] ERROR: Android nonresponsive prompt did not clear" >&2
+  return 1
+}
+
+installed_version_name() {
+  adb -s "$EMULATOR_SERIAL" shell dumpsys package "$PACKAGE_NAME" 2>/dev/null \
+    | sed -n 's/.*versionName=\([^[:space:]]*\).*/\1/p' | head -n 1 | tr -d '\r'
+}
+
+latest_play_version() {
+  if [[ -n "${MINEOPS_LATEST_VERSION_NAME:-}" ]]; then
+    printf '%s\n' "$MINEOPS_LATEST_VERSION_NAME"
+    return 0
+  fi
+
+  local play_url="https://play.google.com/store/apps/details?id=${PACKAGE_NAME}&hl=en_US&gl=US"
+  curl -LfsS --max-time 30 "$play_url" | python3 -c '
+import re, sys
+from packaging.version import Version
+
+html = sys.stdin.read()
+versions = set(re.findall(r"\[\[\"([0-9]+\.[0-9]+\.[0-9]+)\"\]\]", html))
+if not versions:
+    versions = {v for v in re.findall(r"(?<![0-9])([0-9]+\.[0-9]+\.[0-9]+)(?![0-9])", html) if v.startswith("5.")}
+if not versions:
+    raise SystemExit("no semantic app version found in Google Play listing")
+print(max(versions, key=Version))
+'
+}
+
+version_at_least() {
+  python3 - "$1" "$2" <<'PY'
+from packaging.version import Version
+import sys
+print("1" if Version(sys.argv[1]) >= Version(sys.argv[2]) else "0")
+PY
+}
+
+wait_for_play_store_page() {
+  local elapsed=0 xml
+  while (( elapsed < PLAY_STORE_READY_TIMEOUT_SECONDS )); do
+    xml="$(ui_dump)"
+    if [[ "$xml" == *"isn't responding"* ]]; then
+      recover_system_ui_prompt || return 1
+      xml="$(ui_dump)"
+    fi
+    if [[ "$xml" == *"Idle Miner Tycoon"* ]] && [[ "$xml" == *"Update"* || "$xml" == *"Uninstall"* || "$xml" == *"Open"* ]]; then
+      return 0
+    fi
+    sleep 3
+    elapsed=$((elapsed + 3))
+  done
+
+  echo "[ubuntu-check] ERROR: Google Play did not open the MineOps app page within ${PLAY_STORE_READY_TIMEOUT_SECONDS}s" >&2
+  return 1
+}
+
+ensure_play_current() {
+  local installed latest
+  installed="$(installed_version_name)"
+  latest="$(latest_play_version)"
+  CURRENT_INSTALLED="$installed"
+  CURRENT_LATEST="$latest"
+  if [[ -z "$installed" || -z "$latest" ]]; then
+    echo "[ubuntu-check] ERROR: unable to determine installed or Google Play version" >&2
+    return 1
+  fi
+
+  echo "[ubuntu-check] installed version: $installed"
+  echo "[ubuntu-check] Google Play version: $latest"
+  if [[ "$(version_at_least "$installed" "$latest")" == "1" ]]; then
+    return 0
+  fi
+
+  echo "[ubuntu-check] installed package is stale; requesting Google Play update"
+  recover_system_ui_prompt
+  local play_store_url="https://play.google.com/store/apps/details?id=${PACKAGE_NAME}&hl=en_US&gl=US"
+  adb -s "$EMULATOR_SERIAL" shell am start -W -a android.intent.action.VIEW \
+    -d "$play_store_url" >/dev/null
+
+  echo "[ubuntu-check] waiting ${PLAY_STORE_SETTLE_SECONDS}s for Play Store and pending support updates to settle"
+  sleep "$PLAY_STORE_SETTLE_SECONDS"
+  wait_for_play_store_page
+
+  local elapsed=0 bounds x y now xml
+  while (( elapsed < UPDATE_TIMEOUT_SECONDS )); do
+    now="$(installed_version_name)"
+    CURRENT_INSTALLED="$now"
+    if [[ -n "$now" ]] && [[ "$(version_at_least "$now" "$latest")" == "1" ]]; then
+      echo "[ubuntu-check] Google Play update verified: $now"
+      return 0
+    fi
+    xml="$(ui_dump)"
+    if [[ "$xml" == *"isn't responding"* ]]; then
+      recover_system_ui_prompt || return 1
+      xml="$(ui_dump)"
+    fi
+    bounds="$(ui_text_bounds "Update" "$xml" || true)"
+    if [[ "$bounds" =~ ^([0-9]+)[[:space:]]+([0-9]+)$ ]]; then
+      x="${BASH_REMATCH[1]}"; y="${BASH_REMATCH[2]}"
+      adb -s "$EMULATOR_SERIAL" shell input tap "$x" "$y" >/dev/null 2>&1 || true
+    fi
+    sleep 5
+    elapsed=$((elapsed + 5))
+  done
+
+  now="$(installed_version_name)"
+  CURRENT_INSTALLED="$now"
+  echo "[ubuntu-check] ERROR: emulator package is stale; Google Play update did not complete" >&2
+  echo "[ubuntu-check] installed: ${now:-unknown}" >&2
+  echo "[ubuntu-check] latest observed: $latest" >&2
+  return 1
 }
 
 acquire_release() {
@@ -155,6 +412,20 @@ import sys
 with open(sys.argv[1], 'r', encoding='utf-8') as f:
     data = json.load(f)
 print(data.get('releaseId', ''))
+PY
+}
+
+minimal_upload_payload() {
+  local source="$1" destination="$2"
+  python3 - "$source" "$destination" <<'PY'
+import json, sys
+source, destination = sys.argv[1:]
+with open(source, encoding="utf-8") as f:
+    release = json.load(f)
+allowed = ("releaseId", "versionName", "versionCode", "capturedAt", "engineVersion", "schemaVersion", "apkHashes", "status")
+payload = {key: release[key] for key in allowed if key in release}
+with open(destination, "w", encoding="utf-8") as f:
+    json.dump(payload, f, separators=(",", ":"))
 PY
 }
 
@@ -260,10 +531,51 @@ fi
 if [[ "$MODE" == "--keep-emulator" ]]; then
   export KEEP_EMULATOR_RUNNING=1
 fi
+if [[ "$MODE" == "--report" ]]; then
+  load_report_state
+  trap cleanup EXIT
+  exit "${MINEOPS_REPORT_EXIT_CODE:-0}"
+fi
+REPORT_MODE="$MODE"
+UPLOAD_ONLY=0
+if [[ "$MODE" == "--upload-latest" || "${2:-}" == "--upload-latest" ]]; then
+  UPLOAD_ONLY=1
+fi
+ENSURE_ONLY=0
+if [[ "$MODE" == "--ensure-current" ]]; then
+  ENSURE_ONLY=1
+fi
+if [[ "${2:-}" == "--ensure-current" ]]; then
+  ENSURE_ONLY=1
+fi
 
 trap cleanup EXIT
 
 start_emulator_if_needed
+ensure_play_current
+if [[ "$ENSURE_ONLY" == "1" ]]; then
+  exit 0
+fi
+if [[ "$UPLOAD_ONLY" == "1" ]]; then
+  release_json="$(latest_release_json || true)"
+  if [[ -z "$release_json" ]]; then
+    echo "[ubuntu-check] no local release.json exists to upload" >&2
+    exit 1
+  fi
+  upload_json="$(mktemp)"
+  minimal_upload_payload "$release_json" "$upload_json"
+  echo "[ubuntu-check] uploading latest release envelope: $release_json"
+  set +e
+  upload_release "$upload_json"
+  upload_code=$?
+  set -e
+  rm -f "$upload_json"
+  if [[ "$upload_code" == "14" ]]; then
+    echo "[ubuntu-check] latest release was already uploaded"
+    exit 0
+  fi
+  exit "$upload_code"
+fi
 print_apk_version
 
 before_release_json="$(latest_release_json || true)"

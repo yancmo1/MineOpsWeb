@@ -75,6 +75,23 @@ The browser does not start the UbuntuMac upload. This is intentionally a second,
 - Online but object count is `0` usually means payload has `objects: []` (test fixture behavior).
 - 401 from ingest probe means capture token mismatch/inactive client.
 - If `catalog_versions` sort-by-created fails on dev PB, frontend now falls back gracefully to default ordering.
+- The bridge panel reads the complete public `catalog_versions` collection and
+  sorts by the release's embedded UTC capture timestamp when PocketBase omits
+  `created`; this prevents an older first page from masking a newer UbuntuMac
+  ingest. After a new ingest, use **Refresh bridge status** and then **Refresh
+  catalog** in MineOpsWeb.
+- If the scheduled runner reports a stale package and times out, inspect
+  `/home/yancmo/mineops-data/logs/weekly-update.log`. On 2026-08-30 the
+  emulator was on `5.60.0` while Google Play reported `5.61.1`, but the
+  Play Store foreground activity was blocked by Android's `System UI isn't
+  responding` dialog, so no `Update` control was available. A later live
+  inspection also found the same emulator producing a `Pixel Launcher isn't
+  responding` dialog. The deployed checker now dismisses either kind of
+  Android nonresponsive prompt with `Wait`, opens the explicit HTTPS Play
+  Store app page, and fails with a bounded page-readiness error if that page
+  never appears. The checker writes a report-state handoff before cleanup, so
+  the wrapper's separate `--report` process retains the real start time and
+  observed versions instead of reporting `unknown`.
 
 ## VS Code manual tasks (local workstation)
 
@@ -110,3 +127,18 @@ an older release when acquisition produces no new release. Exit code `14` means
 “unchanged/already ingested” and is a clean no-op. For troubleshooting, use
 `--no-start` to require an already-running emulator or `--keep-emulator` to
 leave an emulator started by the run online.
+
+The UbuntuMac scheduled runner is deployed at
+`~/mineops-engine/scripts/weekly-mineops-update.sh`. Cron wakes it every Sunday,
+but an epoch-week parity guard runs the pipeline only every 14 days. Before
+processing, the runner discovers the current version from the Google Play
+listing, opens the explicit app page in the emulator, recovers Android
+nonresponsive prompts, taps `Update` when required, and waits for the installed
+package to reach the observed version. If Play Store cannot update the
+emulator, the run fails closed before acquisition. A failed run is recorded in
+`/home/yancmo/mineops-data/logs/weekly-update-last-result` so the next Sunday
+retries; successful runs remain on the 14-day cadence. After processing, it
+uploads a compact release envelope; the full processed catalog is not sent
+through the PocketBase capture payload-size limit. Manual checks and scheduled
+runs send status email through the existing BingeBox Gmail settings
+(`GMAIL_USER`, `GMAIL_PASS`, and `ADMIN_EMAIL`) without logging credentials.
