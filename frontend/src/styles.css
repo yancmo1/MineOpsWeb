@@ -284,6 +284,17 @@ button.secondary {
   white-space: nowrap;
 }
 
+.manager-export-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.manager-export-button svg {
+  flex-shrink: 0;
+}
+
 .filter-chips {
   display: flex;
   gap: 0.5rem;

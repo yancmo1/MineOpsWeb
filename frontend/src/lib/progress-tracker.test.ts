@@ -35,9 +35,14 @@ describe("passiveKindOf", () => {
   it("maps stable APK ids and type labels to MIF/CIF/MSUCR", () => {
     expect(passiveKindOf(passive("MIF", 3, 1007))).toBe("MIF");
     expect(passiveKindOf(passive("MSUCR", 1, 7))).toBe("MSUCR");
+    expect(passiveKindOf(passive("WUCR", 1, 9))).toBeNull();
+    expect(passiveKindOf(passive("BUCR", 1, 1005))).toBeNull();
+    expect(passiveKindOf(passive("MSUCR", 1, 1006))).toBeNull();
     expect(passiveKindOf(passive("CIF", 3))).toBe("CIF");
     expect(passiveKindOf({ type: "Mineshaft Upgrade Cost Reduction" })).toBe("MSUCR");
-    expect(passiveKindOf({ description: "x0.8 upgrade cost" })).toBe("MSUCR");
+    expect(passiveKindOf({ description: "x0.8 mineshaft upgrade cost" })).toBe("MSUCR");
+    expect(passiveKindOf({ description: "x0.8 elevator upgrade cost" })).toBeNull();
+    expect(passiveKindOf({ description: "mineshaft beam" })).toBeNull();
     expect(passiveKindOf({ description: "mine income factor" })).toBe("MIF");
     expect(passiveKindOf({ type: "Crate Resources" })).toBeNull();
   });

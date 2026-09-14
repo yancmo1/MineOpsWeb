@@ -37,6 +37,14 @@ describe("manager passives", () => {
     expect(passiveLabel({ passiveId: 8, type: "CR" })).toBe("Elevator Upgrade Cost Reduction");
   });
 
+  it("uses the exact APK area and unlock-cost passive identities", () => {
+    expect(passiveLabel({ passiveId: 7, type: "CR" })).toBe("Mineshaft Upgrade Cost Reduction");
+    expect(passiveLabel({ passiveId: 9, type: "CR" })).toBe("Warehouse Upgrade Cost Reduction");
+    expect(passiveLabel({ passiveId: 1005, type: "BUCR" })).toBe("Barrier Unlock Cost Reduction");
+    expect(passiveLabel({ passiveId: 1006, type: "MSUCR" })).toBe("Mineshaft Unlock Cost Reduction");
+    expect(passiveLabel({ passiveId: 1010, type: "CIF" })).toBe("Cash Income Factor");
+  });
+
   it("requires every captured unlock constraint", () => {
     const passive = { passiveId: 1007, type: "MIF", unlockLevel: 30, promoReq: 3 };
     expect(isPassiveUnlocked(passive, { ...progress, level: 29 })).toBe(false);

@@ -1,5 +1,23 @@
 # Development journal
 
+## 2026-09-14 — Restore Idle Master's Hub lineup export
+
+**Outcome:** Added a Manager-page **Export lineup** action that downloads the
+current catalog-backed roster as `sm-tracker-backup.json`, using the strict flat
+manager-keyed format accepted by Idle Master's Hub. Each entry contains only
+`unlocked`, `rank`, `level`, `promoted`, `fragments`, `chronoExcluded`, and
+`tierlistExcluded`; the two tracker-only flags default to `false`.
+
+**Verification:** Added focused export tests for exact field shape, catalog order,
+missing-progress defaults, and JSON serialization. The full frontend suite passes
+(29 files, 239 tests), TypeScript/Vite production build passes, and
+`git diff --check` passes. The lint script remains blocked by the repository's
+pre-existing ESLint 9 configuration mismatch because no `eslint.config.*` file
+exists.
+
+**Limitations:** Import and full reset parity remain unimplemented. Existing
+unrelated worktree changes were preserved.
+
 ## 2026-09-14 — Retain only the three newest UbuntuMac releases
 
 **Change:** Added an idempotent local retention step to the UbuntuMac bridge
@@ -2447,3 +2465,19 @@ Redesigned the SM detail view to match the supplied compact card reference. The 
 
 ### Remaining limitation
 - The current UbuntuMac catalog release contains no equipment records, and the current Kolibri manager rows do not expose a scoped fragment field; the UI now makes both limitations explicit while retaining the catalog/effect data that is available.
+
+## 2026-09-14 — 5.63 APK deep dive and passive taxonomy correction
+
+Performed a fresh read-only deep dive of the UbuntuMac Android capture for Idle Miner Tycoon 5.63.0 (version code 97356, release `5.63.0_97356_20260914T134142Z`). The additive review candidate contains 119 managers, 11,900 exact active-level rows, 1,190 promotion rows, 565 rank rows, 36 equipment definitions, 15 materials, 33 research records, 9 mine groups, 31 Frontier-related records, 1,675 strategy-config records, and 1,731 unresolved evidence records. The manifest remains `review_required`; it was not published or activated.
+
+The direct IL2CPP `SuperManagerPassiveType` enum was cross-checked against the manager promotion rows. Correct stable mappings are now applied in `frontend/src/lib/passives.ts`: ID 7 shaft upgrade cost, 8 elevator upgrade cost, 9 warehouse upgrade cost, 1005 barrier unlock cost, 1006 shaft unlock cost, 1007 mine income, 1008 mineshaft beam, 1009 elevator beam, and 1010 continent income. The progress tracker no longer classifies an ambiguous generic “upgrade cost” description as a mineshaft reducer; Frontier text role detection now includes stable APK labels.
+
+Added the evidence-grade deep-dive and Frontier guidance documents:
+
+- `docs/APK_DEEP_DIVE_5.63.md` — release comparison, parseable domains, evidence grades, role tables, equipment limitations, Frontier budget rules, and follow-up probes.
+- `docs/APK_DATA_INVENTORY.md` — fresh 5.63 inventory addendum.
+- `docs/APK_STRATEGY_DATA_AUDIT.md` — 5.63 audit addendum and taxonomy finding.
+- `docs/APK_EXTRACTION_REPORT.md` — full passive enum evidence recorded.
+- `docs/frontier-mine-guide.md` — current passive-ID, budget-breakpoint, rotation, and equipment addendum.
+
+Verification performed: all 28 frontend test files passed (237 tests), TypeScript build/type-check passed, production Vite build passed, and `git diff --check` passed. The lint script remains blocked by the repository's pre-existing ESLint 9 configuration mismatch because no `eslint.config.*` file exists. No server deployment or production catalog activation was performed. No parity-matrix update is required because this is an analysis and classification correction rather than a new parity surface. The personal Frontier lineup/equipment recommendation remains pending a current player save sync containing owned managers, equipment IDs/assignments, and live Frontier state.

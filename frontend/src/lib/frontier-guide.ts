@@ -1,6 +1,6 @@
 import type { CatalogManager, PlayerManager } from "./db";
 import { strengthScore } from "./db";
-import { activePassives } from "./passives";
+import { activePassives, passiveLabel } from "./passives";
 
 export type FrontierPass = "free" | "premium" | "elite";
 
@@ -263,7 +263,7 @@ export interface FrontierRosterEntry {
 function managerText(manager: CatalogManager, progress: PlayerManager): string {
   return [
     manager.active?.description,
-    ...activePassives(manager.passives, progress).flatMap((passive) => [passive.description, passive.type]),
+    ...activePassives(manager.passives, progress).flatMap((passive) => [passive.description, passive.type, passiveLabel(passive)]),
   ].filter(Boolean).join(" ").toLowerCase();
 }
 

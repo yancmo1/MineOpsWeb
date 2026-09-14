@@ -124,6 +124,28 @@ Every new domain should be its own immutable artifact with source identifiers an
 - Static APK data alone cannot provide live mine levels, cash, barrier timer, Sparks, event progress, owned equipment assignments, or current offers.
 - The active production package supplies APK-native passive identity, unlock milestones, and exact manager level tables. Value/effect localization joins and generic config semantics remain review work before they should influence strategy scoring.
 
+## Update 2026-09-14 — 5.63.0 deep dive
+
+A fresh UbuntuMac capture of 5.63.0 (version code 97356, release `5.63.0_97356_20260914T134142Z`) was processed into an additive review candidate. It contains 119 managers, 11,900 exact active-level rows, 1,190 promotion rows, 565 rank rows, 36 equipment definitions, 15 materials, 33 research records, 9 mine groups, 31 Frontier-related records, 1,675 strategy-config records, and 1,731 unresolved evidence records. The package is marked `review_required`; it is not promoted automatically.
+
+The direct IL2CPP `SuperManagerPassiveType` enum resolved a material taxonomy defect in the frontend/reference join:
+
+| ID | Verified meaning |
+|---:|---|
+| 7 | Shaft upgrade cost reduction |
+| 8 | Elevator upgrade cost reduction |
+| 9 | Warehouse upgrade cost reduction |
+| 1005 | Barrier unlock cost reduction |
+| 1006 | Shaft unlock cost reduction |
+| 1007 | Mine income boost |
+| 1008 | Mineshaft beam |
+| 1009 | Elevator beam |
+| 1010 | Continent income boost |
+
+The old enrichment map conflated several of these IDs with generic cost-reduction categories. The frontend now gives stable APK IDs precedence and does not count elevator, warehouse, barrier, or shaft-unlock rows as the mineshaft-upgrade roadmap kind. Frontier text classification also includes the corrected stable labels.
+
+The full evidence-grade inventory, release comparison, equipment limitations, and current Frontier role tables are in [APK_DEEP_DIVE_5.63.md](APK_DEEP_DIVE_5.63.md). No parity matrix update is required: this is an APK-analysis and classification correction, not a new web feature surface.
+
 ## Update 2026-08-04 — semantic-lift implemented and published
 
 The 1,698 strategy-config records were characterized (`docs/strategy-configs-characterization.md`): 100% are `semanticStatus: partial`; ~404 are non-strategy (migration scripts + visual assets); the strategy-relevant core (mine-economy continents, research skill nodes, frontier/event configs, artifacts, power-score) is decodable at extraction time. New conservative semantic-lift artifacts (`research-domain.json`, `mine-economy-domain.json`, `frontier-domain.json`, `power-score-domain.json`) were added via `ops/strategy_semantics.py` and published as `lossless-v2` (control-plane gated, backup `20260804T150514Z`). Effect magnitudes inside raw serialized bytes remain unresolved by design; the web planner consumes only the verified identity-level data and never fabricates values.

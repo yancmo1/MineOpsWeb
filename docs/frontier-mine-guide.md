@@ -157,3 +157,40 @@ The highest-value future MineOps additions are:
 3. map manager active effects to exact Frontier-compatible action types and cooldowns;
 4. map Frontier equipment assignments and Spark reductions;
 5. add a what-if simulator for “wait,” “skip,” “recharge,” and “multiplier” choices.
+
+## 5.63 APK deep-dive addendum — 2026-09-14
+
+The current Android package gives us a much stronger manager-role foundation than the old Frontier-only snapshot. The package is release `5.63.0_97356_20260914T134142Z` and contains exact manager active-level rows, promotion/passive unlock rows, rank effects, cooldowns, durations, elemental mappings, 36 equipment identities, and 15 equipment materials. It does not contain the player's live Frontier state.
+
+### The best budget-minded order
+
+When the roster is limited, choose the earliest useful passive milestone that matches the next spend. The APK promotion tables show these low-cost starting points:
+
+| Need | Cheap recorded examples | Passive ID | Unlock |
+|---|---|---:|---|
+| Shaft upgrade cost | Chester, Blingsley, Floating Agatha, Samantha Reiss | 7 | P1/L10 |
+| Elevator upgrade cost | Damian Jones, Sojo | 8 | P1/L10 |
+| Warehouse upgrade cost | Dr. Nova, Jade Kim, Octavia De Vere | 9 | P1/L10 |
+| Barrier unlock cost | Mr. Goodman, Mrs. Goodman, Goodman Jr., Ranger Sue | 1005 | P1/L10 |
+| Shaft unlock cost | Gordon | 1006 | P1/L10 |
+| Early mine income | Mr. Turner, Ranger Sue, Damian Jones, Zi Galvani | 1007 | P3/L30 |
+
+The passive ID is more trustworthy than the legacy text/type enrichment. ID 7 is shaft upgrade cost, ID 8 is elevator upgrade cost, and ID 9 is warehouse upgrade cost. IDs 1005 and 1006 reduce unlock costs, not ordinary upgrades. The frontend now preserves those distinctions.
+
+### Recommended role rotation
+
+1. Keep the strongest available income-passive manager assigned for the passive floor.
+2. Use the reducer matching the purchase: shaft (7), elevator (8), warehouse (9), barrier unlock (1005), or shaft unlock (1006).
+3. Build a shaft stockpile with the best compatible shaft active.
+4. Convert it with the elevator/warehouse side only after the stockpile and multiplier are ready.
+5. Spend during the window, then return the income manager to the passive slot.
+
+This order is a role recommendation, not a fixed account lineup. A P1 common reducer can be the best immediate investment when it unlocks the next large purchase; a P5 legendary is better only when its higher passive/active output pays back before the event ends.
+
+### Equipment answer: what is proven and what is not
+
+The current capture identifies Frontier Claw (`14063`) and Frontier Helmet (`14021`–`14023`) through the existing display-name mapping, but it does not produce a verified numeric effect join for those items. Only Santa's Hat balancing rows (`14091` at level 5 and `14092` at level 10, both value `0.05`) currently resolve numerically in the package.
+
+Therefore the safe equipment recommendation is conditional: once the player import proves ownership, tier, assignment, and the item's mode-specific effect, put the best Frontier-specific Spark reducer on the manager used most often in the planned rotation. Do not hard-code a Spark percentage or claim that Claw/Helmet is superior from this APK capture alone.
+
+The complete evidence-grade package review, manager tables, and next extraction steps are in [APK_DEEP_DIVE_5.63.md](APK_DEEP_DIVE_5.63.md).

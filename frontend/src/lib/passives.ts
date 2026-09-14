@@ -4,6 +4,7 @@ const PASSIVE_LABELS: Record<string, string> = {
   MSB: "Mining Speed Boost",
   CR: "Crate Resources",
   MSUCR: "Mineshaft Upgrade Cost Reduction",
+  WUCR: "Warehouse Upgrade Cost Reduction",
   CIF: "Cash Income Factor",
   WMSB: "Walking & Mining Speed Boost",
   BUCR: "Building Upgrade Cost Reduction",
@@ -19,15 +20,32 @@ const PASSIVE_LABELS: Record<string, string> = {
   WWLB: "Worker Loading Boost",
   WSB: "Walking Speed Boost",
   MBEAM: "Mine Beam",
+  MLBSB: "Movement & Loading Speed Boost",
+  ICB: "Idle Cash Boost",
+  BULCR: "Barrier Unlock Cost Reduction",
+  MSULCR: "Mineshaft Unlock Cost Reduction",
 };
 
 // Stable APK passive IDs take precedence over legacy row-position enrichment.
-// ID 8 is elevator upgrade-cost reduction; it is not crate resources.
+// These values come from the SuperManagerPassiveType enum in the 5.63 IL2CPP
+// dump. Do not infer them from the order of the passive rows in a manager.
 const PASSIVE_TYPES_BY_ID: Record<number, string> = {
+  1: "EMSB",
+  2: "GWSB",
+  3: "MSB",
+  4: "WWLSB",
+  5: "WMSB",
+  6: "MLBSB",
   7: "MSUCR",
   8: "EUCR",
-  9: "BUCR",
+  9: "WUCR",
+  1001: "ICB",
+  1005: "BULCR",
+  1006: "MSULCR",
   1007: "MIF",
+  1008: "MSBEAM",
+  1009: "EBEAM",
+  1010: "CIF",
 };
 
 const PLACEHOLDER_TYPE = /^passive[_ -]?\d+$/i;

@@ -134,7 +134,7 @@ public class SuperManagersLevelsToPromotion2Entity.Param {
 
 **ManagerRegion** (TypeDefIndex: 17843): `Corridor=1, Ground=2, Elevator=3`
 
-**SuperManagerPassiveType** (TypeDefIndex: 18035): `ElevatorMovementSpeedBoost=1, GroundWalkingSpeedBoost=2, MiningSpeedBoost=3, WarehouseWalkingAndLoadingSpeed=4, ... IdleCashBoost=1001, MineIncomeBoost=1007, ContinentIncomeBoost=1010`
+**SuperManagerPassiveType** (TypeDefIndex: 18035): `ElevatorMovementSpeedBoost=1, GroundWalkingSpeedBoost=2, MiningSpeedBoost=3, WarehouseWalkingAndLoadingSpeed=4, WalkingAndMiningSpeedBoost=5, MovementAndLoadingSpeedBoost=6, ShaftUpgradeCostReduction=7, ElevatorUpgradeCostReduction=8, WarehouseUpgradeCostReduction=9, IdleCashBoost=1001, BarrierUnlockCostReduction=1005, ShaftUnlockCostReduction=1006, MineIncomeBoost=1007, MineShaftBeam=1008, ElevatorBeam=1009, ContinentIncomeBoost=1010`
 
 **Gender** (TypeDefIndex: 17754): `Male=0, Female=1`
 

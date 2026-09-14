@@ -27,7 +27,11 @@ export function passiveKindOf(passive: CatalogPassive): PassiveKind | null {
   const text = `${passive.type ?? ""} ${passive.description ?? ""}`.toLowerCase();
   if (/mine income|income factor/.test(text)) return "MIF";
   if (/cash income|continental income/.test(text)) return "CIF";
-  if (/upgrade cost|cost reduction/.test(text)) return "MSUCR";
+  // A generic cost-reduction label is not enough to identify a shaft
+  // reducer: the APK has distinct elevator, warehouse, barrier-unlock, and
+  // shaft-unlock passive IDs. Only accept an explicit shaft/mineshaft label
+  // when the stable passive ID is unavailable.
+  if (/(?:mineshaft|shaft)(?:\s+upgrade)?\s+cost(?:\s+reduction)?/.test(text)) return "MSUCR";
   return null;
 }
 

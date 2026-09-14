@@ -21,6 +21,7 @@ import { compareManagers, defaultOwnership, sortOptions, type ManagersOwnership,
 import { usePrefetch } from "./hooks/usePrefetch";
 import { LoadingSkeleton } from "./components/LoadingSkeleton";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { buildTrackerBackup, downloadTrackerBackup } from "./lib/tracker-export";
 
 // Lazy load heavy pages
 const StrategyPage = lazy(() => import("./pages/StrategyPage").then(module => ({ default: module.StrategyPage })));
@@ -459,6 +460,10 @@ export default function App() {
     void saveSettings(next);
   }
 
+  function exportTrackerBackup() {
+    downloadTrackerBackup(buildTrackerBackup(catalog, progress));
+  }
+
   async function refreshCaptureStatus() {
     const status = await fetchCaptureStatus();
     setCaptureStatus(status);
@@ -507,6 +512,12 @@ export default function App() {
             <div className="manager-count-badge">
               {managers.length}/{catalog.length}
             </div>
+            <button className="secondary manager-export-button" type="button" onClick={exportTrackerBackup} aria-label="Export lineup for Idle Master's Hub">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
+              </svg>
+              <span>Export lineup</span>
+            </button>
           </div>
 
           {/* Department Filter Chips */}

@@ -20,6 +20,7 @@
 6. [Hard Limitations (Not Extractable Statically)](#6-hard-limitations-not-extractable-statically)
 7. [Extraction Approach Per Category](#7-extraction-approach-per-category)
 8. [Recommended Simulator Data Priority](#8-recommended-simulator-data-priority)
+9. [Fresh 5.63.0 Capture Update](#9-fresh-5630-capture-update)
 
 ---
 
@@ -475,6 +476,16 @@ The emulator (`emulator-5556`) can run the game. Options:
 ### Lossless candidate status (2026-08-02)
 
 UbuntuMac now has a complete immutable candidate with 11 artifacts and a manifest written last. It stages 1,698 data-shaped records from `configfiles`, JSON fallback, generalassets, power score, chapters, barrier/event, battle pass, mainland, competitive elemental mines, and previously extracted elemental JSON. Bundles with no selected data-shaped records—notably the sprite-only Frontier and collectible bundles—remain represented by the audit inventory, not fabricated empty domain objects. The raw records are review inputs; their gameplay semantics are not considered normalized merely because extraction succeeded.
+
+## 9. Fresh 5.63.0 Capture Update
+
+The 2026-09-14 UbuntuMac capture is the current package to investigate. It is release `5.63.0_97356_20260914T134142Z` and is marked `review_required` until the release validation gate is complete.
+
+The fresh package contains 119 manager records, 11,900 exact active-level rows, 1,190 promotion rows, 565 rank rows, 36 equipment records, 15 materials, 33 research records, 9 mine groups, 31 Frontier-related records, 1,675 strategy-config records, and 1,731 unresolved evidence entries. Compared with 5.59.0, the only manager change is the addition of ID `10119`; the other large domains are stable in count.
+
+The APK's IL2CPP enum was also checked directly in the current dump. Passive IDs `7`, `8`, and `9` are shaft, elevator, and warehouse upgrade-cost reductions respectively. IDs `1005` and `1006` are barrier-unlock and shaft-unlock cost reductions. This is stronger evidence than legacy passive-row enrichment and is now reflected in the frontend stable-ID map.
+
+For the complete domain-by-domain findings and Frontier recommendations, see [APK_DEEP_DIVE_5.63.md](APK_DEEP_DIVE_5.63.md). The raw candidate remains on UbuntuMac under the release's `exports/strategy-candidates/` directory; raw APK and candidate artifacts are not checked into this repository.
 
 ---
 
