@@ -2481,3 +2481,11 @@ Added the evidence-grade deep-dive and Frontier guidance documents:
 - `docs/frontier-mine-guide.md` — current passive-ID, budget-breakpoint, rotation, and equipment addendum.
 
 Verification performed: all 28 frontend test files passed (237 tests), TypeScript build/type-check passed, production Vite build passed, and `git diff --check` passed. The lint script remains blocked by the repository's pre-existing ESLint 9 configuration mismatch because no `eslint.config.*` file exists. No server deployment or production catalog activation was performed. No parity-matrix update is required because this is an analysis and classification correction rather than a new parity surface. The personal Frontier lineup/equipment recommendation remains pending a current player save sync containing owned managers, equipment IDs/assignments, and live Frontier state.
+
+## 2026-09-14 — Synced-roster Frontier plan
+
+Verified the live MineOps browser state after the user's player sync. The import reports 61 managers received/resolved, 61 fragment counts present, 10 manager equipment assignment references, 0 owned equipment items, 0 player passive values, and 5 fragment totals changed. The published UI is still using the verified 5.59.0 catalog while the capture bridge reports the newer 5.63.0 release as the latest review candidate.
+
+Added `docs/frontier-mine-plan-2026-09-14.md`, a roster-specific Frontier plan. It identifies Queen Aurora rank 1→2 as the immediate one-fragment upgrade, Lila Starborne rank 1→2 as the next two-fragment bargain, and Mr. Turner rank 3→4 as the next meaningful shaft burst investment. It separates the user's currently active shaft/elevator/warehouse reducers from barrier- and shaft-unlock reducers using the corrected APK passive IDs, and records the equipment limitation and missing live Frontier fields.
+
+No external account changes, purchases, equipment crafting, catalog activation, or server deployment were performed.
