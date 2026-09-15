@@ -19,6 +19,46 @@ exists.
 **Limitations:** Import and full reset parity remain unimplemented. Existing
 unrelated worktree changes were preserved.
 
+## 2026-09-14 — Normalize tracker export names and duplicate variants
+
+**Outcome:** Cleaned the Idle Master's Hub export identity mapping using the
+provided rendered Super Manager catalog. Known aliases now emit the target
+slugs (`h4-v0-c`, `professor-maple`, `santa-2020`, `wolfgang-clawson`, and
+others), and the six evidence-based duplicate/legacy internal variant IDs are
+excluded so they cannot overwrite their canonical target entry.
+
+**Boundary:** The eight managers without verified MineOps IDs remain excluded
+from new catalog identity data; no IDs were guessed from display names.
+
+## 2026-09-14 — Correct stale APK manager names
+
+**Outcome:** Corrected the APK fallback names for managers whose canonical
+`gameId` was already present in the enrichment evidence but whose display label
+was stale or generic. This includes `sm-10054` Robot → 1DL3, plus Lord Beiroth,
+Amora, Maya Gelata, Jeff, R.bit, Zoe_365, Al Titude, Lavender Wick, Abeo
+Meremikwu, Professor Maple, Santa 2020, Wolfgang Clawson, and Om'nix. Their
+tracker export keys now resolve to the target-site names without guessing IDs.
+
+The attached target catalog comparison now leaves one verified identity
+mismatch: `Paige Cogsmith` exists in the target catalog but has no corresponding
+MineOps/game ID in the current catalog. It remains excluded pending an ID source.
+`H4V0C` was also corrected to the target key `h4v0c`.
+
+## 2026-09-14 — Close the current manager catalog gap and validate APK parity
+
+**Outcome:** Added the verified `sm-10119` / `Paige Cogsmith` identity and
+enrichment, refreshed the checked-in target reference files from the supplied
+`sm-data` and `sm-actives`, and corrected stale Celestia values. Sirocco’s
+missing enrichment was also added. The target reference now contains 113
+managers, including Paige’s full level/rank active table.
+
+**Cross-reference:** The APK candidate contains `SuperManagerId 10119`, the
+matching `NameKey`, 50 exact active-level rows, rank effects, promotion
+milestones, cooldown, and duration. The validation report now matches 113 of
+119 APK records; the six unmatched records remain the known duplicate/legacy
+variants. There are 106 exact active comparisons and seven documented ×100
+income-display conventions.
+
 ## 2026-09-14 — Retain only the three newest UbuntuMac releases
 
 **Change:** Added an idempotent local retention step to the UbuntuMac bridge

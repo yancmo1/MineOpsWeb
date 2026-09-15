@@ -219,7 +219,7 @@ describe("Verified release evidence", () => {
       },
     } as unknown as CachedCatalogPackage;
     const manager = managersFromVerifiedPackage(pkg)[0];
-    expect(manager.name).toBe("Altitude");
+    expect(manager.name).toBe("Al Titude");
     expect(manager.sprite).toBe("AlTitude");
     expect(manager.active?.description).toContain("resources from Warehouse workers");
     expect(manager.active?.cooldown).toBe(1800);
@@ -343,6 +343,6 @@ describe("Verified release evidence", () => {
       ...verifiedPackage,
       artifacts: { "catalog-core.json": { ...verifiedPackage.artifacts["catalog-core.json"], content: { managers: [{ canonicalId: "sm-10066", name: null, role: "Warehouse", rarity: "Rare" }] } } },
     } as CachedCatalogPackage;
-    expect(managersFromVerifiedPackage(pkg)[0].name).toBe("Altitude");
+    expect(managersFromVerifiedPackage(pkg)[0].name).toBe("Al Titude");
   });
 });

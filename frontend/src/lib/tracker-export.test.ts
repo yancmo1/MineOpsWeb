@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CatalogManager, PlayerManager } from "./db";
-import { buildTrackerBackup, serializeTrackerBackup, trackerKeyForName } from "./tracker-export";
+import { buildTrackerBackup, serializeTrackerBackup, trackerKeyForManager, trackerKeyForName } from "./tracker-export";
 
 const catalog: CatalogManager[] = [
   { id: "sm-10003", name: "Dr. Steiner", rarity: "legendary", type: "Mine Shaft", elements: [] },
@@ -22,6 +22,21 @@ describe("Idle Master's Hub tracker export", () => {
     expect(trackerKeyForName("Dr. Steiner")).toBe("dr-steiner");
     expect(trackerKeyForName("Luna & Stella")).toBe("luna-and-stella");
     expect(trackerKeyForName("King O'Rekk")).toBe("king-orekk");
+  });
+
+  it("uses the target site's known aliases and skips duplicate variants", () => {
+    expect(trackerKeyForManager({ id: "sm-10089", name: "H4V0C", rarity: "epic", type: "Mine Shaft", elements: [] })).toBe("h4v0c");
+    expect(trackerKeyForManager({ id: "sm-10119", name: "Paige Cogsmith", rarity: "epic", type: "Mine Shaft", elements: [] })).toBe("paige-cogsmith");
+    expect(trackerKeyForManager({ id: "sm-10033", name: "Prof Maple", rarity: "epic", type: "Mine Shaft", elements: [] })).toBe("professor-maple");
+    const backup = buildTrackerBackup([
+      { id: "sm-10028", name: "Rabbid Blingsley", rarity: "epic", type: "Mine Shaft", elements: [] },
+      { id: "sm-10025", name: "Rabbid Blingsley", rarity: "epic", type: "Mine Shaft", elements: [] },
+    ], []);
+    expect(Object.keys(backup)).toEqual(["rabbit-blingsley"]);
+  });
+
+  it("uses the corrected canonical identity for 1DL3", () => {
+    expect(trackerKeyForManager({ id: "sm-10054", name: "1DL3", rarity: "rare", type: "Mine Shaft", elements: [] })).toBe("1dl3");
   });
 
   it("emits the strict flat manager format and preserves catalog order", () => {

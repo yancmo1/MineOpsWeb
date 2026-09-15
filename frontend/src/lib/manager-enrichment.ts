@@ -8500,8 +8500,8 @@ export const MANAGER_ENRICHMENT: ManagerEnrichment[] = [
     "gameId": 10116,
     "name": "Celestia",
     "sprite": "Celestia",
-    "activeL1": 5,
-    "activeL100": 15,
+    "activeL1": 20,
+    "activeL100": 64,
     "cooldown": 1200,
     "duration": 180,
     "descriptionLong": "Adds {0} of the Warehouse Total Transportation to the Mineshaft Production of both Mineshafts with the highest and lowest Total Production simultaneously. Additionally, she gains {1} Cash from Warehouse Transporters.",
@@ -8653,6 +8653,163 @@ export const MANAGER_ENRICHMENT: ManagerEnrichment[] = [
         "promoReq": 5
       }
     ]
+  },
+  {
+    "name": "Paige Cogsmith",
+    "gameId": 10119,
+    "elements": [
+      {
+        "element": "frost",
+        "effectiveness": "SE",
+        "rankReq": 0
+      },
+      {
+        "element": "dark",
+        "effectiveness": "SE",
+        "rankReq": 3
+      },
+      {
+        "element": "nature",
+        "effectiveness": "SE",
+        "rankReq": 5
+      },
+      {
+        "element": "light",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "wind",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "order",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "chaos",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "water",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "flame",
+        "effectiveness": "NVE",
+        "rankReq": 0
+      },
+      {
+        "element": "sand",
+        "effectiveness": "NVE",
+        "rankReq": 0
+      }
+    ],
+    "passives": [
+      {
+        "type": "CR",
+        "value": 59.2,
+        "promoReq": 1
+      },
+      {
+        "type": "WMSB",
+        "value": 3.269333333333328,
+        "promoReq": 3
+      },
+      {
+        "type": "MSUCR",
+        "value": 31.46666666666672,
+        "promoReq": 5
+      }
+    ],
+    "sprite": "PaigeCogsmith",
+    "activeL1": 2,
+    "activeL100": 5.54,
+    "cooldown": 900,
+    "duration": 120,
+    "descriptionLong": "Multiplies all resources arriving at the Warehouse by {0}. An owl takes {1} resources brought by the workers and sends them to the Warehouse."
+  },
+  {
+    "name": "Sirocco",
+    "gameId": 10118,
+    "elements": [
+      {
+        "element": "sand",
+        "effectiveness": "SE",
+        "rankReq": 0
+      },
+      {
+        "element": "flame",
+        "effectiveness": "SE",
+        "rankReq": 1
+      },
+      {
+        "element": "dark",
+        "effectiveness": "SE",
+        "rankReq": 3
+      },
+      {
+        "element": "frost",
+        "effectiveness": "SE",
+        "rankReq": 5
+      },
+      {
+        "element": "light",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "wind",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "order",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "chaos",
+        "effectiveness": "PE",
+        "rankReq": 0
+      },
+      {
+        "element": "nature",
+        "effectiveness": "NVE",
+        "rankReq": 0
+      },
+      {
+        "element": "water",
+        "effectiveness": "NVE",
+        "rankReq": 0
+      }
+    ],
+    "passives": [
+      {
+        "type": "CR",
+        "value": 84.8,
+        "promoReq": 1
+      },
+      {
+        "type": "MSUCR",
+        "value": 52.26666666666672,
+        "promoReq": 3
+      },
+      {
+        "type": "MIF",
+        "value": 2.229333333333328,
+        "promoReq": 5
+      }
+    ],
+    "sprite": "Sirocco",
+    "activeL1": 30,
+    "activeL100": 45.16,
+    "cooldown": 600,
+    "duration": 180,
+    "descriptionLong": "Every time resources are dropped in a crate anywhere in the mine while he is active, he takes {1} of them, multiplies them by {0}, and converts them into Instant Cash."
   }
 ];
-
