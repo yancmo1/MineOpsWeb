@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef, useCallback, Suspense, lazy } from "react";
 import { getSyncMetadata, loadProgress, loadInventory, rankThreshold, saveProgress, saveInventory, setSyncMetadata, strengthScore, getSettings, saveSettings, saveCredentials, getCredentials, type CatalogManager, type PlayerInventoryEntry, type PlayerManager, type SyncMetadata, type AppSettings, type PersistedCredentials } from "./lib/db";
 import { fetchKolibri, type KolibriCredentials, type KolibriDiagnostics } from "./lib/kolibri";
-import { type Tab, navigationItems, getTabLabel } from "./lib/navigation";
+import { type Tab, navigationItems, getTabLabel, hashForTab, tabFromHash } from "./lib/navigation";
 import { restoreAuth, getAuthStatus, onAuthChange, getClient, getBaseUrl, type AuthStatus } from "./lib/pocketbase";
 import { pushStateToPB, pullNewerFromPB, getLocalRevision, updateSyncMetadata } from "./lib/sync";
 import { saveSnapshot } from "./lib/snapshot";
@@ -83,7 +83,7 @@ export default function App() {
   const [inventory, setInventory] = useState<PlayerInventoryEntry[]>([]);
   const [metadata, setMetadata] = useState<SyncMetadata>({ status: "never" });
   const [settings, setSettings] = useState<AppSettings>({ autoSync: false, focusTargetLevel: 30 });
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(() => typeof window === "undefined" ? "overview" : tabFromHash(window.location.hash));
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState<Department>("All");
   const [ownership, setOwnership] = useState<Ownership>(defaultOwnership);
@@ -128,6 +128,35 @@ export default function App() {
     }
   });
   const hasAutoSynced = useRef(false);
+
+  const navigateToTab = useCallback((next: Tab) => {
+    setTab(next);
+    if (typeof window !== "undefined") {
+      const nextHash = hashForTab(next);
+      if (window.location.hash !== nextHash) {
+        window.history.pushState({}, "", nextHash);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      const next = tabFromHash(window.location.hash);
+      setTab(next);
+      const canonicalHash = hashForTab(next);
+      if (window.location.hash !== canonicalHash) {
+        window.history.replaceState({}, "", canonicalHash);
+      }
+    };
+
+    syncTabFromHash();
+    window.addEventListener("hashchange", syncTabFromHash);
+    window.addEventListener("popstate", syncTabFromHash);
+    return () => {
+      window.removeEventListener("hashchange", syncTabFromHash);
+      window.removeEventListener("popstate", syncTabFromHash);
+    };
+  }, []);
 
   // Close sort menu on click outside
   useEffect(() => {
@@ -503,7 +532,7 @@ export default function App() {
       <div className="app-content">
       <ErrorBoundary>
       {tab !== "overview" && <DataConfidenceBar metadata={metadata} catalogLoadState={catalogLoadState} />}
-      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} settings={settings} onSettingsChange={handleSettingsChange} onNavigate={setTab} />}
+      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} settings={settings} onSettingsChange={handleSettingsChange} onNavigate={navigateToTab} />}
       {tab === "managers" && (
         <section className="managers-page">
           <div className="page-intro">
@@ -709,7 +738,7 @@ export default function App() {
               className="nav-item"
               data-tab={item.id}
               aria-current={tab === item.id ? "page" : undefined}
-              onClick={() => setTab(item.id)}
+              onClick={() => navigateToTab(item.id)}
               title={!navExpanded ? item.label : undefined}
             >
               <NavigationIcon tab={item.id} />

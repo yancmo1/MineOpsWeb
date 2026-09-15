@@ -49,3 +49,14 @@ Normalize at extraction time, in priority order:
 5. **equipment effects and artifacts** — joins with `equipment-domain.json` for equipment-aware scoring.
 
 Each new domain becomes its own immutable artifact with source IDs and unresolved values preserved, per the existing control-plane rules. Records classified `non-strategy` are excluded.
+
+## Update 2026-09-15 — elemental recipes normalized
+
+The elemental manager configs are now a completed extraction-time projection,
+not just raw evidence. The active package contains 91 source records that
+collapse to 82 unique recipe-bearing manager identities; each identity carries
+five exact rank recipe rows (410 rows total) plus its elemental mapping. The
+candidate builder projects these values into `catalog-core.json`, and the
+catalog validator fails if a recipe-bearing source identity is missing or
+differs in the core projection. Duplicate source records are accepted only
+when their normalized mapping and recipe data agree.

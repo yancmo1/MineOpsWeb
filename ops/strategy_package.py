@@ -100,6 +100,99 @@ def _definition_params(manager: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
+def _json_record(value: Any) -> dict[str, Any] | None:
+    if isinstance(value, dict):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _elemental_rows(value: Any, *, recipe: bool) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    rows = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        if recipe:
+            rank = item.get("rank")
+            ingredients = item.get("ingredients")
+            if not isinstance(rank, int) or isinstance(rank, bool) or not isinstance(ingredients, list):
+                continue
+            normalized_ingredients = []
+            for ingredient in ingredients:
+                if not isinstance(ingredient, dict):
+                    continue
+                ingredient_id = ingredient.get("id")
+                amount = ingredient.get("amount")
+                if not isinstance(ingredient_id, int) or isinstance(ingredient_id, bool):
+                    continue
+                if not isinstance(amount, (int, float)) or isinstance(amount, bool):
+                    continue
+                normalized_ingredients.append({"id": ingredient_id, "amount": amount})
+            if normalized_ingredients:
+                rows.append({"rank": rank, "ingredients": normalized_ingredients})
+            continue
+
+        element_id = item.get("id")
+        rank_to_unlock = item.get("rankToUnlock")
+        if not isinstance(element_id, int) or isinstance(element_id, bool):
+            continue
+        if not isinstance(rank_to_unlock, int) or isinstance(rank_to_unlock, bool):
+            continue
+        rows.append({"id": element_id, "rankToUnlock": rank_to_unlock, "isPrimary": item.get("isPrimary") is True})
+    return sorted(rows, key=lambda row: row["rank"] if recipe else row["rankToUnlock"])
+
+
+def _elemental_configs_by_manager(configs: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for record in configs.get("records", []):
+        if not isinstance(record, dict):
+            continue
+        name = record.get("name")
+        if not isinstance(name, str) or not name.lower().startswith("supermanagerelementalconfig_"):
+            continue
+        fields = record.get("fields") if isinstance(record.get("fields"), dict) else {}
+        raw = record.get("raw") if isinstance(record.get("raw"), dict) else {}
+        raw_value = raw.get("value") if isinstance(raw.get("value"), dict) else None
+        config = _json_record(fields.get("m_Script")) or raw_value
+        if not config:
+            continue
+        manager_id = config.get("superManagerId")
+        if isinstance(manager_id, bool) or not isinstance(manager_id, (int, str)):
+            continue
+        mapping = _elemental_rows(config.get("elementalMapping"), recipe=False)
+        recipe = _elemental_rows(config.get("elementalRecipe"), recipe=True)
+        if not mapping and not recipe:
+            continue
+        source = record.get("source") if isinstance(record.get("source"), dict) else {}
+        provenance = {key: source[key] for key in ("bundle", "assetPath", "objectType", "pathId") if source.get(key) is not None}
+        provenance["recordId"] = record.get("recordId")
+        serialized = raw.get("serialized") if isinstance(raw.get("serialized"), dict) else {}
+        if isinstance(serialized.get("rawSha256"), str):
+            provenance["rawSha256"] = serialized["rawSha256"]
+        normalized = {
+            **({"elementalMapping": mapping} if mapping else {}),
+            **({"elementalRecipe": recipe} if recipe else {}),
+            "elementalSource": provenance,
+        }
+        key = str(manager_id)
+        previous = result.get(key)
+        if previous is not None:
+            previous_data = {field: previous.get(field) for field in ("elementalMapping", "elementalRecipe") if previous.get(field) is not None}
+            normalized_data = {field: normalized.get(field) for field in ("elementalMapping", "elementalRecipe") if normalized.get(field) is not None}
+            if previous_data != normalized_data:
+                raise ValueError(f"Conflicting elemental configs found for Super Manager {key}")
+            continue
+        result[key] = normalized
+    return result
+
+
 def _progression(manager: dict[str, Any]) -> list[dict[str, Any]]:
     rows = []
     for asset in manager.get("activeLevels", []):
@@ -111,7 +204,7 @@ def _progression(manager: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
-def _core_manager(manager: dict[str, Any]) -> dict[str, Any]:
+def _core_manager(manager: dict[str, Any], elemental_configs: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     definition = _definition_params(manager)
     rarity_value = definition.get("SuperManagerRarity", definition.get("Rarity"))
     area_value = definition.get("AreaId")
@@ -135,22 +228,63 @@ def _core_manager(manager: dict[str, Any]) -> dict[str, Any]:
     cooldown = definition.get("Cooldown")
     ability = {"canonicalId": f"{manager['canonicalId']}:active", "name": None, "description": None, "type": None, "target": None,
                "cooldown": cooldown if isinstance(cooldown, (int, float)) else None, "extensions": {"definition": definition, "effectFactors": manager.get("effectFactors", [])}}
+    extensions = {"losslessDomain": "manager-domain.json", "definition": definition}
+    elemental = (elemental_configs or {}).get(str(manager.get("sourceManagerId")))
+    if elemental:
+        extensions.update(elemental)
     return {"canonicalId": manager["canonicalId"], "name": None, "nameSource": "unknown",
             "rarity": RARITY_MAP[rarity_value].lower() if rarity_value in RARITY_MAP else None,
             "role": STRATEGY_ROLE_MAP.get(area_value), "element": None, "abilities": [ability], "passives": passives, "progression": _progression(manager),
             "sourceIdentifiers": {"superManagerId": str(manager["sourceManagerId"]), "nameKey": str(definition["NameKey"]) if definition.get("NameKey") is not None else None},
-            "extensions": {"losslessDomain": "manager-domain.json", "definition": definition}}
+            "extensions": extensions}
 
 
-def _minimal_core(metadata: dict[str, Any], generated_at: str, manager_domain: dict[str, Any], equipment_domain: dict[str, Any]) -> dict[str, Any]:
-    managers = [_core_manager(item) for item in manager_domain["managers"]]
+def _minimal_core(metadata: dict[str, Any], generated_at: str, manager_domain: dict[str, Any], equipment_domain: dict[str, Any], configs: dict[str, Any]) -> dict[str, Any]:
+    elemental_configs = _elemental_configs_by_manager(configs)
+    managers = [_core_manager(item, elemental_configs) for item in manager_domain["managers"]]
     equipment = [{"canonicalId": row["canonicalId"], "name": None, "nameSource": "unknown", "sourceIdentifiers": {"equipmentId": row["recordId"].split(":", 1)[1]}, "extensions": {"losslessDomain": "equipment-domain.json"}} for row in equipment_domain["equipment"]]
     return {"schemaVersion": "1.0.0", "catalogVersion": metadata["releaseId"], "releaseId": metadata["releaseId"], "generatedAt": generated_at,
             "source": _source(metadata), "managers": managers, "mines": [], "equipment": equipment, "research": [], "collectibles": [], "artifacts": []}
 
 
-def _standard_artifacts(metadata: dict[str, Any], generated_at: str, manager_domain: dict[str, Any], equipment_domain: dict[str, Any], unresolved: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    core = _minimal_core(metadata, generated_at, manager_domain, equipment_domain)
+def project_elemental_recipes(core: dict[str, Any], configs: dict[str, Any]) -> dict[str, int]:
+    """Project verified elemental configs into an existing catalog-core artifact.
+
+    This is used when repairing an already-built package whose raw strategy
+    artifact is present but whose core projection predates the recipe join.
+    It deliberately returns coverage counts so callers can fail closed when a
+    recipe-bearing source record does not resolve to a core manager.
+    """
+    elemental_configs = _elemental_configs_by_manager(configs)
+    managers_by_game_id: dict[str, dict[str, Any]] = {}
+    for manager in core.get("managers", []):
+        if not isinstance(manager, dict):
+            continue
+        extensions = manager.get("extensions") if isinstance(manager.get("extensions"), dict) else {}
+        identifiers = manager.get("sourceIdentifiers") if isinstance(manager.get("sourceIdentifiers"), dict) else {}
+        game_id = extensions.get("superManagerId", identifiers.get("superManagerId"))
+        if game_id is not None:
+            managers_by_game_id[str(game_id)] = manager
+
+    recipe_configs = {game_id: value for game_id, value in elemental_configs.items() if value.get("elementalRecipe")}
+    projected = 0
+    missing = []
+    for game_id, elemental in recipe_configs.items():
+        manager = managers_by_game_id.get(game_id)
+        if manager is None:
+            missing.append(game_id)
+            continue
+        extensions = manager.get("extensions") if isinstance(manager.get("extensions"), dict) else {}
+        extensions.update(elemental)
+        manager["extensions"] = extensions
+        projected += 1
+    if missing:
+        raise ValueError(f"Elemental recipe source records do not resolve to catalog managers: {', '.join(sorted(missing))}")
+    return {"sourceManagers": len(recipe_configs), "projectedManagers": projected, "unresolvedManagers": len(missing)}
+
+
+def _standard_artifacts(metadata: dict[str, Any], generated_at: str, manager_domain: dict[str, Any], equipment_domain: dict[str, Any], configs: dict[str, Any], unresolved: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    core = _minimal_core(metadata, generated_at, manager_domain, equipment_domain, configs)
     mappings = [{"canonicalId": row["canonicalId"], "kind": "apk_superManagerId", "sourceValue": str(row["sourceManagerId"]), "confidence": "verified"} for row in manager_domain["managers"]]
     unresolved_count = len(unresolved["entries"])
     changelog_unresolved = [{"canonicalId": row["subjectId"], "entityType": "manager", "reason": row["reason"], "severity": row["severity"]} for row in unresolved["entries"] if row.get("domain") == "manager" and row.get("subjectId")]
@@ -260,7 +394,7 @@ def build_candidate(release_dir: Path | str, output_dir: Path | str | None = Non
     unresolved = _unresolved_evidence(metadata, generated_at, manager_domain, equipment_domain, passive_domain, configs)
     domains = {"manager-domain.json": manager_domain, "equipment-domain.json": equipment_domain, "passive-domain.json": passive_domain, "strategy-configs.json": configs, "unresolved-evidence.json": unresolved, **semantic_domains}
     _validate(domains)
-    artifacts = {**_standard_artifacts(metadata, generated_at, manager_domain, equipment_domain, unresolved), **domains}
+    artifacts = {**_standard_artifacts(metadata, generated_at, manager_domain, equipment_domain, configs, unresolved), **domains}
     candidate_dir.mkdir(parents=True, exist_ok=False)
     entries = []
     for filename in (*STANDARD_FILES, *DOMAIN_FILES):

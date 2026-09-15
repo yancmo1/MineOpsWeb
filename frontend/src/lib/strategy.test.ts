@@ -18,6 +18,8 @@ import { evaluateLineup, evaluateVerifiedLineup, managersFromVerifiedPackage } f
 import type { CachedCatalogPackage } from "./catalog-cache";
 import { effectiveActiveValue } from "./db";
 import type { CatalogManager, PlayerManager } from "./db";
+import { MANAGER_ENRICHMENT } from "./manager-enrichment";
+import { MANAGER_REFERENCE_DATABASE } from "./manager-reference-database";
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -257,18 +259,87 @@ describe("Verified release evidence", () => {
       artifacts: {
         "catalog-core.json": {
           ...verifiedPackage.artifacts["catalog-core.json"],
-          content: { managers: [{ canonicalId: "sm-10029", name: null, role: "Elevator", rarity: "Rare", extensions: { superManagerId: 10029 }, passives: [{ description: "Boost" }] }] },
+          content: { managers: [{ canonicalId: "sm-99999", name: null, role: "Elevator", rarity: "Rare", extensions: { superManagerId: 99999 }, passives: [{ description: "Boost" }] }] },
         },
         "localization.json": {
           filename: "localization.json", sha256: "x", bytes: 1, schemaVersion: "1.0.0",
-          content: { entries: { "sm-10029": { displayName: "Dr. Nova" } } },
+          content: { entries: { "sm-99999": { displayName: "Dr. Nova" } } },
         },
       },
     } as CachedCatalogPackage;
     const [manager] = managersFromVerifiedPackage(pkg);
     expect(manager.name).toBe("Dr. Nova");
-    expect(manager.gameId).toBe(10029);
+    expect(manager.gameId).toBe(99999);
     expect(manager.passives?.[0].description).toBe("Boost");
+  });
+
+  it("does not expose stale APK NameKey names when verified manager data has the display name", () => {
+    const pkg = {
+      ...verifiedPackage,
+      artifacts: {
+        "catalog-core.json": {
+          ...verifiedPackage.artifacts["catalog-core.json"],
+          content: {
+            managers: [{
+              canonicalId: "sm-10070",
+              name: "Fishman",
+              role: "Warehouse",
+              rarity: "Rare",
+              extensions: { superManagerId: 10070, nameKey: "SM_Fishman" },
+            }],
+          },
+        },
+      },
+    } as CachedCatalogPackage;
+
+    expect(managersFromVerifiedPackage(pkg)[0].name).toBe("Jeff");
+  });
+
+  it("hydrates the joined reference active table for partial package rows", () => {
+    const pkg = {
+      ...verifiedPackage,
+      artifacts: {
+        "catalog-core.json": {
+          ...verifiedPackage.artifacts["catalog-core.json"],
+          content: {
+            managers: [{
+              canonicalId: "sm-10070",
+              name: "Fishman",
+              role: "Warehouse",
+              rarity: "Rare",
+              extensions: { superManagerId: 10070, nameKey: "SM_Fishman" },
+            }],
+          },
+        },
+      },
+    } as CachedCatalogPackage;
+
+    const [manager] = managersFromVerifiedPackage(pkg);
+    expect(manager.activeLevelsByRank?.[0].values).toEqual(MANAGER_REFERENCE_DATABASE.find((entry) => entry.gameId === 10070)?.activeTable.values[0]);
+    expect(effectiveActiveValue(manager, makeProgress({ managerId: manager.id, level: 1, rank: 5 }))).toBe(2.4);
+  });
+
+  it("uses the verified manager directory for every captured manager identity", () => {
+    const pkg = {
+      ...verifiedPackage,
+      artifacts: {
+        "catalog-core.json": {
+          ...verifiedPackage.artifacts["catalog-core.json"],
+          content: {
+            managers: MANAGER_ENRICHMENT.map((entry) => ({
+              canonicalId: `sm-${entry.gameId}`,
+              name: `Legacy ${entry.gameId}`,
+              role: "Mine Shaft",
+              rarity: "Rare",
+              extensions: { superManagerId: entry.gameId, nameKey: `SM_Legacy${entry.gameId}` },
+            })),
+          },
+        },
+      },
+    } as CachedCatalogPackage;
+
+    const namesById = new Map(managersFromVerifiedPackage(pkg).map((manager) => [manager.id, manager.name]));
+    expect(namesById).toEqual(new Map(MANAGER_ENRICHMENT.map((entry) => [`sm-${entry.gameId}`, entry.name])));
   });
 
   it("merges identity-only APK passive rows with display and unlock data", () => {
@@ -328,6 +399,76 @@ describe("Verified release evidence", () => {
 
     const result = evaluateVerifiedLineup(pkg, [makeProgress({ managerId: "sm-10006", level: 7 })]);
     expect(result.areaRecommendations["Mine Shaft"][0].activeValue).toBe(42);
+  });
+
+  it("hydrates rank recipes from raw strategy-config records when core omits them", () => {
+    const pkg: CachedCatalogPackage = {
+      ...verifiedPackage,
+      artifacts: {
+        ...verifiedPackage.artifacts,
+        "catalog-core.json": {
+          ...verifiedPackage.artifacts["catalog-core.json"],
+          content: {
+            managers: [{
+              canonicalId: "sm-10003",
+              name: "Dr. Steiner",
+              role: "Mine Shaft",
+              rarity: "epic",
+              extensions: { superManagerId: 10003 },
+            }],
+          },
+        },
+        "strategy-configs.json": {
+          filename: "strategy-configs.json",
+          sha256: "z",
+          bytes: 1,
+          schemaVersion: "1.0.0",
+          content: {
+            records: [{
+              name: "SuperManagerElementalConfig_10003.json",
+              fields: {
+                m_Script: JSON.stringify({
+                  superManagerId: 10003,
+                  elementalRecipe: [{ rank: 0, ingredients: [{ id: 4100000, amount: 20 }] }],
+                }),
+              },
+            }],
+          },
+        },
+      },
+    };
+
+    const [manager] = managersFromVerifiedPackage(pkg);
+    expect(manager.elementalRecipe).toEqual([{ rank: 0, ingredients: [{ id: 4100000, amount: 20 }] }]);
+  });
+
+  it("falls back to raw strategy-config values when the embedded script is unavailable", () => {
+    const pkg: CachedCatalogPackage = {
+      ...verifiedPackage,
+      artifacts: {
+        ...verifiedPackage.artifacts,
+        "catalog-core.json": {
+          ...verifiedPackage.artifacts["catalog-core.json"],
+          content: { managers: [{ canonicalId: "sm-10004", name: "Gordon", role: "Warehouse", rarity: "epic", extensions: { superManagerId: 10004 } }] },
+        },
+        "strategy-configs.json": {
+          filename: "strategy-configs.json",
+          sha256: "z",
+          bytes: 1,
+          schemaVersion: "1.0.0",
+          content: {
+            records: [{
+              name: "SuperManagerElementalConfig_10004.json",
+              fields: { m_Script: "not-json" },
+              raw: { value: { superManagerId: 10004, elementalRecipe: [{ rank: 0, ingredients: [{ id: 4100003, amount: 20 }] }] } },
+            }],
+          },
+        },
+      },
+    };
+
+    const [manager] = managersFromVerifiedPackage(pkg);
+    expect(manager.elementalRecipe).toEqual([{ rank: 0, ingredients: [{ id: 4100003, amount: 20 }] }]);
   });
 
   it("derives a display name from NameKey when localization is missing", () => {

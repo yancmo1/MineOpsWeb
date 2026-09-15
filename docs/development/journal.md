@@ -1,5 +1,113 @@
 # Development journal
 
+## 2026-09-15 — Make verified manager names authoritative
+
+**Root cause:** The published catalog used APK `NameKey`-derived labels as
+display names. For manager `sm-10070`, that exposed the internal value
+`SM_Fishman` as **Fishman**, even though the verified manager directory names
+that manager **Jeff**. The same package comparison found 28 overlapping manager
+IDs with stale, abbreviated, or punctuation-only display differences.
+
+**Fix:** Manager hydration now resolves display names by stable game ID from the
+captured verified manager directory before consulting package labels. The
+corrected APK name map remains available for the six legacy/variant IDs that
+are not present in the current directory. Catalog ID-resolution evidence uses
+the same name helper, so imported-save and snapshot-facing names cannot fall
+back to the stale `NameKey` label independently.
+
+**Verification:** Added regression coverage for `sm-10070` and for every one
+of the 113 captured manager-directory identities. The previously failing test
+received `Fishman`; after the fix it returns `Jeff`. The live local preview was
+reloaded and the complete catalog visibly shows `Jeff` and no `Fishman` label.
+The supplied `sm-data` and `sm-actives` snapshots each contain 113 matching
+manager identities with no missing keys; the frontend directory and fallback
+names now match that reference set exactly.
+The current manager-directory comparison is documented in
+`docs/APK_STRATEGY_DATA_AUDIT.md`. No production catalog pointer or deployment
+was changed.
+
+## 2026-09-15 — Build the joined manager reference database
+
+**Outcome:** Added a reproducible importer for the supplied `sm-data` and
+`sm-actives` snapshots. It validates the 113-manager identity join and emits
+`frontend/src/lib/manager-reference-database.ts` with 5,650 rank-by-level
+active cells plus current names, descriptions, elements, and passives.
+
+The frontend enrichment now projects from that joined database instead of a
+separately maintained copy. Hydrated catalog managers retain the complete
+reference active table as a partial-package fallback; APK-derived exact active
+levels and rank effects remain preferred whenever present.
+
+**Verification:** Built the database directly from the two supplied files;
+all 113 `sm-data` IDs matched all 113 `sm-actives` keys. Added regression tests
+for the reference active-table fallback and Jeff's rank-5 value. No production
+catalog pointer or deployment was changed.
+
+## 2026-09-15 — Complete elemental recipe projection and coverage validation
+
+**Outcome:** Closed the remaining raw-to-core catalog gap for the essence
+planner. The active package was inspected directly: 91 elemental source
+records resolve to 82 unique recipe-bearing managers, each with five exact rank
+rows (410 rows total). The shared projection now rejects conflicting duplicate
+configs, projects every recipe-bearing manager into `catalog-core.json`, and
+the catalog validator reports a blocking error if any source recipe is absent
+or changed in the core artifact.
+
+Added `tools/repair-catalog-recipes.py`, which creates a new release candidate
+from an existing immutable package without overwriting the source package. A
+candidate built from the active package projected 82/82 managers and passed
+artifact hashing, schema, identity, and deterministic-serialization checks;
+its only remaining status is the source package's existing unresolved-evidence
+review requirement. The Strategy warning copy now describes the actual
+verified-catalog limitation without claiming that every manager has an APK
+recipe.
+
+**Documentation:** Updated `docs/PARITY_MATRIX.md`,
+`docs/APK_STRATEGY_DATA_AUDIT.md`, and
+`docs/strategy-configs-characterization.md`. No server files or production
+publication pointer were changed. The generated candidate remains under the
+ignored `tools/data/` workspace for review/publication through the existing
+hash-bound workflow.
+
+**Verification:** The focused frontend regression suite passes (26 tests), the
+focused lossless strategy suite passes (18 tests), the actual active-package
+repair projects 82 managers and 410 rank rows, and the repaired package passes
+catalog validation with `ELEMENTAL_RECIPE_PROJECTION` reporting 82/82. The
+full frontend suite passes (246 tests), all Python ops tests pass (31 tests),
+the TypeScript/Vite production build passes, and `git diff --check` passes. The
+copy-only Strategy page change triggered the existing design-system hook
+findings for that file; no new visual tokens or styles were introduced. The
+repository's pre-existing ESLint 9 flat-config setup issue remains unchanged.
+
+## 2026-09-15 — Wire extracted essence recipes and hash navigation
+
+**Outcome:** Fixed the Strategy essence planner’s missing-rank-cost path. The
+runtime adapter now reads verified `SuperManagerElementalConfig` records from
+the published `strategy-configs.json` artifact when the core manager row does
+not yet carry `elementalRecipe`. The lossless candidate builder now promotes
+the same exact recipe and elemental mapping rows into the manager extensions,
+with source provenance, so future published packages carry the data directly.
+No costs are estimated when the source record is absent or malformed.
+
+Navigation now mirrors the active workspace in readable hash routes:
+`#today`, `#managers`, `#strategy`, and `#more`. Initial loads, bookmarks, and
+browser back/forward navigation restore the correct workspace; clicks push a
+history entry without a full page reload.
+
+**Design system:** Updated the Navigation section in `DESIGN.md` to document
+the hash-route orientation behavior. No new visual tokens or layout exceptions
+were introduced; the existing navigation component remains the owner.
+
+**Verification:** The focused frontend regression tests pass (25 tests), the
+focused lossless strategy tests pass (17 tests), and the captured 5.63 package
+contains 82 elemental configs including 5 recipes for `sm-10003`. Full
+frontend tests pass (245 tests), the TypeScript/Vite production build passes,
+all Python ops tests pass (30 tests), the design detector reports no findings,
+and `git diff --check` passes. `npm run lint` remains unavailable because this
+checkout has ESLint 9 without the required flat-config file; this is a
+pre-existing repository setup issue. No production catalog or frontend
+deployment was performed in this work item.
+
 ## 2026-09-14 — Add portrait-led roster signals to Today
 
 **Outcome:** Made the command deck more personal and game-native by using the

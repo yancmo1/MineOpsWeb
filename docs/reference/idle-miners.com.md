@@ -1,7 +1,7 @@
 # idle-miners.com reference documentation
 
 **Date:** 2026-08-04
-**Purpose:** Reverse-engineering record of idle-miners.com ("Idle Master's Hub") — its tools, API shapes, and calculator math — used as a **behavioral/UX reference and validation cross-check only**. Per the project's data policy, MineOps numbers come from the APK capture; idle-miners.com data is community-curated and is never a runtime dependency.
+**Purpose:** Reverse-engineering record of idle-miners.com ("Idle Master's Hub") — its tools, API shapes, and calculator math — used as a behavioral/UX reference plus a manager identity/partial-data reference. For overlapping release-scoped facts, MineOps still prefers the APK-derived catalog package; the joined manager reference database supplies current names and safe fallbacks when a package is incomplete.
 
 ## Site overview
 
@@ -20,7 +20,7 @@ A Flask SPA (static assets under `/static/`) for Idle Miner Tycoon. Title: "Idle
 
 ## API endpoints and data shapes
 
-- **`GET /api/sm-data`** → 112 Super Managers. Fields: `id`, `gameId`, `name`, `rarity` (common/rare/epic/legendary), `area` (mineshaft/elevator/warehouse), `activeL1`, `activeL100`, `cooldown`, `duration`, `descriptionLong/Short`, `elements` (10 entries: `element` + `effectiveness` SE/PE/NVE + `rankReq`), `passives`, `placeholderIndices`, `sprite`. This is the same shape MineOps's `MANAGER_ENRICHMENT` was captured from.
+- **`GET /api/sm-data`** → 113 Super Managers. Fields: `id`, `gameId`, `name`, `rarity` (common/rare/epic/legendary), `area` (mineshaft/elevator/warehouse), `activeL1`, `activeL100`, `cooldown`, `duration`, `descriptionLong/Short`, `elements` (10 entries: `element` + `effectiveness` SE/PE/NVE + `rankReq`), `passives`, `placeholderIndices`, `sprite`. MineOps joins this snapshot with `sm-actives` into `manager-reference-database.ts`.
 - **`GET /api/sm-actives`** → per-manager exact active tables: `{ type, scaleType, values: [[per rank] × per promotion] }`.
 - **`GET /static/data/sm_passive_tables.json`** → passive unlock tables (`maxPromoByRank`, `passiveUnlockByPromo`, per-rank passive values).
 - **`GET /api/fm-data`** → the Frontier Mine barrier table: `{ Name: "FM I 5", "Time Before Skip", "Time After Skip", "FC Cost Before": 97, "FC Cost After": 29, "FC received after unlocking it (no pass)", "Premium Pass", "Elite Frontier Pass", "Range of MS which give the FC": "MS 6-10" }`.
@@ -37,6 +37,6 @@ The barrier table drives the Frontier playbook:
 ## Relationship to MineOps and the validation-diff hook
 
 - **Verified APK data wins.** The published `manager-domain.json` exact level tables and `research-domain.json`/`mine-economy-domain.json` identities come from the game files, not this site.
-- **Cross-check only:** the Phase-4 validation diff compares APK-derived exact active/passive tables against `/api/sm-actives` + `sm_passive_tables.json` to catch extraction bugs; any mismatch is investigated, not adopted.
+- **Active-table boundary:** the joined reference database supplies a partial-package fallback for active values. The Phase-4 validation diff still compares APK-derived exact active/passive tables against `/api/sm-actives` + `sm_passive_tables.json`; when both sources are available, the APK-derived release rows win.
 - The reference crystal planner exposes blue/red crystal budgets, crystal spend schedules, and Mainland income inputs. MineOps does not currently claim those values: the current normalized player/catalog package contains manager progress and progression/passive definitions, but no normalized crystal inventory, crystal price schedule, or blue/red income fields. The UI must label those values unavailable until the capture pipeline proves them.
 - **When the APK frontier bundles are decoded** into a release-scoped barrier table, `verifiedBarrierTableFromDomain` (`frontend/src/lib/barrier-tables.ts`) swaps out the hardcoded reference table automatically. Until then the reference table is labeled patch-sensitive in the UI.

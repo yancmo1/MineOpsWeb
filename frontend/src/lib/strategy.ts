@@ -15,8 +15,9 @@
 import type { CatalogManager, CatalogPassive, PlayerManager } from "./db";
 import { strengthScore, effectiveActiveValue, rarityWeight, rankThreshold, hasExactActiveLevelRow } from "./db";
 import type { CachedCatalogPackage } from "./catalog-cache";
-import { APK_MANAGER_NAMES } from "./manager-name-fallback";
+import { APK_MANAGER_NAMES, verifiedManagerDisplayName } from "./manager-name-fallback";
 import { MANAGER_ENRICHMENT } from "./manager-enrichment";
+import { MANAGER_REFERENCE_DATABASE } from "./manager-reference-database";
 import { isPlaceholderPassiveType, passiveTypeForId } from "./passives";
 import { isVariantId, variantOf } from "./manager-variants";
 import { applyEquipmentBoost, equipmentBoostFor, type EquipmentBoostTable } from "./equipment-effects";
@@ -127,6 +128,74 @@ function numericSourceField(row: Record<string, unknown> | undefined, ...keys: s
     if (typeof value === "number" && Number.isFinite(value)) return value;
   }
   return undefined;
+}
+
+type ElementalMapping = NonNullable<CatalogManager["elementalMapping"]>[number];
+type ElementalRecipe = NonNullable<CatalogManager["elementalRecipe"]>[number];
+type ElementalConfig = { mapping?: ElementalMapping[]; recipe?: ElementalRecipe[] };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseJsonRecord(value: unknown): Record<string, unknown> | undefined {
+  if (isRecord(value)) return value;
+  if (typeof value !== "string") return undefined;
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return isRecord(parsed) ? parsed : undefined;
+    } catch {
+      return undefined;
+  }
+}
+
+function elementalMappingRows(value: unknown): ElementalMapping[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const rows = value.flatMap((item): ElementalMapping[] => {
+    if (!isRecord(item)) return [];
+    const id = numericSourceField(item, "id");
+    const rankToUnlock = numericSourceField(item, "rankToUnlock");
+    if (id == null || rankToUnlock == null || !Number.isInteger(id) || !Number.isInteger(rankToUnlock)) return [];
+    return [{ id, rankToUnlock, isPrimary: item.isPrimary === true }];
+  });
+  return rows.length > 0 ? rows : undefined;
+}
+
+function elementalRecipeRows(value: unknown): ElementalRecipe[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const rows = value.flatMap((item): ElementalRecipe[] => {
+    if (!isRecord(item) || !Array.isArray(item.ingredients)) return [];
+    const rank = numericSourceField(item, "rank");
+    if (rank == null || !Number.isInteger(rank)) return [];
+    const ingredients = item.ingredients.flatMap((ingredient): Array<{ id: number; amount: number }> => {
+      if (!isRecord(ingredient)) return [];
+      const id = numericSourceField(ingredient, "id");
+      const amount = numericSourceField(ingredient, "amount");
+      return id != null && amount != null && Number.isInteger(id) && Number.isFinite(amount) ? [{ id, amount }] : [];
+    });
+    return ingredients.length > 0 ? [{ rank, ingredients }] : [];
+  });
+  return rows.length > 0 ? rows.sort((a, b) => a.rank - b.rank) : undefined;
+}
+
+function elementalConfigsFromPackage(pkg: CachedCatalogPackage): Map<number, ElementalConfig> {
+  const content = pkg.artifacts["strategy-configs.json"]?.content;
+  if (!isRecord(content) || !Array.isArray(content.records)) return new Map();
+
+  const configs = new Map<number, ElementalConfig>();
+  for (const item of content.records) {
+    if (!isRecord(item) || typeof item.name !== "string" || !/^SuperManagerElementalConfig_/i.test(item.name)) continue;
+    const fields = isRecord(item.fields) ? item.fields : undefined;
+    const raw = isRecord(item.raw) ? item.raw : undefined;
+    const config = parseJsonRecord(fields?.m_Script) ?? parseJsonRecord(raw?.value);
+    if (!config) continue;
+    const gameId = numericSourceField(config, "superManagerId");
+    if (gameId == null || !Number.isInteger(gameId)) continue;
+    const mapping = elementalMappingRows(config.elementalMapping);
+    const recipe = elementalRecipeRows(config.elementalRecipe);
+    if (mapping || recipe) configs.set(gameId, { mapping, recipe });
+  }
+  return configs;
 }
 
 // ---------------------------------------------------------------------------
@@ -305,6 +374,8 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
   const aliasEntries = mappings && typeof mappings === "object" && Array.isArray((mappings as { aliases?: unknown }).aliases) ? (mappings as { aliases: Array<Record<string, unknown>> }).aliases : [];
   for (const alias of aliasEntries) if (typeof alias.canonicalId === "string" && typeof alias.alias === "string" && alias.alias) aliases.set(alias.canonicalId, alias.alias);
 
+  const elementalConfigs = elementalConfigsFromPackage(pkg);
+
   const managerDomainById = new Map<string, Record<string, unknown>>();
   const domainManagers = managerDomain && typeof managerDomain === "object" && Array.isArray((managerDomain as { managers?: unknown }).managers)
     ? (managerDomain as { managers: Array<Record<string, unknown>> }).managers
@@ -315,6 +386,7 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
 
   const nameSourceCounts: Record<string, number> = {};
   const enrichmentByGameId = new Map(MANAGER_ENRICHMENT.map((manager) => [String(manager.gameId), manager]));
+  const referenceByGameId = new Map(MANAGER_REFERENCE_DATABASE.map((manager) => [manager.gameId, manager]));
   const managers = (core as { managers: Array<Record<string, unknown>> }).managers.flatMap((item) => {
     const id = typeof item.canonicalId === "string" ? item.canonicalId : item.id;
     if (typeof id !== "string" || !id) return [];
@@ -324,7 +396,9 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
     const gameId = typeof extensions.superManagerId === "number" ? extensions.superManagerId
       : typeof sourceIdentifiers.superManagerId === "number" ? Number(sourceIdentifiers.superManagerId)
         : Number(id.match(/(\d+)$/)?.[1] ?? NaN);
+    const elementalConfig = Number.isInteger(gameId) ? elementalConfigs.get(gameId) : undefined;
     const enrichment = enrichmentByGameId.get(String(gameId));
+    const reference = Number.isInteger(gameId) ? referenceByGameId.get(gameId) : undefined;
     const domainManager = managerDomainById.get(id);
     const domainDefinition = firstDomainParam(domainManager?.definition);
     const domainActiveLevels = domainParams(domainManager?.activeLevels).flatMap((row) => {
@@ -338,8 +412,9 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
     const aliasName = aliases.get(id);
     const derivedName = nameKey ? deriveManagerName(nameKey) : undefined;
     const fallbackName = APK_MANAGER_NAMES[id];
-    const name = packageName ?? localizedName ?? aliasName ?? derivedName ?? fallbackName ?? enrichment?.name ?? id;
-    const source = packageName ? "core" : localizedName ? "localization" : aliasName ? "alias" : derivedName ? "nameKey" : fallbackName ? "apk-fallback" : enrichment ? "master-data" : "canonical-id";
+    const directoryName = verifiedManagerDisplayName(id, gameId);
+    const name = directoryName ?? packageName ?? localizedName ?? aliasName ?? derivedName ?? id;
+    const source = enrichment ? "master-data" : fallbackName ? "apk-fallback" : packageName ? "core" : localizedName ? "localization" : aliasName ? "alias" : derivedName ? "nameKey" : "canonical-id";
     nameSourceCounts[source] = (nameSourceCounts[source] ?? 0) + 1;
 
     // Read active ability from either top-level (legacy) or extensions.active (strict v2)
@@ -368,6 +443,10 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
     const activeMultiplierAt100 = domainActiveLevels.find((row) => row.level === 100)?.value ?? (typeof active?.multiplierAt100 === "number" ? active.multiplierAt100 : enrichment?.activeL100);
     const activeCooldown = numericSourceField(domainDefinition, "Cooldown", "cooldown") ?? (typeof active?.cooldown === "number" || typeof active?.cooldown === "string" ? active.cooldown : enrichment?.cooldown);
     const activeDuration = numericSourceField(domainDefinition, "Duration", "duration") ?? (typeof active?.duration === "number" || typeof active?.duration === "string" ? active.duration : enrichment?.duration);
+    const activeLevelsByRank = reference?.activeTable.values.map((values, index) => ({
+      level: index + 1,
+      values: values ?? [],
+    }));
 
     // Read elements from top-level array, extensions.elements, or derive from element field
     const elements: string[] = Array.isArray(item.elements) && item.elements.length > 0
@@ -435,6 +514,7 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
         multiplierAt100: typeof firstAbility.multiplierAt100 === "number" ? firstAbility.multiplierAt100 : undefined,
       } : undefined,
       activeLevels: domainActiveLevels.length > 0 ? domainActiveLevels : undefined,
+      activeLevelsByRank: activeLevelsByRank && activeLevelsByRank.length > 0 ? activeLevelsByRank : undefined,
       rankEffects: domainRankEffectRows.length > 0 ? domainRankEffectRows : undefined,
       abilities: abilities ? abilities.map((a) => ({
         multiplier: typeof a.multiplier === "number" ? a.multiplier : undefined,
@@ -495,8 +575,8 @@ export function managersFromVerifiedPackage(pkg: CachedCatalogPackage): CatalogM
       promotions,
       spriteRefs,
       fragmentIds,
-      elementalMapping: Array.isArray(extensions.elementalMapping) ? extensions.elementalMapping.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object").flatMap((row) => typeof row.id === "number" && typeof row.rankToUnlock === "number" ? [{ id: row.id, rankToUnlock: row.rankToUnlock, isPrimary: row.isPrimary === true }] : []) : undefined,
-      elementalRecipe: Array.isArray(extensions.elementalRecipe) ? extensions.elementalRecipe.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object").flatMap((row) => typeof row.rank === "number" && Array.isArray(row.ingredients) ? [{ rank: row.rank, ingredients: row.ingredients.filter((ingredient): ingredient is Record<string, unknown> => Boolean(ingredient) && typeof ingredient === "object").flatMap((ingredient) => typeof ingredient.id === "number" && typeof ingredient.amount === "number" ? [{ id: ingredient.id, amount: ingredient.amount }] : []) }] : []) : undefined,
+      elementalMapping: elementalMappingRows(extensions.elementalMapping) ?? elementalConfig?.mapping,
+      elementalRecipe: elementalRecipeRows(extensions.elementalRecipe) ?? elementalConfig?.recipe,
     }];
   });
   console.debug("[catalog-names] Hydrated manager names", {

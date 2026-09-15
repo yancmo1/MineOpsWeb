@@ -381,7 +381,7 @@ The `barrierrewards-continent-regular` and `barrierrewards-tier-default` bundles
 
 ### 6.1 Localization Strings
 
-Display names and descriptions are resolved at runtime from IL2CPP-compiled code. The localization table is not in extractable asset files. Current workaround: the frontend uses a hardcoded fallback (`manager-name-fallback.ts`) with 118 names + upstream API enrichment (`idle-miners.com/api/sm-data`).
+Display names and descriptions are resolved at runtime from IL2CPP-compiled code. The localization table is not in extractable asset files. Current solution: `tools/build-manager-reference-database.py` joins the supplied 113-manager `sm-data` and `sm-actives` snapshots into the frontend manager reference database, while `manager-name-fallback.ts` covers legacy/variant IDs.
 
 **Impact:** Equipment display names remain as localization keys (SMEquipmentName01–19), skill descriptions, element names.
 

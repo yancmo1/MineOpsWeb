@@ -25,6 +25,15 @@ describe("iOS-derived manager calculations", () => {
     const p: PlayerManager = { managerId: "dr_steiner", level: 50, rank: 0, promoted: 0, fragments: 0, unlocked: true, updatedAt: "" };
     expect(effectiveActiveValue(exact, p)).toBe(42.5);
   });
+  it("uses the reference active table when a package has no exact level row", () => {
+    const partial: CatalogManager = {
+      id: "sm-10070", name: "Jeff", rarity: "Legendary", type: "Warehouse", elements: [],
+      active: { multiplier: 1.5 },
+      activeLevelsByRank: [{ level: 1, values: [1.5, 1.65, 1.81, 1.99, 2.19, 2.4] }],
+    };
+    const p: PlayerManager = { managerId: partial.id, level: 1, rank: 5, promoted: 0, fragments: 0, unlocked: true, updatedAt: "" };
+    expect(effectiveActiveValue(partial, p)).toBe(2.4);
+  });
   it("rarityWeight returns correct weights", () => { expect(rarityWeight("Legendary")).toBe(25); expect(rarityWeight("Epic")).toBe(18); expect(rarityWeight("Rare")).toBe(12); expect(rarityWeight("Common")).toBe(6); expect(rarityWeight("Unknown")).toBe(0); });
   it("raritySortWeight returns integer sort weights", () => { expect(raritySortWeight("Legendary")).toBe(4); expect(raritySortWeight("Epic")).toBe(3); expect(raritySortWeight("Rare")).toBe(2); expect(raritySortWeight("Common")).toBe(1); expect(raritySortWeight("Unknown")).toBe(0); });
   it("isRankUpReady returns true when fragments >= threshold", () => {

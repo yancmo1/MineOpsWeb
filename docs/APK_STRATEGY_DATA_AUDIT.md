@@ -15,7 +15,7 @@ The immediate passive defect had the same root cause. The v3 catalog retained AP
 
 The lossless pipeline is implemented and its immutable release revision is stored on UbuntuMac at `~/mineops-data/releases/5.59.0_96449_20260716T143539Z.lossless-v1`. The published candidate is `exports/strategy-candidates/5.59.0_96449_20260716T143539Z.lossless-v1.unique.candidate` under that revision. The 11-artifact package contains 118 manager definitions, 11,800 exact active-level rows, 1,180 promotion rows, 560 rank rows, 36 equipment definitions, 15 materials, and 1,698 provenanced strategy-config records. All 26 independent validation checks pass; 1,726 partial/unresolved meanings are explicitly retained instead of guessed, including blocked evidence for the sprite-only Frontier and collectible bundles.
 
-The package is active on Oracle as release `5.59.0_96449_20260716T143539Z.lossless-v1` (manifest SHA-256 `2ea925ea0c66b7f047d20b4e1be0784fe4a5d7a869769f2eb4dcde76f25fe1ee`). The app adapter can use exact manager-domain active rows for imported player levels and reads passive unlock level/promotion from strict core extensions. Research, mine, artifact, equipment-effect, power-score, chapter, barrier/event, and elemental records are now available in the verified active package for later normalization; they are not yet applied as anonymous modifiers.
+The package is active on Oracle as release `5.59.0_96449_20260716T143539Z.lossless-v1` (manifest SHA-256 `2ea925ea0c66b7f047d20b4e1be0784fe4a5d7a869769f2eb4dcde76f25fe1ee`). The app adapter can use exact manager-domain active rows for imported player levels and reads passive unlock level/promotion from strict core extensions. Research, mine, artifact, equipment-effect, power-score, chapter, and barrier/event records remain available for later normalization; elemental mappings and the 82 complete manager rank recipes are now projected by the recipe-aware package path described below.
 
 ## What exists on UbuntuMac
 
@@ -149,3 +149,32 @@ The full evidence-grade inventory, release comparison, equipment limitations, an
 ## Update 2026-08-04 — semantic-lift implemented and published
 
 The 1,698 strategy-config records were characterized (`docs/strategy-configs-characterization.md`): 100% are `semanticStatus: partial`; ~404 are non-strategy (migration scripts + visual assets); the strategy-relevant core (mine-economy continents, research skill nodes, frontier/event configs, artifacts, power-score) is decodable at extraction time. New conservative semantic-lift artifacts (`research-domain.json`, `mine-economy-domain.json`, `frontier-domain.json`, `power-score-domain.json`) were added via `ops/strategy_semantics.py` and published as `lossless-v2` (control-plane gated, backup `20260804T150514Z`). Effect magnitudes inside raw serialized bytes remain unresolved by design; the web planner consumes only the verified identity-level data and never fabricates values.
+
+## Update 2026-09-15 — wire elemental recipes into catalog projection
+
+The candidate builder now parses `SuperManagerElementalConfig` records from `strategy-configs.json` and projects validated `elementalMapping` and `elementalRecipe` rows into matching `catalog-core` manager extensions, retaining source provenance. The browser adapter also consumes those rows directly from an optional verified `strategy-configs` artifact when an older published core package omits them. The 5.63.0 deep-dive contains 82 elemental configs, including five verified recipe rows for `sm-10003`.
+
+No release publication was performed for this work item. Packages that contain neither the projected core fields nor the optional strategy-config artifact continue to show essence costs as unavailable rather than estimating them.
+
+## Update 2026-09-15 — verified manager-directory names override APK labels
+
+The active 5.59.0 core was compared with the captured
+`idle-miners.com/api/sm-data` manager directory by stable `gameId`. The
+directory contains 113 current identities; the package contains 118 rows
+because it also preserves six legacy/variant rows and does not yet include
+`sm-10119` / Paige Cogsmith. Of the 112 overlapping current identities, 28
+package display labels were stale, abbreviated, or formatted differently.
+
+The frontend now treats the verified directory name as authoritative whenever
+the stable game ID is present. This fixes `sm-10070` from the internal APK
+label **Fishman** to **Jeff**, along with the other corrected names such as
+Lord Beiroth, Amora, Al Titude, Lavender Wick, R.bit, Om'nix, and Paige
+Cogsmith. Legacy/variant rows use the corrected APK fallback map. The catalog
+mapping resolver shares the same helper so display names stay consistent
+outside the main manager list.
+
+The supplied `sm-data` and `sm-actives` files are now joined into the checked-in
+manager reference database by `tools/build-manager-reference-database.py`.
+The join validates 113 matching manager IDs and preserves all 5,650 active
+table rows for partial-package fallback. The APK-derived manager-domain rows
+remain preferred when an active release contains them.

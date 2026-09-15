@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 
 export type CatalogPassive = { passiveId?: number; unlockLevel?: number; description?: string; multiplier?: number; type?: string; promoReq?: number };
-export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; variantOf?: string; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; activeLevels?: Array<{ level: number; value: number }>; rankEffects?: Array<{ rank: number; activeIncrease?: number; passiveIncrease?: number }>; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: CatalogPassive[]; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; promotions?: Array<{ level?: number; promotion?: number; cost?: number; unlocksPassive?: boolean; passiveId?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }>; elementalMapping?: Array<{ id: number; rankToUnlock: number; isPrimary: boolean }>; elementalRecipe?: Array<{ rank: number; ingredients: Array<{ id: number; amount: number }> }> };
+export type CatalogManager = { id: string; name: string; rarity: string; type: string; gameId?: number; sprite?: string; elements: string[]; variantOf?: string; active?: { description?: string; multiplier?: number; multiplierAt100?: number; duration?: number | string; cooldown?: number | string }; activeLevels?: Array<{ level: number; value: number }>; activeLevelsByRank?: Array<{ level: number; values: Array<number | null> }>; rankEffects?: Array<{ rank: number; activeIncrease?: number; passiveIncrease?: number }>; abilities?: Array<{ multiplier?: number; multiplierAt100?: number; rankScaling?: Record<string, { activeIncrease: number; passiveIncrease: number }>; effectType?: { effectType?: number; effectDescType?: number; incremental?: number } }>; passives?: CatalogPassive[]; equipment?: Array<{ id?: string; name?: string; description?: string; multiplier?: number }>; progression?: Array<{ level?: number; promotion?: number; cost?: number }>; promotions?: Array<{ level?: number; promotion?: number; cost?: number; unlocksPassive?: boolean; passiveId?: number }>; spriteRefs?: Array<{ name?: string; filename?: string; type?: string }>; fragmentIds?: Array<{ fragmentId?: number }>; elementalMapping?: Array<{ id: number; rankToUnlock: number; isPrimary: boolean }>; elementalRecipe?: Array<{ rank: number; ingredients: Array<{ id: number; amount: number }> }> };
 export type PlayerManager = { managerId: string; level: number; rank: number; promoted: number; fragments: number; fragmentSource?: "kolibri" | "manual" | "unavailable"; passiveValues?: Array<number | null>; passiveValueSource?: "kolibri" | "unavailable"; equipmentIds?: number[]; unlocked: boolean; updatedAt: string };
 export type PlayerInventoryEntry = { key: string; kind: "essence" | "crystal" | "material" | "equipment" | "unknown"; quantity: number; sourcePath: string; sourceKey: string; itemId?: number };
 export type SyncMetadata = { lastSuccessfulSyncAt?: string; lastAttemptAt?: string; source?: string; status: "current" | "stale" | "offline" | "never"; error?: string };
@@ -51,11 +51,24 @@ export function effectiveActiveValue(manager: CatalogManager, progress: PlayerMa
   // the documented level-1 base is returned instead of fabricating a curve;
   // callers flag `limitedData` when they need to show provenance.
   const exactLevel = manager.activeLevels?.find((row) => row.level === progress.level);
-  const baseValue = exactLevel?.value != null && Number.isFinite(exactLevel.value)
-    ? exactLevel.value
+  const exactPackageValue = exactLevel?.value;
+  const hasExactPackageValue = exactPackageValue != null && Number.isFinite(exactPackageValue);
+  const baseValue = hasExactPackageValue
+    ? exactPackageValue
     : manager.active?.multiplier ?? 1;
 
   const rankEffect = manager.rankEffects?.find((row) => row.rank === progress.rank)?.activeIncrease;
+  // Prefer the package's exact value and rank factor whenever both are
+  // present. The reference table is a safe fallback for partial/legacy
+  // packages, not a replacement for the APK-derived rows.
+  if (hasExactPackageValue && rankEffect != null && Number.isFinite(rankEffect)) {
+    const rankFactor = rankEffect >= 1 ? rankEffect : 1 + rankEffect;
+    return baseValue * rankFactor;
+  }
+  if (hasExactPackageValue && progress.rank === 0) return baseValue;
+  const referenceRow = manager.activeLevelsByRank?.find((row) => row.level === progress.level);
+  const referenceValue = referenceRow?.values[progress.rank];
+  if (referenceValue != null && Number.isFinite(referenceValue)) return referenceValue;
   if (rankEffect == null || !Number.isFinite(rankEffect)) return baseValue;
   // APK rank rows are normally stored as an additive percentage (0.46 = 46%),
   // but accept an already-expanded factor as well for older package shapes.
@@ -66,7 +79,8 @@ export function effectiveActiveValue(manager: CatalogManager, progress: PlayerMa
 /** True when the manager has an exact active-value row for the player's level. */
 export function hasExactActiveLevelRow(manager: CatalogManager, level: number): boolean {
   const row = manager.activeLevels?.find((candidate) => candidate.level === level);
-  return row?.value != null && Number.isFinite(row.value);
+  if (row?.value != null && Number.isFinite(row.value)) return true;
+  return manager.activeLevelsByRank?.find((candidate) => candidate.level === level)?.values.some((value) => value != null && Number.isFinite(value)) ?? false;
 }
 
 // ---------------------------------------------------------------------------

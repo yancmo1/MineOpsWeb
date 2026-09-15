@@ -135,7 +135,7 @@ Cards use a light border plus a restrained shadow; they do not stack multiple de
 
 ### Navigation
 
-The deep plum shell groups the four product areas—Today, Managers, Strategy, and More—above a compact connection/catalog status footer. Desktop navigation uses 24px icons, 1rem labels, and 56px hit rows so the primary destinations are easy to read at a glance. The active item uses a teal tint and a clear left-edge signal. On phone, the same items become the fixed bottom bar with safe-area padding and a compact label treatment.
+The deep plum shell groups the four product areas—Today, Managers, Strategy, and More—above a compact connection/catalog status footer. Desktop navigation uses 24px icons, 1rem labels, and 56px hit rows so the primary destinations are easy to read at a glance. The active item uses a teal tint and a clear left-edge signal. Workspace state is mirrored in readable hash routes (`#today`, `#managers`, `#strategy`, and `#more`) so a refresh, bookmark, or browser back/forward action preserves orientation. On phone, the same items become the fixed bottom bar with safe-area padding and a compact label treatment.
 
 ### Recommendations
 

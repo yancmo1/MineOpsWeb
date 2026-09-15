@@ -18,6 +18,7 @@
  */
 
 import { catalogClient } from "./catalog-client";
+import { verifiedManagerDisplayName } from "./manager-name-fallback";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -244,7 +245,11 @@ function resolveDisplayName(canonicalId: string, catalogCore?: Record<string, un
     const entities = (catalogCore as Record<string, unknown>)[key] as Array<Record<string, unknown>> | undefined;
     if (!entities) continue;
     const entity = entities.find((e) => e.canonicalId === canonicalId);
-    if (entity) return (entity.name as string) || null;
+    if (entity) {
+      const extensions = entity.extensions && typeof entity.extensions === "object" ? entity.extensions as Record<string, unknown> : {};
+      const gameId = typeof extensions.superManagerId === "number" ? extensions.superManagerId : undefined;
+      return verifiedManagerDisplayName(canonicalId, gameId) ?? (typeof entity.name === "string" && entity.name ? entity.name : null);
+    }
   }
   return null;
 }

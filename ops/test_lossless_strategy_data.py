@@ -14,7 +14,7 @@ sys.path.insert(0, str(OPS))
 from equipment_extractor import EquipmentCatalog, EquipmentItem, EquipmentBalancing, build_equipment_domain
 from il2cpp_extractor import ExtractedManager, build_manager_domain, extract_manager
 from strategy_data import canonical_json, named_records_from_env
-from strategy_package import build_candidate
+from strategy_package import build_candidate, project_elemental_recipes
 
 
 class FakeParam:
@@ -94,6 +94,39 @@ class TestLosslessStrategyInputs(unittest.TestCase):
         self.assertEqual(result.assets_found, ["10006_SuperManagers.asset"])
         self.assertEqual(len(result.raw_asset_data), 1)
 
+    def test_recipe_projection_covers_every_recipe_bearing_config(self):
+        core = {"managers": [
+            {"canonicalId": "sm-10001", "extensions": {"superManagerId": 10001}},
+            {"canonicalId": "sm-10002", "sourceIdentifiers": {"superManagerId": "10002"}},
+        ]}
+        configs = {"records": [
+            {"recordId": "elemental-10001", "name": "SuperManagerElementalConfig_10001.json", "fields": {"m_Script": json.dumps({
+                "superManagerId": 10001,
+                "elementalMapping": [{"id": 4100000, "rankToUnlock": 0, "isPrimary": True}],
+                "elementalRecipe": [{"rank": 0, "ingredients": [{"id": 4100000, "amount": 20}]}],
+            })}, "source": {"bundle": "bundle", "assetPath": "10001.json", "objectType": "TextAsset"}, "raw": {}},
+            {"recordId": "elemental-10002", "name": "SuperManagerElementalConfig_10002.json", "fields": {"m_Script": json.dumps({
+                "superManagerId": "10002",
+                "elementalRecipe": [{"rank": 0, "ingredients": [{"id": 4100008, "amount": 10}]}],
+            })}, "source": {"bundle": "bundle", "assetPath": "10002.json", "objectType": "TextAsset"}, "raw": {}},
+        ]}
+
+        coverage = project_elemental_recipes(core, configs)
+
+        self.assertEqual(coverage, {"sourceManagers": 2, "projectedManagers": 2, "unresolvedManagers": 0})
+        self.assertEqual(core["managers"][0]["extensions"]["elementalRecipe"][0]["ingredients"][0]["amount"], 20)
+        self.assertEqual(core["managers"][1]["extensions"]["elementalRecipe"][0]["ingredients"][0]["id"], 4100008)
+
+        conflicting = {"records": [
+            *configs["records"],
+            {"recordId": "elemental-10001-conflict", "name": "SuperManagerElementalConfig_10001.json", "fields": {"m_Script": json.dumps({
+                "superManagerId": 10001,
+                "elementalRecipe": [{"rank": 0, "ingredients": [{"id": 4100000, "amount": 99}]}],
+            })}, "source": {"bundle": "bundle", "assetPath": "10001-conflict.json", "objectType": "TextAsset"}, "raw": {}},
+        ]}
+        with self.assertRaisesRegex(ValueError, "Conflicting elemental configs"):
+            project_elemental_recipes({"managers": []}, conflicting)
+
     def test_non_data_assets_are_not_strategy_config_records(self):
         env = FakeEnvironment({"assets/mine_texture.png": FakePointer(FakeObject([]), 5, type_name="Texture2D")})
         records, unresolved = named_records_from_env(env, "generalassets_assets_all_fake.bundle")
@@ -137,7 +170,10 @@ class TestLosslessStrategyInputs(unittest.TestCase):
             }))
             manager = ExtractedManager(1, {}, [], [], [], {"1_SuperManagers.asset": {"key": "x", "sourceBundle": "b", "objectPathId": 1, "raw_type": "Fake", "params": [{}]}})
             equipment = EquipmentCatalog([], [], [], [])
-            configs = {"schemaVersion": "1.0.0", "catalogVersion": release.name, "releaseId": release.name, "generatedAt": "2026-08-02T00:00:00Z", "source": {"kind": "apk_capture", "unresolved": []}, "records": [{"recordId": "cfg-1", "domain": "configfiles", "semanticStatus": "partial", "source": {"bundle": "configfiles.bundle", "assetPath": "x.asset", "objectType": "MonoBehaviour", "pathId": 1}, "raw": {"serialized": {"rawEncoding": "base64", "rawBytes": "", "rawSha256": hashlib.sha256(b"").hexdigest(), "rawByteLength": 0}}}]}
+            configs = {"schemaVersion": "1.0.0", "catalogVersion": release.name, "releaseId": release.name, "generatedAt": "2026-08-02T00:00:00Z", "source": {"kind": "apk_capture", "unresolved": []}, "records": [
+                {"recordId": "cfg-1", "domain": "configfiles", "semanticStatus": "partial", "source": {"bundle": "configfiles.bundle", "assetPath": "x.asset", "objectType": "MonoBehaviour", "pathId": 1}, "raw": {"serialized": {"rawEncoding": "base64", "rawBytes": "", "rawSha256": hashlib.sha256(b"").hexdigest(), "rawByteLength": 0}}},
+                {"recordId": "elemental-1", "domain": "generalassets", "semanticStatus": "partial", "name": "SuperManagerElementalConfig_1.json", "fields": {"m_Script": json.dumps({"superManagerId": 1, "elementalRecipe": [{"rank": 0, "ingredients": [{"id": 4100000, "amount": 20}]}]})}, "source": {"bundle": "generalassets.bundle", "assetPath": "SuperManagerElementalConfig_1.json", "objectType": "TextAsset", "pathId": 2}, "raw": {"serialized": {"rawEncoding": "base64", "rawBytes": "", "rawSha256": hashlib.sha256(b"").hexdigest(), "rawByteLength": 0}}},
+            ]}
             out = Path(tmp) / "candidate"
             with patch("strategy_package.run_batch", return_value=([manager], None)), patch("strategy_package.extract_equipment", return_value=equipment), patch("strategy_package.extract_strategy_configs", return_value=configs):
                 build_candidate(release, out)
@@ -150,8 +186,12 @@ class TestLosslessStrategyInputs(unittest.TestCase):
             self.assertTrue(artifact["required"])
             self.assertTrue((out / "catalog-core.json").is_file())
             self.assertTrue((out / "validation-report.json").is_file())
+            core = json.loads((out / "catalog-core.json").read_text())
+            self.assertEqual(core["managers"][0]["extensions"]["elementalRecipe"], [{"rank": 0, "ingredients": [{"id": 4100000, "amount": 20}]}])
+            self.assertEqual(core["managers"][0]["extensions"]["elementalSource"]["recordId"], "elemental-1")
             evidence = json.loads((out / "unresolved-evidence.json").read_text())
-            self.assertEqual(evidence["entries"][-1]["evidenceId"], "strategy-config-cfg-1")
+            evidence_ids = {entry["evidenceId"] for entry in evidence["entries"]}
+            self.assertTrue({"strategy-config-cfg-1", "strategy-config-elemental-1"}.issubset(evidence_ids))
             self.assertFalse((release / "exports" / "v3" / "manifest.json").exists())
             validation = subprocess.run(
                 ["node", "tools/validation/validate-catalog.mjs", str(out)],
@@ -160,6 +200,29 @@ class TestLosslessStrategyInputs(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(validation.returncode, 0, validation.stdout + validation.stderr)
+            self.assertIn("ELEMENTAL_RECIPE_PROJECTION", validation.stdout)
+
+            repaired = Path(tmp) / "repaired"
+            repair = subprocess.run(
+                [sys.executable, "tools/repair-catalog-recipes.py", str(out), str(repaired), "--release-id", f"{release.name}.recipes"],
+                cwd=OPS.parent,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(repair.returncode, 0, repair.stdout + repair.stderr)
+            repaired_manifest = json.loads((repaired / "manifest.json").read_text())
+            repaired_core = json.loads((repaired / "catalog-core.json").read_text())
+            self.assertEqual(repaired_manifest["releaseId"], f"{release.name}.recipes")
+            self.assertEqual(repaired_core["releaseId"], f"{release.name}.recipes")
+            self.assertEqual(repaired_core["managers"][0]["extensions"]["elementalSource"]["recordId"], "elemental-1")
+            repaired_validation = subprocess.run(
+                ["node", "tools/validation/validate-catalog.mjs", str(repaired)],
+                cwd=OPS.parent,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(repaired_validation.returncode, 0, repaired_validation.stdout + repaired_validation.stderr)
+            self.assertIn("ELEMENTAL_RECIPE_PROJECTION", repaired_validation.stdout)
 
 
 if __name__ == "__main__":

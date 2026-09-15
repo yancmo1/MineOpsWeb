@@ -459,6 +459,99 @@ function checkDomainArtifactIds(artifacts) {
   };
 }
 
+function parseElementalConfig(record) {
+  const script = record?.fields?.m_Script;
+  if (typeof script === "string") {
+    try {
+      const parsed = JSON.parse(script);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    } catch {
+      // Fall through to raw.value when the embedded script is unavailable.
+    }
+  }
+  const rawValue = record?.raw?.value;
+  if (rawValue && typeof rawValue === "object" && !Array.isArray(rawValue)) return rawValue;
+  if (typeof rawValue === "string") {
+    try {
+      const parsed = JSON.parse(rawValue);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function normalizedElementalRecipe(value) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((row) => {
+    if (!row || typeof row !== "object" || Array.isArray(row) || !Number.isInteger(row.rank) || !Array.isArray(row.ingredients)) return [];
+    const ingredients = row.ingredients.flatMap((ingredient) => {
+      if (!ingredient || typeof ingredient !== "object" || Array.isArray(ingredient) || !Number.isInteger(ingredient.id) || typeof ingredient.amount !== "number" || !Number.isFinite(ingredient.amount)) return [];
+      return [{ id: ingredient.id, amount: ingredient.amount }];
+    });
+    return ingredients.length > 0 ? [{ rank: row.rank, ingredients }] : [];
+  }).sort((left, right) => left.rank - right.rank);
+}
+
+function managerGameId(manager) {
+  const extensions = manager?.extensions;
+  const identifiers = manager?.sourceIdentifiers;
+  const value = extensions?.superManagerId ?? identifiers?.superManagerId;
+  return value === undefined || value === null ? undefined : String(value);
+}
+
+/** Raw elemental recipes must be projected into the core manager rows. */
+function checkElementalRecipeProjection(artifacts) {
+  const configs = artifacts["strategy-configs.json"];
+  const core = artifacts["catalog-core.json"];
+  if (!configs || !core) {
+    return { code: "ELEMENTAL_RECIPE_PROJECTION", severity: "info", passed: true, message: "Elemental recipe projection is not applicable without both source and core artifacts." };
+  }
+
+  const managers = new Map((core.managers || []).map((manager) => [managerGameId(manager), manager]));
+  const issues = [];
+  const sourceRecipes = new Map();
+  let sourceRecords = 0;
+  let projectedManagers = 0;
+  for (const record of configs.records || []) {
+    if (typeof record?.name !== "string" || !/^SuperManagerElementalConfig_/i.test(record.name)) continue;
+    const config = parseElementalConfig(record);
+    const gameId = config?.superManagerId === undefined || config?.superManagerId === null ? undefined : String(config.superManagerId);
+    const recipe = normalizedElementalRecipe(config?.elementalRecipe);
+    if (!gameId || recipe.length === 0) continue;
+    sourceRecords += 1;
+    const previous = sourceRecipes.get(gameId);
+    if (previous && JSON.stringify(previous) !== JSON.stringify(recipe)) {
+      issues.push(`${record.recordId}: conflicting recipes found for manager ${gameId}`);
+      continue;
+    }
+    sourceRecipes.set(gameId, recipe);
+  }
+
+  for (const [gameId, recipe] of sourceRecipes) {
+    const manager = managers.get(gameId);
+    const projected = normalizedElementalRecipe(manager?.extensions?.elementalRecipe);
+    if (!manager) {
+      issues.push(`recipe source manager ${gameId} is absent from catalog-core`);
+    } else if (JSON.stringify(projected) !== JSON.stringify(recipe)) {
+      issues.push(`recipe for manager ${gameId} is not projected into catalog-core`);
+    } else {
+      projectedManagers += 1;
+    }
+  }
+
+  return {
+    code: "ELEMENTAL_RECIPE_PROJECTION",
+    severity: "error",
+    passed: issues.length === 0,
+    message: issues.length === 0
+      ? `${projectedManagers}/${sourceRecipes.size} recipe-bearing managers are projected into catalog-core from ${sourceRecords} source records.`
+      : `${issues.length} elemental recipe projection issue(s): ${issues.join("; ")}`,
+    details: issues.length > 0 ? { issues, sourceRecords, sourceManagers: sourceRecipes.size, projectedManagers } : { sourceRecords, sourceManagers: sourceRecipes.size, projectedManagers },
+  };
+}
+
 function checkManagerDomainRequired(manifest) {
   const entry = (manifest.artifacts || []).find((artifact) => artifact.filename === "manager-domain.json");
   const passed = !entry || entry.required === true;
@@ -894,6 +987,7 @@ async function main() {
       checkManifestConsistencyV2(manifest, catalogCore, relationshipsArt, unresolvedEvidenceArt),
       checkArtifactReleaseIdentity(manifest, artifacts),
       checkDomainArtifactIds(artifacts),
+      checkElementalRecipeProjection(artifacts),
       checkManagerDomainRequired(manifest),
       checkUnresolvedEvidenceConsistency(manifest, unresolvedEvidenceArt),
       checkDuplicateCanonicalIds(catalogCore),

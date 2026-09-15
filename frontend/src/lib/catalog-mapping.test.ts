@@ -37,6 +37,7 @@ function mockCatalogCore() {
       { canonicalId: "mgr-lorenzo", name: "Sir Lorenzo", rarity: "Legendary" },
       { canonicalId: "mgr-steiner", name: "Dr Steiner", rarity: "Epic" },
       { canonicalId: "mgr-bloom", name: "Professor Bloom", rarity: "Rare" },
+      { canonicalId: "sm-10070", name: "Fishman", rarity: "Rare", extensions: { superManagerId: 10070 } },
     ],
     mines: [],
     equipment: [],
@@ -53,6 +54,7 @@ function mockMappings() {
       { canonicalId: "mgr-lorenzo", kind: "kolibri_id", sourceValue: "kol-1001", confidence: "verified" },
       { canonicalId: "mgr-steiner", kind: "kolibri_id", sourceValue: "kol-1002", confidence: "verified" },
       { canonicalId: "mgr-bloom", kind: "kolibri_id", sourceValue: "kol-1003", confidence: "inferred" },
+      { canonicalId: "sm-10070", kind: "kolibri_id", sourceValue: "kol-1070", confidence: "verified" },
       { canonicalId: "mgr-lorenzo", kind: "unity_guid", sourceValue: "guid-abc", confidence: "verified" },
     ],
     aliases: [
@@ -133,6 +135,13 @@ describe("Matched IDs", () => {
     expect(results.size).toBe(2);
     expect(results.get("kol-1001")!.canonicalId).toBe("mgr-lorenzo");
     expect(results.get("kol-1002")!.canonicalId).toBe("mgr-steiner");
+  });
+
+  it("uses the verified manager directory name over a stale catalog label", async () => {
+    await seedCatalog();
+    const evidence = await resolveId("kol-1070");
+    expect(evidence.canonicalId).toBe("sm-10070");
+    expect(evidence.displayName).toBe("Jeff");
   });
 });
 
