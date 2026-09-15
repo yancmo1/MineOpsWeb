@@ -1,5 +1,89 @@
 # Development journal
 
+## 2026-09-14 — Add portrait-led roster signals to Today
+
+**Outcome:** Made the command deck more personal and game-native by using the
+real catalog portrait for the recommended manager when available. The roster
+snapshot now exposes covered areas as compact chips, and Department leaders
+now use portrait-led rows with the existing area, level, and rank facts. The
+reading order and recommendation logic are unchanged.
+
+**Design system:** Documented the portrait-led recommendation and roster
+spotlight pattern in `DESIGN.md` and `.impeccable/design.json`. Missing art
+still falls back to the existing geometric mark, and all displayed manager
+values remain sourced from the imported roster and verified catalog.
+
+**Verification:** Live local preview was inspected on Today with the imported
+roster. Frontend tests, the production build, the changed-UI design detector,
+and `git diff --check` pass. No production deployment was performed.
+
+## 2026-09-14 — Increase navigation scanability
+
+**Outcome:** Increased the shared desktop rail navigation to 24px icons, 1rem
+labels, and 56px rows so Today, Managers, Strategy, and More are easier to
+scan and target during computer-first use. The collapsed desktop rail keeps
+the larger icon treatment, while the mobile bottom navigation uses its own
+20px icon and compact label tokens.
+
+**Design system:** Added the navigation sizing tokens to `DESIGN.md` and
+`.impeccable/design.json`, then consumed them from `frontend/src/styles.css`.
+No route behavior or data logic changed.
+
+**Verification:** Live local preview was inspected on the desktop Today view
+after the change. Frontend tests, the production build, the changed-UI design
+detector, and `git diff --check` pass. No production deployment was performed.
+
+## 2026-09-14 — Push MineOps toward a more game-native desktop board
+
+**Outcome:** Responded to the follow-up visual review that the first desktop
+redesign still felt too much like a calm admin dashboard. The default shell is
+now a warmer mineral canvas with a deep plum rail and matching top bar. Today
+is presented as a “Command deck” with an amber-prioritized recommendation,
+geometric ore emblem, and clearer visual hierarchy. Managers now has grouped
+Area/Rarity filters, a stronger roster-board summary, and rarity-led card
+headers, portraits, chevrons, and progression bars so the desktop roster feels
+more like a game board while keeping the same real catalog and player facts.
+
+**Design system:** Updated `DESIGN.md` and `.impeccable/design.json` from “The
+Operating Ledger” to “The Mine Map” so the documented north star, palette,
+component guidance, and narrative match the implemented direction. No data,
+sync, catalog, export, or strategy calculations were changed.
+
+**Verification:** Live local preview was inspected on the Today, Managers,
+Strategy, and manager-detail desktop views with the imported roster. The
+frontend test suite passes (29 files, 242 tests), the production build passes,
+the design-quality scan is clean for the changed shell/page/card UI, and
+`git diff --check` passes. No production deployment was performed.
+
+## 2026-09-14 — Rebuild MineOps as a desktop-first operating ledger
+
+**Outcome:** Replaced the previous cramped, phone-first visual treatment with a
+full desktop-first workspace. The shell now uses a persistent charcoal rail,
+sticky top bar, explicit catalog/player confidence, and a wider content canvas.
+Today is organized around one evidence-backed recommendation, a roster snapshot,
+department leaders, and a personal upgrade focus. Managers is now a dense,
+catalog-backed comparison board with rarity coding, compact progression facts,
+fragment progress, passive chips, and a clear manager-record affordance. The
+same hierarchy adapts to a phone bottom rail and one-column reading flow.
+
+**Design system:** Replaced the old dark-only control-room direction with the
+light mineral-paper “Operating Ledger” system documented in `DESIGN.md`,
+`PRODUCT.md`, and `.impeccable/design.json`. The existing data, sync, catalog,
+export, and strategy logic remain the source of truth; this work changes the
+presentation and information hierarchy rather than inventing game data.
+The granular type, color, and radius choices used by the shared stylesheet are
+scoped as documented Impeccable exceptions in `.impeccable/config.json`.
+
+**Verification:** The live local preview was inspected on Today, Managers,
+manager detail, Strategy, and More with the imported roster. The desktop rail
+stretch defect found during that review was fixed. The frontend test suite passes
+(29 files, 242 tests), the production TypeScript/Vite build passes, and
+`git diff --check` passes. No production deployment was performed.
+
+**Limitations:** Strategy’s existing verified-catalog empty state remains
+explicit until its separate V3 lineup implementation is complete. The final
+connected-device parity smoke is still pending.
+
 ## 2026-09-14 — Restore Idle Master's Hub lineup export
 
 **Outcome:** Added a Manager-page **Export lineup** action that downloads the
@@ -58,6 +142,19 @@ milestones, cooldown, and duration. The validation report now matches 113 of
 119 APK records; the six unmatched records remain the known duplicate/legacy
 variants. There are 106 exact active comparisons and seven documented ×100
 income-display conventions.
+
+## 2026-09-15 — Make lineup export independent of stale package display names
+
+**Outcome:** Added explicit target-key mappings for every manager whose older
+catalog package can still provide a stale display name, including `Robot`,
+`Altitude`, `Cupid`, `Fishman`, and the other corrected APK identities. Export
+now resolves those keys from the stable manager ID before consulting the
+package-provided display name, so local development accounts using the older
+catalog still produce importable target keys.
+
+**Verification:** The attached local export contained eight unrecognized keys;
+five belonged to unlocked managers. Regression tests now prove that stale
+package labels for `sm-10054` and `sm-10066` export as `1dl3` and `al-titude`.
 
 ## 2026-09-14 — Retain only the three newest UbuntuMac releases
 

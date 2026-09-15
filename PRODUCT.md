@@ -34,7 +34,7 @@ The user imports game data, reviews synchronization and catalog freshness, explo
 - Store primary browser state in IndexedDB/Dexie and preserve offline-first behavior, queued mutations, stable IDs, idempotency, revision checks, and explicit conflict handling.
 - Support catalog versioning, import provenance, snapshots, and cross-device synchronization through the dedicated MineOps PocketBase infrastructure.
 - Remain useful when the UbuntuMac capture/extraction host is unavailable.
-- Maintain a mobile-first, keyboard-accessible, installable PWA.
+- Maintain a desktop-first, keyboard-accessible, installable PWA with a compact mobile adaptation.
 - Do not fabricate game mechanics, values, user data, testimonials, or strategy claims.
 - The exact Kolibri fragment field remains an open data-integration question; omitted fragments must not be treated as zero.
 
@@ -61,4 +61,4 @@ The product name is `MineOpsWeb`. It should feel like a personal MineOps strateg
 
 ## Accessibility & Inclusion
 
-The PWA must remain mobile-first and keyboard-accessible, with clear labels, usable focus states, and responsive behavior across phone, tablet, and desktop layouts.
+The PWA must be desktop-first and keyboard-accessible, with clear labels, usable focus states, and responsive behavior across desktop, tablet, and phone layouts.

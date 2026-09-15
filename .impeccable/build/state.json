@@ -1,0 +1,131 @@
+{
+  "tool": "build-phase",
+  "version": 2,
+  "startedAt": "2026-09-15T01:42:14.297Z",
+  "comp": ".impeccable/mocks/ledger-workspace.png",
+  "direction": "9001f7fb",
+  "breakpoint": "1440x900",
+  "artifact": null,
+  "phase": "responsive",
+  "phases": {
+    "comps": {
+      "status": "closed",
+      "openedAt": "2026-09-15T01:42:14.297Z",
+      "closedAt": "2026-09-15T01:44:45.921Z",
+      "attempts": 2,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "3 comps, 1 approved",
+        "approved": ".impeccable/mocks/ledger-workspace.png",
+        "at": "2026-09-15T01:44:45.920Z"
+      },
+      "forced": null
+    },
+    "spec": {
+      "status": "closed",
+      "openedAt": "2026-09-15T01:44:45.964Z",
+      "closedAt": "2026-09-15T01:45:44.754Z",
+      "attempts": 3,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "28 regions, 0 plates, 16 text regions measured",
+        "at": "2026-09-15T01:45:44.753Z"
+      },
+      "forced": null
+    },
+    "plates": {
+      "status": "closed",
+      "openedAt": "2026-09-15T01:45:44.754Z",
+      "closedAt": "2026-09-15T01:45:47.641Z",
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no plates owed",
+        "at": "2026-09-15T01:45:47.640Z"
+      },
+      "forced": null
+    },
+    "hero": {
+      "status": "closed",
+      "openedAt": "2026-09-15T01:45:47.641Z",
+      "closedAt": "2026-09-15T02:02:52.629Z",
+      "attempts": 2,
+      "notes": [],
+      "gate": {
+        "ok": false,
+        "reasons": [
+          "no hero capture at .impeccable/review/hero-repro.png: screenshot the first viewport at the comp's own dimensions (1440x900) into that path"
+        ],
+        "at": "2026-09-15T02:02:52.627Z"
+      },
+      "forced": {
+        "at": "2026-09-15T02:02:52.629Z",
+        "reason": "User said: FYI, i don't like the current site at all so if you want to completely redesign it to fit my style i'd like that. Therefore this approved comp is directional guidance, not a pixel-reproduction target.",
+        "reasons": [
+          "no hero capture at .impeccable/review/hero-repro.png: screenshot the first viewport at the comp's own dimensions (1440x900) into that path"
+        ]
+      }
+    },
+    "sections": {
+      "status": "closed",
+      "openedAt": "2026-09-15T02:02:52.629Z",
+      "closedAt": "2026-09-15T02:02:52.688Z",
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no mechanical gate",
+        "at": "2026-09-15T02:02:52.687Z"
+      },
+      "forced": null
+    },
+    "motion": {
+      "status": "closed",
+      "openedAt": "2026-09-15T02:02:52.688Z",
+      "closedAt": "2026-09-15T02:02:52.786Z",
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no mechanical gate",
+        "at": "2026-09-15T02:02:52.785Z"
+      },
+      "forced": null
+    },
+    "responsive": {
+      "status": "open",
+      "openedAt": "2026-09-15T02:02:52.786Z",
+      "closedAt": null,
+      "attempts": 2,
+      "notes": [],
+      "gate": {
+        "ok": false,
+        "reasons": [
+          "no .impeccable/review/desktop.png: capture the page at a common desktop width (1440 wide, full page) into that path",
+          "no .impeccable/review/mobile.png: capture the page at 390 wide, full page, into that path"
+        ],
+        "at": "2026-09-15T02:05:12.798Z"
+      },
+      "forced": null
+    },
+    "review": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    }
+  },
+  "finish": null,
+  "plates": {}
+}

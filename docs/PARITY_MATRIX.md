@@ -14,6 +14,6 @@
 | Snapshots/rollback | `SnapshotManager.swift` | Historical import snapshots | More/imports | Raw and normalized snapshots | Catalog snapshot only | Bad imports cannot activate; rollback works | N/A | Implement |
 | Export/import | `SMTrackerExporter.swift` | Strict tracker JSON | Managers | Player state/catalog IDs | Export downloads the strict flat target-name-keyed tracker JSON shape, applies known aliases, and omits duplicate legacy variants; import/reset remain pending | Validated export shape, alias mapping, duplicate handling, and manager-state mapping | N/A | Add import/reset parity |
 | Loading/error/offline | SwiftUI sync states | Loading, stale, error diagnostics | Global shell/routes | Sync metadata + network | Minimal message | Explicit actionable state on every route | N/A | Implement |
-| Phone/tablet/desktop | Theme/layout constants and views | Mobile-first cards | Responsive CSS | Same domain model | Narrow phone layout | Bottom nav on phone; useful wide layout | N/A | Implement |
+| Phone/tablet/desktop | Theme/layout constants and views | Desktop-first manager board with compact phone adaptation | Responsive CSS | Same domain model | Desktop rail/topbar, dense wide manager board, and phone bottom nav are implemented | Bottom nav on phone; useful wide layout; keyboard-operable controls | N/A | Run final visual smoke across routes and connected-device parity |
 
 Status is intentionally incomplete until the implementation and verification gates pass.

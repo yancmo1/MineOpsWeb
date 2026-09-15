@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <rect width="1440" height="900" fill="#101417"/>
+  <rect x="0" y="0" width="244" height="900" fill="#172126"/>
+  <rect x="244" y="0" width="1196" height="900" fill="#eef3f1"/>
+  <text x="40" y="64" fill="#f2f7f4" font-family="Arial" font-size="25" font-weight="700">MINEOPS</text>
+  <text x="40" y="92" fill="#8ba09a" font-family="Arial" font-size="11" letter-spacing="2">OPERATIONS DESK</text>
+  <rect x="28" y="140" width="188" height="52" rx="9" fill="#2a5c5b"/>
+  <text x="60" y="172" fill="#8af0db" font-family="Arial" font-size="16" font-weight="700">Today</text>
+  <text x="60" y="244" fill="#b2c1bd" font-family="Arial" font-size="16">Managers</text>
+  <text x="60" y="300" fill="#b2c1bd" font-family="Arial" font-size="16">Strategy</text>
+  <text x="60" y="356" fill="#b2c1bd" font-family="Arial" font-size="16">More</text>
+  <line x1="28" y1="710" x2="216" y2="710" stroke="#31454a"/>
+  <text x="40" y="754" fill="#8ba09a" font-family="Arial" font-size="11" letter-spacing="1.5">PLAYER DATA</text>
+  <text x="40" y="788" fill="#73e0a0" font-family="Arial" font-size="14">● Synced recently</text>
+  <text x="40" y="820" fill="#6f8985" font-family="Arial" font-size="12">5.63.0 · verified catalog</text>
+  <rect x="288" y="0" width="1152" height="92" fill="#ffffff"/>
+  <text x="312" y="39" fill="#536966" font-family="Arial" font-size="12" letter-spacing="1.5">MONDAY, SEPTEMBER 14</text>
+  <text x="312" y="71" fill="#172a2a" font-family="Arial" font-size="26" font-weight="700">Good evening, Yancy</text>
+  <rect x="1212" y="27" width="192" height="38" rx="8" fill="#1d7c76"/>
+  <text x="1254" y="52" fill="#ffffff" font-family="Arial" font-size="14" font-weight="700">Sync player data</text>
+  <rect x="288" y="116" width="824" height="226" rx="15" fill="#193a3b"/>
+  <text x="320" y="154" fill="#8af0db" font-family="Arial" font-size="11" letter-spacing="1.5">BEST NEXT MOVE</text>
+  <text x="320" y="204" fill="#ffffff" font-family="Arial" font-size="34" font-weight="700">Keep Ranger Sue moving</text>
+  <text x="320" y="240" fill="#c5ddd8" font-family="Arial" font-size="16">Your strongest Mine Shaft manager is at level 30, rank 4.</text>
+  <rect x="320" y="275" width="168" height="40" rx="8" fill="#79e4d0"/>
+  <text x="355" y="301" fill="#122a2a" font-family="Arial" font-size="14" font-weight="700">Open manager</text>
+  <rect x="1136" y="116" width="268" height="226" rx="15" fill="#ffffff"/>
+  <text x="1164" y="154" fill="#536966" font-family="Arial" font-size="11" letter-spacing="1.5">ROSTER PULSE</text>
+  <text x="1164" y="202" fill="#172a2a" font-family="Arial" font-size="38" font-weight="700">61</text>
+  <text x="1224" y="201" fill="#536966" font-family="Arial" font-size="13">owned managers</text>
+  <line x1="1164" y1="222" x2="1376" y2="222" stroke="#d7e5e1"/>
+  <text x="1164" y="251" fill="#1d7c76" font-family="Arial" font-size="15" font-weight="700">3</text>
+  <text x="1200" y="251" fill="#536966" font-family="Arial" font-size="13">areas covered</text>
+  <text x="1164" y="285" fill="#c48723" font-family="Arial" font-size="15" font-weight="700">0</text>
+  <text x="1200" y="285" fill="#536966" font-family="Arial" font-size="13">rank-ups ready</text>
+  <text x="288" y="392" fill="#172a2a" font-family="Arial" font-size="21" font-weight="700">Roster leaders</text>
+  <text x="288" y="418" fill="#536966" font-family="Arial" font-size="14">Your best option in each department, from the latest verified import.</text>
+  <g transform="translate(288 448)">
+    <rect width="350" height="156" rx="13" fill="#ffffff" stroke="#d1e0dc"/>
+    <circle cx="48" cy="54" r="29" fill="#65aad1"/><text x="92" y="49" fill="#536966" font-family="Arial" font-size="11" letter-spacing="1.2">MINE SHAFT</text><text x="92" y="76" fill="#172a2a" font-family="Arial" font-size="19" font-weight="700">Ranger Sue</text><text x="28" y="122" fill="#536966" font-family="Arial" font-size="13">Lv 30 · Rank 4</text><text x="252" y="122" fill="#1d7c76" font-family="Arial" font-size="13" font-weight="700">Open →</text>
+  </g>
+  <g transform="translate(660 448)">
+    <rect width="350" height="156" rx="13" fill="#ffffff" stroke="#d1e0dc"/>
+    <circle cx="48" cy="54" r="29" fill="#bb82d8"/><text x="92" y="49" fill="#536966" font-family="Arial" font-size="11" letter-spacing="1.2">ELEVATOR</text><text x="92" y="76" fill="#172a2a" font-family="Arial" font-size="19" font-weight="700">Damian Jones</text><text x="28" y="122" fill="#536966" font-family="Arial" font-size="13">Lv 30 · Rank 4</text><text x="252" y="122" fill="#1d7c76" font-family="Arial" font-size="13" font-weight="700">Open →</text>
+  </g>
+  <g transform="translate(1032 448)">
+    <rect width="372" height="156" rx="13" fill="#ffffff" stroke="#d1e0dc"/>
+    <circle cx="48" cy="54" r="29" fill="#e1af54"/><text x="92" y="49" fill="#536966" font-family="Arial" font-size="11" letter-spacing="1.2">WAREHOUSE</text><text x="92" y="76" fill="#172a2a" font-family="Arial" font-size="19" font-weight="700">Al Titude</text><text x="28" y="122" fill="#536966" font-family="Arial" font-size="13">Lv 20 · Rank 2</text><text x="274" y="122" fill="#1d7c76" font-family="Arial" font-size="13" font-weight="700">Open →</text>
+  </g>
+  <rect x="288" y="652" width="1116" height="166" rx="15" fill="#ffffff"/>
+  <text x="320" y="693" fill="#172a2a" font-family="Arial" font-size="19" font-weight="700">Upgrade focus</text>
+  <text x="320" y="722" fill="#536966" font-family="Arial" font-size="14">Choose one manager and keep its next milestone in view.</text>
+  <rect x="320" y="748" width="320" height="42" rx="8" fill="#f4f8f6" stroke="#c8dad5"/><text x="342" y="775" fill="#536966" font-family="Arial" font-size="14">Choose a manager</text>
+  <rect x="658" y="748" width="182" height="42" rx="8" fill="#f4f8f6" stroke="#c8dad5"/><text x="680" y="775" fill="#536966" font-family="Arial" font-size="14">Target level 30</text>
+</svg>

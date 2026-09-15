@@ -1,204 +1,172 @@
 ---
 name: MineOpsWeb
-description: A high-signal geological control room for personal Idle Miner Tycoon strategy.
+description: A desktop-first game board for personal Idle Miner Tycoon strategy.
 colors:
-  primary: "#71E5D1"
-  primary-deep: "#3B9E97"
-  secondary: "#FFB454"
-  neutral-bg: "#0B1214"
-  surface: "#132024"
-  surface-muted: "#203238"
-  field: "#0E1A1D"
-  border: "#2C474C"
-  text-primary: "#F2F7F4"
-  text-secondary: "#A6B9B5"
-  text-tertiary: "#6F8985"
-  status-success: "#73E0A0"
-  status-error: "#FF7E73"
-  light-neutral-bg: "#F4F8F6"
-  light-surface: "#FFFFFF"
-  light-surface-muted: "#E7F0ED"
-  light-border: "#C8DAD5"
-  light-text-primary: "#172A2A"
-  light-text-secondary: "#536966"
+  ink: "#1D2230"
+  ink-soft: "#5D6471"
+  ink-muted: "#8C9298"
+  canvas: "#F3F0E8"
+  surface: "#FFFDF8"
+  surface-soft: "#F7F4EC"
+  border: "#DDDCD3"
+  rail: "#201A35"
+  rail-muted: "#A59DBD"
+  teal: "#087F78"
+  teal-soft: "#D8F2ED"
+  amber: "#D9781F"
+  amber-soft: "#FFF0D9"
+  green: "#23895D"
+  red: "#C9544C"
 typography:
   display:
     fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "clamp(1.7rem, 4vw, 2.35rem)"
-    fontWeight: 700
-    lineHeight: 1.2
+    fontSize: "clamp(1.9rem, 3vw, 2.65rem)"
+    fontWeight: 750
+    lineHeight: 1.05
     letterSpacing: "-0.045em"
   title:
     fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "1.18rem"
-    fontWeight: 600
-    lineHeight: 1.3
-    letterSpacing: "-0.025em"
+    fontSize: "1.12rem"
+    fontWeight: 750
+    lineHeight: 1.2
+    letterSpacing: "-0.02em"
   body:
     fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "1rem"
-    fontWeight: 400
+    fontSize: "0.9rem"
+    fontWeight: 450
     lineHeight: 1.5
   label:
     fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
-    fontSize: "0.68rem"
-    fontWeight: 600
-    lineHeight: 1.3
-    letterSpacing: "0.15em"
+    fontSize: "0.65rem"
+    fontWeight: 750
+    lineHeight: 1.25
+    letterSpacing: "0.12em"
+  mono:
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "0.64rem"
+    fontWeight: 450
+    lineHeight: 1.4
 rounded:
   sm: "8px"
-  md: "9px"
-  lg: "14px"
+  md: "12px"
+  lg: "18px"
 spacing:
   xs: "0.25rem"
   sm: "0.5rem"
   md: "0.75rem"
   lg: "1rem"
-  xl: "1.25rem"
+  xl: "1.5rem"
+navigation:
+  desktopIconSize: "24px"
+  desktopLabelSize: "1rem"
+  desktopItemHeight: "56px"
 components:
   button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "#08201E"
-    rounded: "{rounded.md}"
-    padding: "0.625rem 1rem"
+    backgroundColor: "{colors.teal}"
+    textColor: "#FFFFFF"
+    rounded: "{rounded.sm}"
+    padding: "0.65rem 0.9rem"
   button-secondary:
-    backgroundColor: "{colors.surface-muted}"
-    textColor: "{colors.text-primary}"
-    rounded: "{rounded.md}"
-    padding: "0.625rem 1rem"
+    backgroundColor: "{colors.surface-soft}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+    padding: "0.65rem 0.9rem"
   card:
     backgroundColor: "{colors.surface}"
-    textColor: "{colors.text-primary}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.lg}"
     padding: "1.25rem"
   input:
-    backgroundColor: "{colors.field}"
-    textColor: "{colors.text-primary}"
-    rounded: "{rounded.md}"
-    padding: "0.625rem 0.875rem"
-  nav:
-    backgroundColor: "{colors.neutral-bg}"
-    textColor: "{colors.text-secondary}"
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.sm}"
-    padding: "0.375rem 0.5rem"
+    padding: "0.65rem 0.75rem"
+  nav:
+    backgroundColor: "{colors.rail}"
+    textColor: "{colors.rail-muted}"
+    rounded: "{rounded.sm}"
+    padding: "0.6rem 0.7rem"
 ---
 
 # Design System: MineOpsWeb
 
 ## Overview
 
-**Creative North Star: "The Night-Shift Geological Control Room"**
+**Creative North Star: “The Mine Map.”**
 
-MineOps is expressed as a focused instrument panel for a player checking a roster between decisions. The locked dark mode is mineral slate and oxidized teal; the light mode translates the same system into bright mineral-paper surfaces for daytime use. Both modes keep the next action, confidence state, and warning signal unmistakable.
+MineOps is a personal desktop game board: part roster wall, part upgrade notebook, and part next-move compass. It should feel like a satisfying companion to an idle game during a longer computer session, with enough density to compare managers quickly and enough hierarchy to make the next decision obvious. The visual language borrows the satisfying energy of idle-game dashboards—deep game shell, warm paper workspace, bright status accents, compact stat blocks, and visible rarity color—without copying the reference site’s layout or content.
 
-The interface uses the grammar of survey instruments and control-room readouts without pretending to be a technical simulator. Dense information is allowed when it is structured; technical provenance stays available but never outranks the player’s decision.
-
-**Key Characteristics:**
-
-- Deep mineral canvas with a quiet radial field glow.
-- Oxidized teal for actions, active navigation, and verified recommendations.
-- Amber for caution, stale data, and patch-sensitive inputs.
-- Tactile controls with visible focus and hover response.
-- Linear decision paths with expert tools revealed after the primary answer.
-- Explicit Light / Dark appearance control in More → Preferences; light is the default for new sessions.
+The default workspace is a warm mineral-paper canvas with a deep plum rail and matching top bar. A dark appearance remains available for low-light play sessions. Both themes share the same hierarchy, interaction states, and data-confidence language.
 
 ## Colors
 
-The palette is dark and restrained: mineral slate surfaces, one cool action accent, and one warm signal accent.
+- **Mineral canvas** (`#F3F0E8`): Warm application background and page breathing room.
+- **Paper surface** (`#FFFDF8`): Cards, drawers, filters, and working areas.
+- **Deep plum shell** (`#201A35`): Headings in priority surfaces, navigation rail, and top bar.
+- **Teal action** (`#087F78`): Primary actions, active navigation, links, and verified data.
+- **Amber attention** (`#D9781F`): Rank-up opportunities, caution, and stale data.
+- **Green success** (`#23895D`): Connected/current states and completed milestones.
+- **Red recovery** (`#C9544C`): Errors and blocked actions.
 
-### Primary
-
-- **Oxidized Teal** (#71E5D1): Primary actions, active navigation, recommendation emphasis, and verified-data cues.
-- **Deep Teal** (#3B9E97): Secondary emphasis where the primary accent needs quieter contrast.
-
-### Secondary
-
-- **Amber Signal** (#FFB454): Caution, incomplete data, patch-sensitive assumptions, and attention states.
-
-### Neutral
-
-- **Mineral Night** (#0B1214): Application canvas.
-- **Work Surface** (#132024): Cards, dialogs, and primary working surfaces.
-- **Slate Control** (#203238): Secondary controls, metric surfaces, and inactive filters.
-- **Field Black** (#0E1A1D): Inputs and editable data fields.
-- **Survey Border** (#2C474C): Delimiters and focus-adjacent structure.
-- **Signal Text** (#F2F7F4): Primary text.
-- **Field Note** (#A6B9B5): Supporting copy.
-- **Quiet Mark** (#6F8985): Tertiary metadata.
-
-### Named Rules
-
-**The Signal-First Rule.** Teal means act or trust; amber means pause and inspect. Neither accent is decorative.
-
-**The Two-Workspace Rule.** Dark mode preserves the night-shift control-room palette exactly. Light mode changes surface and text tones only; teal, amber, hierarchy, spacing, and interaction behavior remain shared.
+Accent colors carry meaning. Teal means go or trust, amber means inspect or prioritize, green means current or complete, and red means recover. Rarity colors are reserved for manager identity and may not be reused as generic decoration.
 
 ## Typography
 
-**Display and body:** system sans stack (`-apple-system`, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif).
+Use the system sans stack (`-apple-system`, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif) for the interface. Technical hashes and machine identifiers use `ui-monospace, SFMono-Regular, Menlo, monospace` so they remain easy to compare without turning the rest of the product into a terminal. The interface is compact and highly scannable rather than loud or futuristic.
 
-The type is compact and workmanlike. Hierarchy comes from scale, weight, and spacing so the interface stays fast to scan on a phone.
-
-### Hierarchy
-
-- **Display** (700, `clamp(1.7rem, 4vw, 2.35rem)`, 1.2): Page orientation.
-- **Title** (600, 1.18rem, 1.3): Section and recommendation headings.
-- **Body** (400, 1rem, 1.5): Explanations and decisions.
-- **Label** (600, 0.68rem, 0.15em tracking): Navigation context and state labels.
+- **Display:** 30–42px, 750 weight, tight line height for page orientation.
+- **Section title:** 18px, 750 weight for cards and decision groups.
+- **Body:** 14–15px, 450 weight, 1.5 line height for explanations.
+- **Utility label:** 10–11px, 750 weight, modest tracking for metadata and status.
 
 ## Layout
 
-The app uses a centered wide canvas with a linear mobile reading order. The page title and data-confidence strip establish context, the primary recommendation leads, and supporting tools follow. Cards may become two-column groups at wide sizes; mobile keeps one clear vertical path with a fixed bottom navigation bar.
+Desktop uses a persistent 236px navigation rail and a sticky 72px top bar. Content is capped at 1500px and uses generous outer gutters with dense internal grids. Today leads with one recommendation, one roster snapshot, and two supporting work areas. Managers defaults to a four-column card board at wide desktop sizes, narrowing to three and two columns as space decreases.
 
-Spacing follows quarter-rem steps, with compact 0.5rem control gaps, 0.75rem related-group gaps, 1rem section gaps, and 1.25rem working-surface padding.
+Phone layouts preserve the same order and data hierarchy. The rail becomes a bottom navigation bar, cards become a single readable column, and secondary controls wrap below the primary action. No critical status or action is hidden solely because the viewport is narrow.
 
-## Elevation & Depth
+The spacing rhythm is 4px-based, with 8px control gaps, 12px related-group gaps, 16px section gaps, and 24px working-surface padding. Use the shared tokens in `frontend/src/styles.css`; do not introduce one-off spacing values in page components.
 
-Depth comes from dark tonal separation, thin survey borders, and soft black ambient shadows. A subtle radial field glow gives the canvas atmosphere; controls gain depth through state changes rather than decorative effects.
+## Elevation and shapes
 
-**The One Cue Rule.** A surface uses a border or a shadow as its primary separator. A focused recommendation may use both a border and a quiet halo.
-
-## Shapes
-
-Controls use 9px corners, cards use 14px corners, and status pills remain compact and fully rounded. The silhouette is tactile but not playful: generous targets, restrained radii, and no decorative bevels.
+Cards use a light border plus a restrained shadow; they do not stack multiple decorative effects. The main recommendation uses a deep plum surface with an amber priority rail and a small geometric ore emblem. Manager cards use a rarity-colored header, portrait frame, and progress signal so the board feels game-native while remaining scannable. Inputs and buttons use 8px corners, regular cards use 18px corners, and pills are fully rounded. Hover and focus states change tone or border before they change position.
 
 ## Components
 
-### Buttons
-
-- **Primary:** Oxidized Teal with dark text, 9px corners, and a soft lift on hover.
-- **Secondary:** Slate Control with a Survey Border; hover promotes the teal border.
-- **Focus:** 2px teal outline with a 3px offset and soft teal halo.
-
-### Cards and Recommendations
-
-- **Surface:** Work Surface with Survey Border and low ambient shadow.
-- **Recommendation:** Teal border emphasis, clear action title, one reason, and one primary action.
-- **Technical detail:** Secondary text and disclosure, never the visual lead.
-
-### Inputs and Fields
-
-- **Style:** Field Black background, Survey Border, 9px corners, persistent labels.
-- **Focus:** Teal border and visible focus ring.
-- **Error / caution:** Amber or red message with a recovery instruction.
-
-In light mode, fields use white surfaces with mineral borders; in dark mode, they use Field Black. Both retain the same focus ring and label treatment.
-
 ### Navigation
 
-The fixed bottom navigation is a dark control rail. Active navigation receives a low teal surface tint and teal icon/text; inactive items use Quiet Mark. Hover and focus states remain visible without shifting layout.
+The deep plum shell groups the four product areas—Today, Managers, Strategy, and More—above a compact connection/catalog status footer. Desktop navigation uses 24px icons, 1rem labels, and 56px hit rows so the primary destinations are easy to read at a glance. The active item uses a teal tint and a clear left-edge signal. On phone, the same items become the fixed bottom bar with safe-area padding and a compact label treatment.
 
-## Do's and Don'ts
+### Recommendations
 
-### Do:
+A recommendation has one label, one action-oriented heading, one evidence line, one explanatory sentence, and one clear route into the next useful workspace. When a real catalog portrait is available, the recommended manager appears in the hero emblem. Data freshness appears beside the page orientation and is always explicit when the recommendation is based on cached, stale, or missing player data.
 
-- **Do** lead with the player’s next decision.
-- **Do** make data confidence and source visible before recommendations.
-- **Do** use tactile hover, focus, active, loading, and reduced-motion states.
-- **Do** keep technical provenance expandable and subordinate.
+Today’s roster snapshot also uses small area chips and portrait-led department rows. These are derived from the strongest owned managers in each covered area; they are recognition aids, not invented rankings or game-state claims.
 
-### Don't:
+### Manager cards
 
-- **Don't** return to a pale generic card dashboard.
-- **Don't** use teal or amber as decoration without meaning.
-- **Don't** make every calculator equally prominent.
-- **Don't** use layout-property animation or hide keyboard focus.
+Manager cards are the dense comparison primitive. Each card shows portrait, name, rarity, area, level, promotion, rank, fragments, and only the first useful passive chips. The rarity color owns the card header, portrait frame, chevron, and progression bar so the board has immediate game-like recognition. Locked catalog records remain visible but are visually quieter than owned managers.
+
+### Buttons and fields
+
+Primary buttons are teal with white text. Secondary buttons use the soft surface token and a mineral border. Selects and text fields are labeled, keyboard-operable, and show a 2px teal focus ring. Disabled controls retain readable contrast and explain why they are unavailable when the reason is not obvious.
+
+### Status
+
+Status is always text plus a color cue. Never rely on color alone. Sync failures include recovery guidance; unknown catalog values remain visibly unknown instead of being estimated.
+
+## Do’s and don’ts
+
+### Do
+
+- Lead with the next useful decision.
+- Make the desktop roster feel like a board that can be scanned in seconds.
+- Keep real player data, catalog provenance, and uncertainty visible.
+- Preserve keyboard focus, reduced-motion behavior, and a usable narrow-screen adaptation.
+
+### Don’t
+
+- Reintroduce the previous dark-only, phone-first control-room styling as the default.
+- Turn every calculator or diagnostic into equal visual weight.
+- Use decorative gradients, icons, or rarity colors without a product meaning.
+- Invent manager values, progression state, or strategy claims.

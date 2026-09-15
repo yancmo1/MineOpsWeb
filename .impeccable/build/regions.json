@@ -1,0 +1,32 @@
+{
+  "regions": [
+    { "id": "top-nav", "kind": "chrome", "grid": "A0:J0", "note": "charcoal global navigation bar with MineOps wordmark, four navigation labels, and sync control" },
+    { "id": "brand-wordmark", "kind": "text", "grid": "A0:B0", "note": "white MINEOPS wordmark" },
+    { "id": "primary-tabs", "kind": "chrome", "grid": "B0:E0", "note": "four text navigation labels with warm active Today label" },
+    { "id": "sync-control", "kind": "control", "grid": "I0:J0", "note": "warm amber sync player button" },
+    { "id": "page-title", "kind": "text", "grid": "A1:D2", "note": "large operating ledger page title and supporting sentence" },
+    { "id": "page-title-heading", "kind": "text", "grid": "A1:D1", "note": "Your operating ledger heading" },
+    { "id": "page-title-support", "kind": "text", "grid": "A2:D2", "note": "supporting sentence explaining the operating ledger" },
+    { "id": "recommendation-panel", "kind": "chrome", "grid": "A3:D5", "note": "dark recommendation panel with warm label, headline, explanation, and action" },
+    { "id": "recommendation-label", "kind": "text", "grid": "A3:B3", "note": "small amber RECOMMENDATION label" },
+    { "id": "recommendation-heading", "kind": "text", "grid": "A3:D4", "note": "No rank-up ready recommendation heading" },
+    { "id": "recommendation-copy", "kind": "text", "grid": "A4:D4", "note": "two-line recommendation explanation" },
+    { "id": "recommendation-action", "kind": "control", "grid": "A5:B5", "note": "View managers amber action button" },
+    { "id": "roster-glance-panel", "kind": "chrome", "grid": "E3:J4", "note": "white roster at a glance metric panel" },
+    { "id": "roster-glance-label", "kind": "text", "grid": "E3:G3", "note": "ROSTER AT A GLANCE label" },
+    { "id": "roster-glance-metrics", "kind": "text", "grid": "E3:J4", "note": "owned, areas covered, and ready metrics" },
+    { "id": "focus-heading", "kind": "text", "grid": "E4:G5", "note": "Focus queue heading" },
+    { "id": "focus-row-one", "kind": "control", "grid": "E5:J5", "note": "Ranger Sue focus queue row" },
+    { "id": "focus-row-two", "kind": "control", "grid": "E5:J6", "note": "Damian Jones focus queue row" },
+    { "id": "focus-row-actions", "kind": "text", "grid": "I5:J6", "note": "Track action labels" },
+    { "id": "recent-heading", "kind": "text", "grid": "A6:D6", "note": "Recent changes section heading" },
+    { "id": "recent-panel", "kind": "chrome", "grid": "A6:D8", "note": "white latest import summary panel" },
+    { "id": "recent-label", "kind": "text", "grid": "A7:B7", "note": "LATEST IMPORT label" },
+    { "id": "recent-details", "kind": "text", "grid": "A7:D8", "note": "Kolibri sync timestamp, updated manager count, and warning status" },
+    { "id": "leaders-heading", "kind": "text", "grid": "E7:G7", "note": "Department leaders section heading" },
+    { "id": "leader-mine", "kind": "chrome", "grid": "E7:F9", "note": "Mine Shaft leader tile" },
+    { "id": "leader-elevator", "kind": "chrome", "grid": "G7:H9", "note": "Elevator leader tile" },
+    { "id": "leader-warehouse", "kind": "chrome", "grid": "I7:J9", "note": "Warehouse leader tile" },
+    { "id": "leader-copy", "kind": "text", "grid": "E8:J9", "note": "department names, manager names, and level/rank details" }
+  ]
+}

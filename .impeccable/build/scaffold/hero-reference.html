@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scaffold reference: ledger-workspace.png</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&family=Smooch+Sans:wght@300&display=swap">
+  <link rel="stylesheet" href="layout.css">
+  <style>html,body{margin:0}body{background:#f8f8ee}.region{box-sizing:border-box}.region.text p{white-space:pre-wrap}</style>
+</head>
+<body>
+<!-- Reference only. Every region sits at its measured box inside a comp-aspect frame. Take the boxes (layout.css), keep your own semantic structure. -->
+<main class="comp-frame" style="max-width:1440px">
+  <div class="r-top-nav region chrome" data-region="top-nav"><!-- charcoal global navigation bar with MineOps wordmark, four navigation labels, and sync control --></div>
+  <div class="r-brand-wordmark region text" data-region="brand-wordmark"><!-- white MINEOPS wordmark --><p style="font-size:var(--r-brand-wordmark-font);line-height:1.05;margin:0">brand-wordmark</p></div>
+  <div class="r-primary-tabs region chrome" data-region="primary-tabs"><!-- four text navigation labels with warm active Today label --></div>
+  <div class="r-sync-control region control" data-region="sync-control"><!-- warm amber sync player button: rebuild the control's chrome from the crop (comp-spec.mjs --crop sync-control); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-page-title region text" data-region="page-title"><!-- large operating ledger page title and supporting sentence --><p style="line-height:1.05;margin:0">page-title</p></div>
+  <div class="r-page-title-heading region text" data-region="page-title-heading"><!-- Your operating ledger heading --><p style="font-size:var(--r-page-title-heading-font);font-family:var(--r-page-title-heading-family),sans-serif;font-weight:var(--r-page-title-heading-weight);line-height:1.05;margin:0">page-title-heading</p></div>
+  <div class="r-page-title-support region text" data-region="page-title-support"><!-- supporting sentence explaining the operating ledger --><p style="line-height:1.05;margin:0">page-title-support</p></div>
+  <div class="r-recommendation-panel region chrome" data-region="recommendation-panel"><!-- dark recommendation panel with warm label, headline, explanation, and action --></div>
+  <div class="r-recommendation-label region text" data-region="recommendation-label"><!-- small amber RECOMMENDATION label --><p style="font-size:var(--r-recommendation-label-font);line-height:1.05;margin:0">recommendation-label</p></div>
+  <div class="r-recommendation-heading region text" data-region="recommendation-heading"><!-- No rank-up ready recommendation heading --><p style="line-height:1.05;margin:0">recommendation-heading</p></div>
+  <div class="r-recommendation-copy region text" data-region="recommendation-copy"><!-- two-line recommendation explanation --><p style="font-size:var(--r-recommendation-copy-font);line-height:1.05;margin:0">recommendation-copy</p></div>
+  <div class="r-recommendation-action region control" data-region="recommendation-action"><!-- View managers amber action button: rebuild the control's chrome from the crop (comp-spec.mjs --crop recommendation-action); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-roster-glance-panel region chrome" data-region="roster-glance-panel"><!-- white roster at a glance metric panel --></div>
+  <div class="r-roster-glance-label region text" data-region="roster-glance-label"><!-- ROSTER AT A GLANCE label --><p style="font-size:var(--r-roster-glance-label-font);line-height:1.05;margin:0">roster-glance-label</p></div>
+  <div class="r-roster-glance-metrics region text" data-region="roster-glance-metrics"><!-- owned, areas covered, and ready metrics --><p style="font-size:var(--r-roster-glance-metrics-font);line-height:1.05;margin:0">roster-glance-metrics</p></div>
+  <div class="r-focus-heading region text" data-region="focus-heading"><!-- Focus queue heading --><p style="font-size:var(--r-focus-heading-font);font-family:var(--r-focus-heading-family),sans-serif;font-weight:var(--r-focus-heading-weight);line-height:1.05;margin:0">focus-heading</p></div>
+  <div class="r-focus-row-one region control" data-region="focus-row-one"><!-- Ranger Sue focus queue row: rebuild the control's chrome from the crop (comp-spec.mjs --crop focus-row-one); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-focus-row-two region control" data-region="focus-row-two"><!-- Damian Jones focus queue row: rebuild the control's chrome from the crop (comp-spec.mjs --crop focus-row-two); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-focus-row-actions region text" data-region="focus-row-actions"><!-- Track action labels --><p style="font-size:var(--r-focus-row-actions-font);line-height:1.05;margin:0">focus-row-actions</p></div>
+  <div class="r-recent-heading region text" data-region="recent-heading"><!-- Recent changes section heading --><p style="font-size:var(--r-recent-heading-font);line-height:1.05;margin:0">recent-heading</p></div>
+  <div class="r-recent-panel region chrome" data-region="recent-panel"><!-- white latest import summary panel --></div>
+  <div class="r-recent-label region text" data-region="recent-label"><!-- LATEST IMPORT label --><p style="font-size:var(--r-recent-label-font);line-height:1.05;margin:0">recent-label</p></div>
+  <div class="r-recent-details region text" data-region="recent-details"><!-- Kolibri sync timestamp, updated manager count, and warning status --><p style="font-size:var(--r-recent-details-font);line-height:1.05;margin:0">recent-details</p></div>
+  <div class="r-leaders-heading region text" data-region="leaders-heading"><!-- Department leaders section heading --><p style="font-size:var(--r-leaders-heading-font);line-height:1.05;margin:0">leaders-heading</p></div>
+  <div class="r-leader-mine region chrome" data-region="leader-mine"><!-- Mine Shaft leader tile --></div>
+  <div class="r-leader-elevator region chrome" data-region="leader-elevator"><!-- Elevator leader tile --></div>
+  <div class="r-leader-warehouse region chrome" data-region="leader-warehouse"><!-- Warehouse leader tile --></div>
+  <div class="r-leader-copy region text" data-region="leader-copy"><!-- department names, manager names, and level/rank details --><p style="font-size:var(--r-leader-copy-font);line-height:1.05;margin:0">leader-copy</p></div>
+</main>
+</body>
+</html>

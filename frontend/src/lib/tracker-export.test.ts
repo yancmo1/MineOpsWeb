@@ -27,6 +27,8 @@ describe("Idle Master's Hub tracker export", () => {
   it("uses the target site's known aliases and skips duplicate variants", () => {
     expect(trackerKeyForManager({ id: "sm-10089", name: "H4V0C", rarity: "epic", type: "Mine Shaft", elements: [] })).toBe("h4v0c");
     expect(trackerKeyForManager({ id: "sm-10119", name: "Paige Cogsmith", rarity: "epic", type: "Mine Shaft", elements: [] })).toBe("paige-cogsmith");
+    expect(trackerKeyForManager({ id: "sm-10054", name: "Robot", rarity: "rare", type: "Mine Shaft", elements: [] })).toBe("1dl3");
+    expect(trackerKeyForManager({ id: "sm-10066", name: "Altitude", rarity: "rare", type: "Warehouse", elements: [] })).toBe("al-titude");
     expect(trackerKeyForManager({ id: "sm-10033", name: "Prof Maple", rarity: "epic", type: "Mine Shaft", elements: [] })).toBe("professor-maple");
     const backup = buildTrackerBackup([
       { id: "sm-10028", name: "Rabbid Blingsley", rarity: "epic", type: "Mine Shaft", elements: [] },

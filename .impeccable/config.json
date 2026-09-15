@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "frontend/src/styles.css"
+        ],
+        "createdAt": "2026-09-15T02:04:32.296Z",
+        "reason": "The desktop-first ledger intentionally uses a granular utility type scale for dense manager cards; the approved scale and roles are documented in DESIGN.md."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          "frontend/src/styles.css"
+        ],
+        "createdAt": "2026-09-15T02:04:32.412Z",
+        "reason": "The shell intentionally uses translucent rail states and rarity-specific accents; the semantic palette and their roles are documented in DESIGN.md."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "*",
+        "files": [
+          "frontend/src/styles.css"
+        ],
+        "createdAt": "2026-09-15T02:04:32.513Z",
+        "reason": "The ledger intentionally uses smaller utility radii for controls and chips alongside the documented card radii; the shape language is documented in DESIGN.md."
+      }
+    ]
+  }
+}

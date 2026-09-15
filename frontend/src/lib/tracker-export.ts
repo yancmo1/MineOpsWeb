@@ -18,11 +18,20 @@ const TARGET_KEY_OVERRIDES: Readonly<Record<string, string>> = Object.freeze({
   "sm-10024": "wolfgang-clawson",
   "sm-10033": "professor-maple",
   "sm-10042": "ut-ux",
+  "sm-10051": "lord-beiroth",
+  "sm-10054": "1dl3",
+  "sm-10064": "zoe-365",
+  "sm-10065": "amora",
+  "sm-10066": "al-titude",
   "sm-10067": "lavender-wick",
+  "sm-10068": "r-bit",
+  "sm-10070": "jeff",
+  "sm-10072": "maya-gelata",
   "sm-10077": "om-nix",
   "sm-10078": "abeo-meremikwu",
   "sm-10089": "h4v0c",
   "sm-10028": "rabbit-blingsley",
+  "sm-10119": "paige-cogsmith",
 });
 
 export function trackerKeyForName(name: string): string {

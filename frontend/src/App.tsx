@@ -471,35 +471,53 @@ export default function App() {
   const freshness = metadata.status === "never" ? "No player data imported" : metadata.error ? `Sync error · ${metadata.error}` : metadata.status === "offline" ? "Offline · showing cached data" : metadata.lastSuccessfulSyncAt ? `Synced ${new Date(metadata.lastSuccessfulSyncAt).toLocaleString()}` : "Sync pending";
 
   return (
-    <main data-nav-expanded={navExpanded}>
+    <main className={`app-shell ${navExpanded ? "nav-open" : "nav-collapsed"}`} data-nav-expanded={navExpanded}>
       {/* Header */}
-      <header>
-        <div>
-          <p className="eyebrow">MINEOPS</p>
+      <header className="topbar">
+        <div className="topbar-context">
           <h1>
             {getTabLabel(tab)}
           </h1>
           <p className="header-sync-status">
             {freshness}
             {authStatus.authenticated && (
-              <span style={{ marginLeft: "0.5rem", opacity: 0.6 }}>· PB</span>
+              <span className="header-cloud-status">Cloud connected</span>
             )}
           </p>
         </div>
-        <button className="sync-button" onClick={() => void syncNow()} disabled={syncing} aria-label="Sync player data">
+        <div className="topbar-actions">
+          <span className={`topbar-catalog-status ${catalogLoadState.phase === "active" || catalogLoadState.phase === "active_current" ? "verified" : "review"}`}>
+            <span aria-hidden="true" />
+            {catalogLoadState.phase === "active" || catalogLoadState.phase === "active_current" ? "Catalog verified" : "Catalog needs review"}
+          </span>
+          <button className="sync-button" onClick={() => void syncNow()} disabled={syncing} aria-label="Sync player data">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
           </svg>
           <span className="sync-button-text">{syncing ? "Syncing…" : "Sync player"}</span>
-        </button>
+          </button>
+        </div>
       </header>
 
       {/* Page Content */}
+      <div className="app-content">
       <ErrorBoundary>
       {tab !== "overview" && <DataConfidenceBar metadata={metadata} catalogLoadState={catalogLoadState} />}
-      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} settings={settings} onSettingsChange={handleSettingsChange} />}
+      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} settings={settings} onSettingsChange={handleSettingsChange} onNavigate={setTab} />}
       {tab === "managers" && (
-        <>
+        <section className="managers-page">
+          <div className="page-intro">
+            <div className="page-intro-copy">
+              <span className="section-kicker">Roster board</span>
+              <h2>Super Managers</h2>
+              <p>Scan every owned manager, spot the next breakpoint, and open any record when you need the detail.</p>
+              <div className="manager-board-meta" aria-label="Roster summary">
+                <span><i aria-hidden="true" />{unlocked.length} owned</span>
+                <span><i aria-hidden="true" />{catalog.length} in catalog</span>
+              </div>
+            </div>
+            <div className="page-intro-stat"><strong>{unlocked.length}</strong><span>owned of {catalog.length}</span></div>
+          </div>
           {/* Search */}
           <div className="toolbar">
             <input
@@ -520,33 +538,43 @@ export default function App() {
             </button>
           </div>
 
-          {/* Department Filter Chips */}
-          <div className="filter-chips">
-            {departments.map((dept) => (
-              <button
-                key={dept}
-                className={`filter-chip ${department === dept ? "active" : ""}`}
-                onClick={() => setDepartment(dept)}
-              >
-                {dept}
-              </button>
-            ))}
-          </div>
+          <div className="filter-panel" aria-label="Roster filters">
+            <div className="filter-group">
+              <span className="filter-group-label">Area</span>
+              <div className="filter-chips">
+                {departments.map((dept) => (
+                  <button
+                    key={dept}
+                    type="button"
+                    className={`filter-chip ${dept !== "All" ? `filter-chip-${dept.toLowerCase().replace(" ", "-")}` : ""} ${department === dept ? "active" : ""}`}
+                    aria-pressed={department === dept}
+                    onClick={() => setDepartment(dept)}
+                  >
+                    {dept}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          {/* Rarity Filter Chips */}
-          <div className="filter-chips" style={{ marginBottom: "0.5rem" }}>
-            {rarities.map((rarity) => {
-              const isSelected = selectedRarities.has(rarity);
-              return (
-                <button
-                  key={rarity}
-                  className={`filter-chip filter-chip-${rarity} ${isSelected ? "active" : ""}`}
-                  onClick={() => toggleRarity(rarity)}
-                >
-                  {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
-                </button>
-              );
-            })}
+            <div className="filter-group">
+              <span className="filter-group-label">Rarity</span>
+              <div className="filter-chips">
+                {rarities.map((rarity) => {
+                  const isSelected = selectedRarities.has(rarity);
+                  return (
+                    <button
+                      key={rarity}
+                      type="button"
+                      className={`filter-chip filter-chip-${rarity} ${isSelected ? "active" : ""}`}
+                      aria-pressed={isSelected}
+                      onClick={() => toggleRarity(rarity)}
+                    >
+                      {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Ownership + Sort Controls */}
@@ -623,7 +651,7 @@ export default function App() {
               ))
             )}
           </section>
-        </>
+        </section>
       )}
       {tab === "strategy" && (
         <Suspense fallback={<LoadingSkeleton variant="page" />}>
@@ -653,7 +681,11 @@ export default function App() {
       )}
 
       {/* Navigation */}
-      <nav ref={navRef} aria-label="Primary" data-expanded={navExpanded}>
+      <nav ref={navRef} className="primary-nav" aria-label="Primary" data-expanded={navExpanded}>
+        <div className="nav-brand">
+          <span className="nav-brand-mark" aria-hidden="true">MO</span>
+          <span className="nav-brand-copy"><strong>MineOps</strong><small>Mine control</small></span>
+        </div>
         <button
           className="nav-minimize-btn"
           onClick={() => setNavExpanded(!navExpanded)}
@@ -670,17 +702,25 @@ export default function App() {
             </svg>
           )}
         </button>
-        {navigationItems.map((item) => (
-          <button
-            key={item.id}
-            aria-current={tab === item.id ? "page" : undefined}
-            onClick={() => setTab(item.id)}
-            title={!navExpanded ? item.label : undefined}
-          >
-            <NavigationIcon tab={item.id} />
-            <span>{item.label}</span>
-          </button>
-        ))}
+        <div className="nav-items">
+          {navigationItems.map((item) => (
+            <button
+              key={item.id}
+              className="nav-item"
+              data-tab={item.id}
+              aria-current={tab === item.id ? "page" : undefined}
+              onClick={() => setTab(item.id)}
+              title={!navExpanded ? item.label : undefined}
+            >
+              <NavigationIcon tab={item.id} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="nav-footer">
+          <span className="nav-footer-dot" aria-hidden="true" />
+          <span><strong>{metadata.status === "current" ? "Data current" : "Review data status"}</strong><small>{catalog.length} catalog records</small></span>
+        </div>
       </nav>
 
       {/* Manager Detail Modal */}
@@ -710,6 +750,7 @@ export default function App() {
         />
       )}
       </ErrorBoundary>
+      </div>
     </main>
   );
 }
