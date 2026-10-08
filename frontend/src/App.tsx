@@ -537,9 +537,9 @@ export default function App() {
         <section className="managers-page">
           <div className="page-intro">
             <div className="page-intro-copy">
-              <span className="section-kicker">Roster board</span>
-              <h2>Super Managers</h2>
-              <p>Scan every owned manager, spot the next breakpoint, and open any record when you need the detail.</p>
+              <span className="section-kicker">Crew board</span>
+              <h2>Your crew, ready first</h2>
+              <p>Find who can work now, who is close to a breakpoint, and who is worth investing in next.</p>
               <div className="manager-board-meta" aria-label="Roster summary">
                 <span><i aria-hidden="true" />{unlocked.length} owned</span>
                 <span><i aria-hidden="true" />{catalog.length} in catalog</span>
@@ -713,7 +713,7 @@ export default function App() {
       <nav ref={navRef} className="primary-nav" aria-label="Primary" data-expanded={navExpanded}>
         <div className="nav-brand">
           <span className="nav-brand-mark" aria-hidden="true">MO</span>
-          <span className="nav-brand-copy"><strong>MineOps</strong><small>Mine control</small></span>
+          <span className="nav-brand-copy"><strong>MineOps</strong><small>Mission playbook</small></span>
         </div>
         <button
           className="nav-minimize-btn"
