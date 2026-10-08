@@ -62,6 +62,9 @@ export interface SaveStructure {
    * Same numbers the player sees in-game; included so continent blocks and
    * real mine names can be decoded. No cash, no currencies. */
   mineTable: string[];
+  /** Game-stat scalars that may explain the live boost multiplier (the
+   * game's own numbers, e.g. active boost x18.78 — not player secrets). */
+  boostReadout: string[];
 }
 
 const INTERESTING = /mine|continent|research|coin|cash|money|prestige|frontier|everdeep|shaft|elevator|warehouse|econom|island|tesseract|spark|crystal|essence/i;
@@ -135,9 +138,56 @@ export function summarizeSave(root: Record<string, unknown>): SaveStructure {
     const idle = boxOf(row.IdleSavegame);
     return `mine ${r.n}: prestige ${r.prestige ?? "?"}, elevator ${r.elevator ?? "?"}, warehouse ${r.warehouse ?? "?"}, selected ${r.selected}, regionOrder ${r.order ?? "?"}, unlockState ${r.unlock ?? "?"}, idleBase ${cashText(bigValue(idle.BigIdleCashWithoutBuffsPerSec))}/s, idleClosed ${cashText(bigValue(row.BigCashPerSecondWhenClosed))}/s, idlePossible ${cashText(bigValue(idle.PossibleBigIdleCashWithoutBuffsPerSec))}/s, stored ${cashText(bigValue(row.BigCashStored))}`;
   });
+  const scalar = (v: unknown): string | null => {
+    if (typeof v === "number" && Number.isFinite(v)) return String(v);
+    if (typeof v === "boolean") return v ? "true" : "false";
+    if (typeof v === "string" && v.length > 0 && v.length <= 60) return v;
+    return null;
+  };
+  const boostReadout: string[] = [];
+  const iaps = boxOf(data.Iaps);
+  for (const key of ["DoubleCashBoostActive", "DoubleIdleCashBoostActive"]) {
+    const v = scalar(iaps[key]);
+    if (v != null) boostReadout.push(`Iaps.${key} = ${v}`);
+  }
+  const superFeature = boxOf(data.SuperFeatureSavegame);
+  const lastBonus = scalar(superFeature.LastBonusMultiplier);
+  if (lastBonus != null) boostReadout.push(`SuperFeatureSavegame.LastBonusMultiplier = ${lastBonus}`);
+  const ads = boxOf(data.Advertisements);
+  const globalBoost = scalar(ads.GlobalBoostUnlockedAndUsed);
+  if (globalBoost != null) boostReadout.push(`Advertisements.GlobalBoostUnlockedAndUsed = ${globalBoost}`);
+  const liveSink = data.LiveBoostSinkSavegame;
+  if (typeof liveSink === "object" && liveSink != null && !Array.isArray(liveSink)) {
+    for (const [k, v] of Object.entries(liveSink as Record<string, unknown>)) {
+      const sv = scalar(v);
+      if (sv != null) boostReadout.push(`LiveBoostSinkSavegame.${k} = ${sv}`);
+    }
+  }
+  const sampleNumbers = [6000, 3];
+  for (const n of sampleNumbers) {
+    const row = idleByNumber.get(n);
+    if (!row) continue;
+    const idle = boxOf(row.IdleSavegame);
+    const temp = scalar(idle.TempBuffActiveSeconds);
+    if (temp != null) boostReadout.push(`mine ${n} TempBuffActiveSeconds = ${temp}`);
+    const buffs = boxOf(row.BuffCollection).Buffs;
+    if (Array.isArray(buffs)) {
+      boostReadout.push(`mine ${n} active buffs: ${buffs.length}`);
+      buffs.slice(0, 8).forEach((buff, i) => {
+        const parts = Object.entries(boxOf(buff)).map(([k, v]) => {
+          const sv = scalar(v);
+          if (sv != null) return `${k}=${sv}`;
+          const bv = bigValue(v);
+          return bv != null ? `${k}=${cashText(bv)}` : `${k}=<box>`;
+        });
+        if (parts.length > 0) boostReadout.push(`mine ${n} buff ${i}: ${parts.join(", ")}`);
+      });
+    }
+  }
   return {
     rootKeys: Object.keys(root),
     sections,
+    boostReadout,
     mineIds: {
       progressionMineIds: idsOf(data.ProgressionSavegames, "MineId"),
       saveMineNumbers: idsOf(data.Mines, "MineNumber"),
@@ -156,6 +206,9 @@ export function formatSaveReport(structure: SaveStructure): string {
   }
   if (structure.mineTable && structure.mineTable.length > 0) {
     lines.push("Mine table (prestige + levels only, no cash):", ...structure.mineTable, "");
+  }
+  if (structure.boostReadout && structure.boostReadout.length > 0) {
+    lines.push("Boost readout (game stats):", ...structure.boostReadout, "");
   }
   for (const section of structure.sections) {
     lines.push(`${section.interesting ? "⭐ " : ""}${section.key} — ${section.kind}, ${section.count}`);
