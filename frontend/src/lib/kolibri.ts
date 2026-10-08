@@ -245,12 +245,21 @@ async function decodePayload(bytes: Uint8Array): Promise<{ json: Uint8Array; for
   return { json: await gunzip(decoded.slice(gzipStart)), format: text.startsWith("U58U") ? "u58u-base64-gzip" : "base64-prefixed-gzip" };
 }
 
+/**
+ * Base for the /kolibri proxy. Empty (default) = same-origin relative,
+ * which production nginx and the Vite dev server both proxy to Kolibri.
+ * Static previews (GitHub Pages) have no proxy, so their build sets
+ * VITE_KOLIBRI_BASE_URL=https://mineops.shepswork.com to borrow the
+ * production proxy (which allows the github.io origin via CORS).
+ */
+export const KOLIBRI_BASE_URL = ((import.meta.env.VITE_KOLIBRI_BASE_URL as string | undefined) ?? "").replace(/\/+$/, "");
+
 export async function fetchKolibri(credentials: KolibriCredentials, catalog: CatalogManager[]): Promise<KolibriResult> {
   const id = lastUUID(credentials.kolibriId);
   if (!id) throw new Error("Kolibri ID is required.");
   if (!credentials.authToken.trim()) throw new Error("Kolibri auth token is required.");
   const key = credentials.saveGameKey.trim() || "0";
-  const response = await fetch(`/kolibri/games/com.fluffyfairygames.idleminertycoon/players/${encodeURIComponent(id)}/savegame?saveGameKey=${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${credentials.authToken.trim()}`, Accept: "*/*" } });
+  const response = await fetch(`${KOLIBRI_BASE_URL}/kolibri/games/com.fluffyfairygames.idleminertycoon/players/${encodeURIComponent(id)}/savegame?saveGameKey=${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${credentials.authToken.trim()}`, Accept: "*/*" } });
   const raw = new Uint8Array(await response.arrayBuffer());
   if (!response.ok) throw new Error(`Kolibri returned HTTP ${response.status}. Check the player ID, token, and save-game key.`);
   const decoded = await decodePayload(raw);
