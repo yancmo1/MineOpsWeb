@@ -16,6 +16,7 @@ import { ManagerDetailModal } from "./components/ManagerDetailModal";
 import { buildEquipmentNameMap } from "./lib/equipment-lookup";
 import { buildEquipmentEffectMap, type EquipmentEffectInfo } from "./lib/equipment-effects";
 import { buildSyncFeedback, type SyncFeedback } from "./lib/sync-feedback";
+import { loadMineState, saveMineState, type MineState } from "./lib/mine-state";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { compareManagers, defaultOwnership, sortOptions, type ManagersOwnership, type ManagersSortOption } from "./lib/managers-view";
 import { usePrefetch } from "./hooks/usePrefetch";
@@ -113,6 +114,7 @@ export default function App() {
     void saveCredentials(next as PersistedCredentials);
   }
   const [diagnostics, setDiagnostics] = useState<KolibriDiagnostics | null>(null);
+  const [mineState, setMineState] = useState<MineState | null>(() => loadMineState(window.localStorage));
   const [navExpanded, setNavExpanded] = useState(true);
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ authenticated: false });
   const [showSnapshotHistory, setShowSnapshotHistory] = useState(false);
@@ -408,6 +410,8 @@ export default function App() {
       console.log("[sync] Sync complete:", unlocked.length, "unlocked managers. First 3:",
         unlocked.slice(0, 3).map(p => `${p.managerId} Lv${p.level} R${p.rank} P${p.promoted}`).join(", "));
       setDiagnostics(result.diagnostics);
+      setMineState(result.mineState);
+      saveMineState(window.localStorage, result.mineState);
 
       // Get active catalog metadata for import traceability
       const pkg = await catalogClient.getActivePackage();
@@ -532,7 +536,7 @@ export default function App() {
       <div className="app-content">
       <ErrorBoundary>
       {tab !== "overview" && <DataConfidenceBar metadata={metadata} catalogLoadState={catalogLoadState} />}
-      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} settings={settings} onSettingsChange={handleSettingsChange} onNavigate={navigateToTab} />}
+      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} mineState={mineState} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} settings={settings} onSettingsChange={handleSettingsChange} onNavigate={navigateToTab} />}
       {tab === "managers" && (
         <section className="managers-page">
           <div className="page-intro">
