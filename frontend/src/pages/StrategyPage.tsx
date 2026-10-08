@@ -13,6 +13,7 @@ import { evaluateProgressStages, progressSummary, type ProgressStageResult } fro
 import { computeBombDecision, assessRunState, type StellaMechanics, type StellaDecision } from "../lib/stella-elevator";
 import { planCrystalSpend, minPromoForLevel, type CrystalPlanResult, type CrystalCostTable } from "../lib/crystal-planner";
 import { emptyEssenceInventory, essenceInventoryFromEntries, planEssenceUpgrade, type EssenceInventory } from "../lib/essence-planner";
+import { EverdeepTeamPanel } from "../components/EverdeepTeamPanel";
 import { AheadStrategyPanel } from "../components/AheadStrategyPanel";
 
 interface StrategyPageProps {
@@ -20,7 +21,7 @@ interface StrategyPageProps {
   inventory: PlayerInventoryEntry[];
 }
 
-type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal" | "essence" | "ahead";
+type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal" | "essence" | "ahead" | "everdeep";
 
 /** Check whether a load state represents an active package (any source). */
 function isActive(ls: LoadState): boolean {
@@ -205,6 +206,7 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
         />
       </details>
       {selectedPlan === "ahead" && <AheadStrategyPanel catalog={catalogManagers} progress={progress} />}
+      {selectedPlan === "everdeep" && <EverdeepTeamPanel catalog={catalogManagers} progress={progress} />}
       {selectedPlan === "frontier" && <FrontierPlaybook
         roster={frontierRoster}
         barrierId={frontierBarrierId}
@@ -337,7 +339,8 @@ function StrategyPlanMenu({ selectedPlan, onSelect, hasFrontierRoster, lineupCou
 }) {
   const plans: Array<{ id: StrategyPlanId; title: string; detail: string; badge: string }> = [
     { id: "ahead", title: "Ahead & combos", detail: "Diagnose Elevator/Warehouse/Shaft-Ahead from live rates, run owned combos, see what to unlock/learn next.", badge: "live rates" },
-        { id: "lineup", title: "General lineup", detail: "One best owned manager for each operating area.", badge: `${lineupCount} managers` },
+        { id: "everdeep", title: "Everdeep team builder", detail: "Pick the element of each slot; get your best owned manager per slot with exact numbers and element math, plus team passives.", badge: "exact numbers" },
+    { id: "lineup", title: "General lineup", detail: "One best owned manager for each operating area.", badge: `${lineupCount} managers` },
     { id: "upgrades", title: "Upgrade focus", detail: "Prioritize your most useful available rank and level gains.", badge: `${upgradeCount} targets` },
     { id: "tierlist", title: "Tier list & compare", detail: "Rank your roster by verified score and compare managers side by side.", badge: `${tierlistCount} ranked` },
     { id: "progress", title: "Progress tracker", detail: "The roadmap: which promotion milestones are done across your roster.", badge: `${progressCount} done` },
