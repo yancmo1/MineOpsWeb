@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankPlays, bestPlay, loadMines, DEFAULT_MINES, type MineProfile } from "./mission-board";
+import { rankPlays, bestPlay, loadMines, DEFAULT_MINES, effectiveRates, minesFromCatalogDomain, type MineProfile } from "./mission-board";
 import type { CatalogManager, PlayerManager } from "./db";
 
 const catalog: CatalogManager[] = [
@@ -54,5 +54,18 @@ describe("mine profiles", () => {
   it("falls back to defaults with no stored mines", () => {
     const mines: MineProfile[] = loadMines({ getItem: () => null });
     expect(mines).toEqual(DEFAULT_MINES);
+  });
+});
+
+
+describe("mine list and multipliers", () => {
+  it("builds the mine list from the current catalog continent identities plus modes", () => {
+    const mines = minesFromCatalogDomain({ continents: [{ continentType: 0, name: "Start" }, { continentType: 1, name: "Ice" }, { continentType: 99, name: "Bad" }] });
+    expect(mines.map((m) => m.name)).toEqual(["Start", "Ice", "Bad", "Everdeep", "Frontier Mine"]);
+    expect(mines[0].source).toBe("catalog");
+  });
+
+  it("applies per-leg multipliers only to burst pace fields", () => {
+    expect(effectiveRates({ mineshaft: 10, elevator: 20, warehouse: 5 }, { mineshaft: 2, elevator: 3, warehouse: 4 })).toEqual({ mineshaft: 20, elevator: 60, warehouse: 20 });
   });
 });
