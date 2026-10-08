@@ -120,8 +120,8 @@ export function TodayPage({
     <div className="overview-page">
       <div className="today-intro">
         <div>
-          <h2>Command deck</h2>
-          <p>Your quick read on the roster, the next breakpoint, and where to spend your next upgrade.</p>
+          <h2>Today's mission</h2>
+          <p>Pick the mine, read the diagnosis, run the best-paying play, then spend on the next breakpoint.</p>
         </div>
         <p className={`overview-data-status ${syncError ? "has-error" : ""}`} role={syncError ? "alert" : "status"}>
           <span className="status-dot" aria-hidden="true" />
