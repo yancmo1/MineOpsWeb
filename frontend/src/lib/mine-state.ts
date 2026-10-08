@@ -147,3 +147,29 @@ export function loadMineState(storage: Pick<Storage, "getItem">): MineState | nu
     return null;
   }
 }
+
+/**
+ * Mine numbers look like continentType x 1000 + mine-on-that-continent:
+ * the save shows 5003 alongside 3, 32, 33, 34 — 5003 reads as continent 5
+ * (Ancient), mine 3; the small numbers are Start-continent mines.
+ * Continent type numbers match the catalog's mine-economy domain.
+ */
+export const CONTINENT_NAMES: Record<number, string> = {
+  0: "Start",
+  1: "Ice",
+  2: "Fire",
+  3: "Dawn",
+  4: "Dusk",
+  5: "Ancient",
+  6: "Lost Desert",
+  7: "Underwater",
+  3000: "Impossible Island",
+};
+
+export function decodeMineNumber(mineNumber: number | null): { continentType: number; localNumber: number; label: string } | null {
+  if (mineNumber == null || !Number.isFinite(mineNumber)) return null;
+  const continentType = Math.floor(mineNumber / 1000);
+  const localNumber = mineNumber % 1000;
+  const name = CONTINENT_NAMES[continentType];
+  return { continentType, localNumber, label: name ? `${name} · Mine ${localNumber}` : `Mine ${mineNumber}` };
+}

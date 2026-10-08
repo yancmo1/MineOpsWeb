@@ -35,3 +35,13 @@ describe("extractMineState", () => {
     expect(bigNumberToValue("x")).toBeNull();
   });
 });
+
+describe("decodeMineNumber", () => {
+  it("splits continent and local mine number", async () => {
+    const { decodeMineNumber } = await import("./mine-state");
+    expect(decodeMineNumber(5003)).toMatchObject({ continentType: 5, localNumber: 3, label: "Ancient · Mine 3" });
+    expect(decodeMineNumber(3)).toMatchObject({ continentType: 0, localNumber: 3, label: "Start · Mine 3" });
+    expect(decodeMineNumber(34)).toMatchObject({ label: "Start · Mine 34" });
+    expect(decodeMineNumber(null)).toBeNull();
+  });
+});

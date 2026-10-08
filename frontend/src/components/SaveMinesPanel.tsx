@@ -1,5 +1,5 @@
 import type { CatalogManager } from "../lib/db";
-import type { MineState } from "../lib/mine-state";
+import { decodeMineNumber, type MineState } from "../lib/mine-state";
 import { formatCashValue } from "../lib/cash-units";
 
 /**
@@ -16,8 +16,9 @@ export function SaveMinesPanel({ mineState, catalog }: { mineState: MineState | 
     return catalog.find((m) => m.gameId === gameId)?.name ?? null;
   };
 
-  const withCash = mineState.mines.filter((m) => (m.idleCashPerSecond ?? 0) > 0 || (m.cashPerSecondWhenClosed ?? 0) > 0);
-  const rows = (withCash.length > 0 ? withCash : mineState.mines).slice(0, 12);
+  const idleOf = (m: MineState["mines"][number]) => m.idleCashPerSecond ?? m.cashPerSecondWhenClosed ?? 0;
+  const withCash = mineState.mines.filter((m) => idleOf(m) > 0);
+  const rows = [...(withCash.length > 0 ? withCash : mineState.mines)].sort((a, b) => idleOf(b) - idleOf(a)).slice(0, 12);
 
   return (
     <section className="card-container save-mines" aria-labelledby="save-mines-title">
@@ -31,7 +32,7 @@ export function SaveMinesPanel({ mineState, catalog }: { mineState: MineState | 
           return (
             <div key={`${mine.mineNumber ?? "?" }-${i}`} className="save-mine-row">
               <div>
-                <strong>Mine {mine.mineNumber ?? "?"}</strong>
+                <strong>{decodeMineNumber(mine.mineNumber)?.label ?? `Mine ${mine.mineNumber ?? "?"}`}</strong>
                 {mine.selected && <span className="play-badge"> Open now</span>}
                 {mine.prestigeCount != null && mine.prestigeCount > 0 && <span className="muted"> · Prestige {mine.prestigeCount}</span>}
                 <div className="muted save-mine-levels">
