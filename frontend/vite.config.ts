@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  // GitHub Pages serves under /MineOpsWeb/; local/Docker keeps '/'. Set VITE_BASE in CI only.
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react()],
   server: {
     hmr: { clientPort: 8080 },
