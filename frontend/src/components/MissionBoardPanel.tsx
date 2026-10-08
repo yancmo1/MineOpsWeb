@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CatalogManager, PlayerManager } from "../lib/db";
 import { bestPlay, effectiveRates, loadMines, minesFromCatalogDomain, rankPlays, saveMines, suggestedMultipliers, type MineProfile } from "../lib/mission-board";
 import { diagnoseAhead, type MineRates } from "../lib/ahead-strategy";
+import { formatCashValue, parseCashValue } from "../lib/cash-units";
 import { catalogClient } from "../lib/catalog-client";
 
 /**
@@ -44,6 +45,7 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
   const selected = plays.find((p) => p.id === mine?.selectedPlayId) ?? recommended;
   const diagnosis = diagnoseAhead(rates);
   const suggestions = useMemo(() => suggestedMultipliers(catalog, progress), [catalog, progress]);
+  const playablePlays = plays.filter((play) => play.playable);
 
   function persist(next: MineProfile[]) {
     setMines(next);
@@ -57,8 +59,8 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
 
   function updateRate(key: keyof MineRates, raw: string) {
     if (!mine) return;
-    const value = raw.trim() === "" ? null : Number(raw);
-    updateMine({ rates: { ...rates, [key]: Number.isFinite(value) ? value : null }, ratesUpdatedAt: new Date().toISOString() });
+    const value = raw.trim() === "" ? null : parseCashValue(raw);
+    updateMine({ rates: { ...rates, [key]: value }, ratesUpdatedAt: new Date().toISOString() });
   }
 
   function updateMultiplier(key: keyof MineRates, raw: string) {
@@ -76,6 +78,13 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
       if (suggestion.area === "Warehouse") next.warehouse = suggestion.multiplier;
     }
     updateMine({ multipliers: next, ratesUpdatedAt: new Date().toISOString() });
+  }
+
+  function removeCustomMine() {
+    if (!mine || mine.kind !== "custom") return;
+    const next = mines.filter((m) => m.id !== mine.id);
+    persist(next);
+    setActiveMineId(next[0]?.id ?? "everdeep");
   }
 
   function addMine() {
@@ -98,13 +107,15 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
       <div className="panel-label">Mission Board · Mine Profile</div>
       <h2 id="mission-board-title">How to play this mine</h2>
 
-      <div className="mine-switcher" role="group" aria-label="Active mine">
-        {mines.map((m) => (
-          <button key={m.id} type="button" className={m.id === mine.id ? "mine-chip active" : "mine-chip"} onClick={() => setActiveMineId(m.id)}>
-            {m.name}
-          </button>
-        ))}
-        <button type="button" className="mine-chip add" onClick={addMine}>+ Custom</button>
+      <div className="mine-picker">
+        <label>
+          <span>Mine</span>
+          <select aria-label="Active mine" value={mine.id} onChange={(e) => setActiveMineId(e.target.value)}>
+            {mines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        </label>
+        <button type="button" className="secondary" onClick={addMine}>+ Custom mine</button>
+        {mine.kind === "custom" && <button type="button" className="btn-danger" onClick={removeCustomMine}>Remove this custom mine</button>}
       </div>
       <p className="muted mine-source-note">
         {mineSource === "catalog" ? "Mine list pulled from the current verified catalog (mine-economy continents) plus Everdeep and Frontier Mine." : mineSource === "loading" ? "Loading the current mine list from the verified catalog…" : "Current catalog mine list unavailable here, so the saved/fallback mine list is shown."}
@@ -114,14 +125,14 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
         {rateFields.map((field) => (
           <div className="mine-rate-field" key={field.key}>
             <label>
-              <span>{field.label} $/s</span>
-              <input inputMode="decimal" placeholder={field.placeholder} defaultValue={rates[field.key] ?? ""} key={`${field.key}-${mine.id}-${rates[field.key]}`} onBlur={(e) => updateRate(field.key, e.target.value)} />
+              <span>{field.label} rate</span>
+              <input inputMode="decimal" placeholder={field.placeholder} defaultValue={rates[field.key] == null ? "" : formatCashValue(rates[field.key])} key={`${field.key}-${mine.id}-${rates[field.key]}`} onBlur={(e) => updateRate(field.key, e.target.value)} />
             </label>
             <label>
               <span>Multiplier ×</span>
               <input inputMode="decimal" placeholder="1" defaultValue={multipliers[field.key] ?? 1} key={`mult-${field.key}-${mine.id}-${multipliers[field.key]}`} onBlur={(e) => updateMultiplier(field.key, e.target.value)} />
             </label>
-            <small>{field.burst != null ? `Burst pace ${field.burst.toLocaleString()}/s` : "Add rate + multiplier"}</small>
+            <small>{field.burst != null ? `Burst pace ${formatCashValue(field.burst)}/s` : "Use game notation, e.g. 6.84 aj"}</small>
           </div>
         ))}
         <div className="mine-rate-actions">
@@ -142,7 +153,7 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
           <h3>{recommended.title}</h3>
           <p>{recommended.why}</p>
           <p className="muted">
-            {recommended.bottleneckPace != null ? `Sustainable bottleneck pace: ${recommended.bottleneckPace}/s (your weakest leg, before burst multipliers). ` : "Add rates above for a pace read. "}
+            {recommended.bottleneckPace != null ? `Sustainable bottleneck pace: ${formatCashValue(recommended.bottleneckPace)}/s (your weakest leg, before burst multipliers). ` : "Add rates above for a pace read. "}
             Next: {recommended.nextStep}
           </p>
           {recommended.lineup.length > 0 && (
@@ -152,7 +163,7 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
       )}
 
       <div className="play-list" aria-label="All plays for this mine">
-        {plays.map((play) => (
+        {playablePlays.map((play) => (
           <div key={play.id} className={`play-row ${selected?.id === play.id ? "selected" : ""} ${play.playable ? "" : "locked"}`}>
             <div>
               <strong>{play.title}</strong>
@@ -169,7 +180,8 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
           </div>
         ))}
       </div>
-      <p className="muted">Projected pace is a relative score from live rates, multipliers, and verified roster strength — not a promised dollar figure.</p>
+      {playablePlays.length === 0 && <p className="muted">No playable lineup strategy yet for this roster. Sync your managers or unlock one of the combo managers to reveal runnable plays here.</p>}
+      <p className="muted">Only strategies you can actually run are shown. Projected pace is a relative score from live rates, multipliers, and verified roster strength — not a promised dollar figure.</p>
     </section>
   );
 }

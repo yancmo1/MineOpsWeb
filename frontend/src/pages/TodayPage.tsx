@@ -27,31 +27,6 @@ export function TodayPage({
   const byId = new Map(catalog.map((m) => [m.id, m]));
   const unlocked = progress.filter((p) => p.unlocked);
   
-  // Calculate rank-up opportunities with proper threshold checking
-  const opportunities = unlocked
-    .map((p) => ({
-      player: p,
-      manager: byId.get(p.managerId),
-    }))
-    .filter(
-      (
-        item,
-      ): item is {
-        player: PlayerManager;
-        manager: CatalogManager;
-      } =>
-        Boolean(item.manager) &&
-        item.player.fragments >=
-          (rankThreshold(item.player.rank) ?? Infinity),
-    )
-    .sort(
-      (a, b) =>
-        strengthScore(b.manager, b.player) -
-          strengthScore(a.manager, a.player) ||
-        b.player.fragments - a.player.fragments ||
-        a.manager.name.localeCompare(b.manager.name),
-    );
-
   // Get strongest manager in each area
   const managers = progress
     .map((p) => ({ ...p, catalog: byId.get(p.managerId) }))
@@ -96,14 +71,6 @@ export function TodayPage({
             ? "Sync before making upgrade decisions if your in-game roster has changed."
             : "Recommendations use your imported roster and verified catalog data.";
 
-  const recommendationDestination = unlocked.length > 0 ? "managers" : "more";
-  const recommendationAction = unlocked.length > 0 ? "Review roster" : "Open data settings";
-  const recommendationManager = opportunities.length > 0
-    ? opportunities[0].manager
-    : unlocked.length > 0
-      ? managers[0]?.catalog
-      : undefined;
-
   const focus = settings.focusManagerId
     ? progress
       .map((player) => ({ player, manager: byId.get(player.managerId) }))
@@ -130,53 +97,6 @@ export function TodayPage({
       </div>
 
       <MissionBoardPanel catalog={catalog} progress={progress} />
-
-      <div className="today-lead-grid">
-        <section className="card-container best-next-move-full recommendation-panel" aria-labelledby="best-next-move-title">
-          <div className="panel-label">Recommendation</div>
-          <div className="recommendation-emblem" aria-hidden="true">
-            {recommendationManager && spriteURL(recommendationManager) ? (
-              <img src={spriteURL(recommendationManager)} alt="" />
-            ) : (
-              <svg viewBox="0 0 48 48" fill="none"><path d="m24 4 7 13-7 27-7-27 7-13Z" /><path d="m4 24 13-7 27 7-27 7L4 24Z" /></svg>
-            )}
-          </div>
-          <h2 id="best-next-move-title">{opportunities.length > 0 ? `Rank up ${opportunities[0].manager.name}` : unlocked.length > 0 ? `Keep ${managers[0]?.catalog.name} moving` : "Import your player data"}</h2>
-          {opportunities.length > 0 ? (
-            <>
-              <p>{opportunities[0].manager.type} · Rank {opportunities[0].player.rank} · {opportunities[0].player.fragments} fragments available.</p>
-              <span className="recommendation-reason">This is the strongest immediately actionable upgrade in your imported roster.</span>
-            </>
-          ) : unlocked.length > 0 ? (
-            <>
-              <p>{managers[0]?.catalog.type} · Level {managers[0]?.level} · Rank {managers[0]?.rank}</p>
-              <span className="recommendation-reason">No rank-up is ready yet. Keep collecting fragments or sync newer player data.</span>
-          </>
-          ) : <p>Sync in More to get a recommendation built from your roster.</p>}
-          <button className="recommendation-action" type="button" onClick={() => onNavigate?.(recommendationDestination)}>
-            {recommendationAction}
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13m-6-6 6 6-6 6" /></svg>
-          </button>
-        </section>
-
-        <section className="card-container roster-snapshot-card" aria-labelledby="roster-snapshot-title">
-          <div className="panel-label">Roster at a glance</div>
-          <h2 id="roster-snapshot-title">{unlocked.length} <span>owned managers</span></h2>
-          {strongest.length > 0 && (
-            <div className="snapshot-areas" aria-label="Covered areas">
-              {strongest.map((item) => item ? (
-                <span key={item.managerId} className={`snapshot-area ${item.catalog.type.toLowerCase().replace(" ", "-")}`}>
-                  <i aria-hidden="true" />{item.catalog.type}
-                </span>
-              ) : null)}
-            </div>
-          )}
-          <div className="snapshot-facts">
-            <span><strong>{areasCount}</strong><small>areas covered</small></span>
-            <span><strong className={opportunities.length > 0 ? "attention" : ""}>{opportunities.length}</strong><small>rank-ups ready</small></span>
-          </div>
-        </section>
-      </div>
 
       <div className="today-work-grid">
         {hasCoverage && (
