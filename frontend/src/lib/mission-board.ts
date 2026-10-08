@@ -143,7 +143,7 @@ export interface StrategyPlay {
 const PLAY_GUIDES: Record<string, { profitabilityRank: number; profitabilityLabel: string; whatItDoes: string; howToRun: string[]; bestWhen: string; watchOut: string }> = {
   "instant-cash-chain": {
     profitabilityRank: 1,
-    profitabilityLabel: "#1 ceiling — Instant Cash chain",
+    profitabilityLabel: "#1 · Best money",
     whatItDoes: "Sir Axiom converts elevator unloads into Instant Cash and boosts other Super Managers' Instant Cash while active. Harumi then stores all Instant Cash produced during her window and pays the stored total multiplied at the end.",
     howToRun: ["Build an elevator-building pile or shaft crate first.", "Assign Sir Axiom to the Elevator and activate him.", "While Axiom is active, fire other Instant Cash producers you own (Turner/Selena-type effects) so their output is boosted.", "Finish with Harumi at the Warehouse before the window closes so she stores and multiplies the total."],
     bestWhen: "You have a large pile ready and several Instant Cash producers available together.",
@@ -151,7 +151,7 @@ const PLAY_GUIDES: Record<string, { profitabilityRank: number; profitabilityLabe
   },
   "sue-belle-handoff": {
     profitabilityRank: 2,
-    profitabilityLabel: "#2 ceiling — repeatable endgame handoff",
+    profitabilityLabel: "#2 · Best money",
     whatItDoes: "Ranger Sue builds the pile, the handoff chain moves/collects it into the elevator building, and Belle Snowdrop repeatedly gains a percentage of that frozen pile without consuming it.",
     howToRun: ["Run Ranger Sue on the deepest/collecting shaft to build resources.", "Use your handoff/collector/mover chain to build the elevator-building pile.", "Hold warehouse finishers back while the pile grows.", "Assign Belle Snowdrop to the Warehouse and activate her; repeat on cooldown while the same pile remains."],
     bestWhen: "The elevator building can hold a very large pile and Belle is unlocked.",
@@ -159,7 +159,7 @@ const PLAY_GUIDES: Record<string, { profitabilityRank: number; profitabilityLabe
   },
   "elevator-ahead-lilly": {
     profitabilityRank: 3,
-    profitabilityLabel: "#3 ceiling — proven Elevator-Ahead burst",
+    profitabilityLabel: "#3 · Best money",
     whatItDoes: "The shafts build a crate while transport is held back. Dr Lilly then beams a multiple of what the elevator collects directly to the Warehouse, bypassing the warehouse transport bottleneck for that burst.",
     howToRun: ["Leave the Elevator unassigned so resources stockpile in the deepest shaft crate.", "Run Ranger Sue, Gordon, or Chester on that shaft to build the crate faster.", "When the crate is large, assign Dr Lilly to the Elevator.", "Activate Lilly and let the beam land. Re-enter your mine rates afterward because the mine shape will have changed."],
     bestWhen: "Your Elevator is the strongest leg and the Warehouse is too slow to clear a normal pile.",
@@ -167,7 +167,7 @@ const PLAY_GUIDES: Record<string, { profitabilityRank: number; profitabilityLabe
   },
   "warehouse-ahead-zi": {
     profitabilityRank: 4,
-    profitabilityLabel: "#4 ceiling — Warehouse conversion burst",
+    profitabilityLabel: "#4 · Best money",
     whatItDoes: "Zi Galvani beams mined resources into the elevator building. Luxario then multiplies every Warehouse unload while active; Jade Kim is the alternate warehouse converter where her in-game active fits.",
     howToRun: ["Make sure the Warehouse can clear volume; level it first if it is choking.", "Assign Zi Galvani to the deepest shaft and activate the beam.", "Immediately assign/activate Luxario at the Warehouse so multiplied unloads land during his window.", "If using Jade Kim instead, verify her current in-game active first; public documentation is thin."],
     bestWhen: "Your Warehouse is fast enough to clear the elevator building and Luxario is off cooldown.",
@@ -175,7 +175,7 @@ const PLAY_GUIDES: Record<string, { profitabilityRank: number; profitabilityLabe
   },
   "shaft-ahead-rotation": {
     profitabilityRank: 5,
-    profitabilityLabel: "#5 ceiling — direct shaft cash rotation",
+    profitabilityLabel: "#5 · Best money",
     whatItDoes: "Mineshaft Super Managers pay cash or beam resources directly from the deepest shaft, bypassing the slower Elevator/Warehouse legs instead of waiting for normal transport.",
     howToRun: ["Stop over-levelling Elevator/Warehouse if you are deliberately running Shaft-Ahead.", "On the deepest shaft, activate Mr Turner first; his Piggy Bank stores a short window, then unloads multiplied direct to cash.", "Activate Blingsley next for repeated Instant Cash during his window.", "Activate Dr Steiner next to beam a multiple of mined resources to the Warehouse.", "Expect little or no idle income between rotations."],
     bestWhen: "Your shafts are much stronger than transport and the rotation managers are off cooldown together.",
@@ -183,7 +183,7 @@ const PLAY_GUIDES: Record<string, { profitabilityRank: number; profitabilityLabe
   },
   "balanced-idle": {
     profitabilityRank: 6,
-    profitabilityLabel: "#6 ceiling — sustainable idle baseline",
+    profitabilityLabel: "#6 · Safe idle",
     whatItDoes: "All three legs move at a similar pace, so cash flows continuously without a setup window or cooldown choreography. Your weakest leg sets the sustainable pace.",
     howToRun: ["Keep Mineshaft, Elevator, and Warehouse rates reasonably close.", "Assign your strongest passive/income managers for away play.", "Level the current bottleneck first rather than pushing one leg far ahead.", "Re-check rates after major upgrades and switch to a burst play when a large pile is ready."],
     bestWhen: "You are away from the game or do not have a burst combo off cooldown.",

@@ -46,6 +46,8 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
   const diagnosis = diagnoseAhead(rates);
   const suggestions = useMemo(() => suggestedMultipliers(catalog, progress), [catalog, progress]);
   const playablePlays = plays.filter((play) => play.playable);
+  const [showAllPlays, setShowAllPlays] = useState(false);
+  const visiblePlays = showAllPlays ? playablePlays : playablePlays.slice(0, 3);
 
   function persist(next: MineProfile[]) {
     setMines(next);
@@ -111,7 +113,8 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
   return (
     <section className="card-container mission-board" aria-labelledby="mission-board-title">
       <div className="panel-label">Mission Board · Mine Profile</div>
-      <h2 id="mission-board-title">How to play this mine</h2>
+      <h2 id="mission-board-title">Start here: do these 3 steps</h2>
+      <ol className="start-steps"><li>Pick your mine.</li><li>Type the 3 numbers from Mine Overview.</li><li>Run the play marked “Do this first.”</li></ol>
 
       <div className="mine-picker">
         <label>
@@ -141,14 +144,14 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
         {rateFields.map((field) => (
           <div className="mine-rate-field" key={field.key}>
             <label>
-              <span>{field.label} rate</span>
+              <span>{field.label} speed</span>
               <input inputMode="decimal" placeholder={field.placeholder} defaultValue={rates[field.key] == null ? "" : formatCashValue(rates[field.key])} key={`${field.key}-${mine.id}-${rates[field.key]}`} onBlur={(e) => updateRate(field.key, e.target.value)} />
             </label>
             <label>
-              <span>Multiplier ×</span>
+              <span>Boost (×) — leave 1 if none</span>
               <input inputMode="decimal" placeholder="1" defaultValue={multipliers[field.key] ?? 1} key={`mult-${field.key}-${mine.id}-${multipliers[field.key]}`} onBlur={(e) => updateMultiplier(field.key, e.target.value)} />
             </label>
-            <small>{field.burst != null ? `Burst pace ${formatCashValue(field.burst)}/s` : "Not entered"}</small>
+            <small>{field.burst != null ? `Boosted speed ${formatCashValue(field.burst)}/s` : "Not entered"}</small>
           </div>
         ))}
         <div className="mine-rate-actions">
@@ -165,7 +168,7 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
 
       {recommended && (
         <div className="best-earner" aria-label="Biggest cash earner">
-          <div className="panel-label">Biggest cash earner · this lineup</div>
+          <div className="panel-label">Do this first</div>
           <h3>{recommended.title}</h3>
           <p>{recommended.why}</p>
           <p className="muted">
@@ -177,7 +180,7 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
           )}
           <p><span className="play-badge">{recommended.profitabilityLabel}</span></p>
           <details className="play-details best-details">
-            <summary>What this does & how to run it</summary>
+            <summary>Show me the steps</summary>
             <p>{recommended.whatItDoes}</p>
             <ol>{recommended.howToRun.map((step) => <li key={step}>{step}</li>)}</ol>
             <p><strong>Best when:</strong> {recommended.bestWhen}</p>
@@ -187,7 +190,7 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
       )}
 
       <div className="play-list" aria-label="All plays for this mine">
-        {playablePlays.map((play) => (
+        {visiblePlays.map((play) => (
           <div key={play.id} className={`play-row ${selected?.id === play.id ? "selected" : ""} ${play.playable ? "" : "locked"}`}>
             <div>
               <strong>{play.title}</strong>
@@ -196,7 +199,7 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
               {!play.playable && <span className="play-badge locked-badge"> Locked</span>}
               <p className="muted">{play.playable ? play.nextStep : `Needs: ${play.missing.join(", ")}`}</p>
               <details className="play-details">
-                <summary>How to run this play</summary>
+                <summary>Show me the steps</summary>
                 <p>{play.whatItDoes}</p>
                 <ol>{play.howToRun.map((step) => <li key={step}>{step}</li>)}</ol>
                 <p><strong>Best when:</strong> {play.bestWhen}</p>
@@ -204,7 +207,7 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
               </details>
             </div>
             <div className="play-actions">
-              {play.paceScore != null && <span className="muted">Projected pace {play.paceScore}/100</span>}
+              {play.paceScore != null && <span className="muted">Fit today {play.paceScore}/100</span>}
               <button type="button" disabled={!play.playable} onClick={() => updateMine({ selectedPlayId: play.id })}>
                 {selected?.id === play.id ? "Running this" : "Run this"}
               </button>
@@ -212,8 +215,9 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
           </div>
         ))}
       </div>
-      {playablePlays.length === 0 && <p className="muted">No playable lineup strategy yet for this roster. Sync your managers or unlock one of the combo managers to reveal runnable plays here.</p>}
-      <p className="muted">Only strategies you can actually run are shown, ordered by researched payout ceiling. Projected pace is today's relative fit from live rates, multipliers, and verified roster strength — not a promised dollar figure.</p>
+      {playablePlays.length > 3 && <button type="button" className="secondary show-more-plays" onClick={() => setShowAllPlays((v) => !v)}>{showAllPlays ? "Show fewer plays" : `Show ${playablePlays.length - 3} more play${playablePlays.length - 3 === 1 ? "" : "s"}`}</button>}
+      {playablePlays.length === 0 && <p className="muted">No play can run yet. Next step: sync your crew, then come back here.</p>}
+      <p className="muted">Plays are sorted best money first. “Fit today” only says how well the play matches the numbers you typed. It is not a promise.</p>
     </section>
   );
 }

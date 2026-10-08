@@ -98,7 +98,7 @@ export function TodayPage({
 
       <MissionBoardPanel catalog={catalog} progress={progress} onImport={() => onNavigate?.("more")} />
 
-      <div className="today-work-grid">
+      <details className="later-details"><summary>Later: leaders and upgrade focus</summary><div className="today-work-grid">
         {hasCoverage && (
           <section className="card-container leaders-panel" aria-labelledby="leaders-title">
             <div className="section-heading-row"><div><h2 id="leaders-title">Department leaders</h2><p>Strongest owned manager in each area.</p></div><span className="section-count">{areasCount}/3 covered</span></div>
@@ -131,7 +131,7 @@ export function TodayPage({
           {focus ? (() => { const summary = buildUpgradeFocus(focus.manager, focus.player, settings.focusTargetLevel ?? 30); return <div className="upgrade-focus-summary"><div className="upgrade-focus-title-row"><strong>{focus.manager.name}: Level {summary.currentLevel} → {summary.target}</strong><span>{summary.reached ? "Target reached" : `${summary.levelsRemaining} levels to go`}</span></div><div className="upgrade-focus-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.progressPct} aria-label={`${summary.progressPct}% progress toward level ${summary.target}`}><span style={{ width: `${summary.progressPct}%` }} /></div><div className="upgrade-focus-facts"><span><b>Milestone</b> P{summary.targetPromotion}</span><span><b>Next passive</b> {summary.nextPassive?.description ?? "Not captured"}</span>{summary.targetMilestoneCost != null && <span><b>Catalog cash reference</b> {summary.targetMilestoneCost.toLocaleString()}</span>}</div><p className="upgrade-focus-data-note">Crystal balances and price schedules are not present in the current normalized package, so crystal totals remain unverified.</p></div>; })() : <p className="upgrade-focus-empty">Choose an unlocked manager to track a milestone. Level 30 is a useful default for a manager’s next major passive.</p>}
         </section>
         )}
-      </div>
+      </div></details>
 
       <details className="overview-method-note"><summary>How recommendations are calculated</summary><p className="muted">Recommendations use your imported manager levels, ranks, fragments, and verified catalog values. Unknown values are left out rather than estimated.</p></details>
     </div>

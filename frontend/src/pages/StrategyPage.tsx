@@ -192,8 +192,8 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
         catalogReleaseId={evaluation.catalogReleaseId}
         onOpen={setSelectedPlan}
       />
-      <details className="strategy-tools-disclosure" open={selectedPlan !== "recommendations"}>
-        <summary>Explore strategy tools</summary>
+      <details className="strategy-tools-disclosure">
+        <summary>More tools (open only if you need one)</summary>
         <StrategyPlanMenu
           selectedPlan={selectedPlan}
           onSelect={setSelectedPlan}
