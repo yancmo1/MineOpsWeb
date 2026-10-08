@@ -256,8 +256,8 @@ export function MorePage({
     <div className="more-page">
       <section className="more-hero" aria-labelledby="settings-data-heading">
         <div>
-          <p className="eyebrow">Data &amp; recovery</p>
-          <h2 id="settings-data-heading">Keep your MineOps data ready</h2>
+          <p className="eyebrow">Control room</p>
+          <h2 id="settings-data-heading">Data, sync, and recovery</h2>
           <p>
             Update your roster, confirm which catalog powers recommendations, and recover safely without mixing player data with catalog updates.
           </p>
