@@ -1,5 +1,6 @@
 import { CatalogManager, PlayerManager, rankThreshold, strengthScore, type AppSettings } from "../lib/db";
 import { buildUpgradeFocus, clampFocusLevel, FOCUS_LEVELS } from "../lib/upgrade-focus";
+import { MissionBoardPanel } from "../components/MissionBoardPanel";
 import { spriteURL } from "../lib/sprites";
 
 interface OverviewPageProps {
@@ -127,6 +128,8 @@ export function TodayPage({
           <span><strong>{freshness}</strong><small>{freshnessGuidance}</small></span>
         </p>
       </div>
+
+      <MissionBoardPanel catalog={catalog} progress={progress} />
 
       <div className="today-lead-grid">
         <section className="card-container best-next-move-full recommendation-panel" aria-labelledby="best-next-move-title">
