@@ -13,13 +13,14 @@ import { evaluateProgressStages, progressSummary, type ProgressStageResult } fro
 import { computeBombDecision, assessRunState, type StellaMechanics, type StellaDecision } from "../lib/stella-elevator";
 import { planCrystalSpend, minPromoForLevel, type CrystalPlanResult, type CrystalCostTable } from "../lib/crystal-planner";
 import { emptyEssenceInventory, essenceInventoryFromEntries, planEssenceUpgrade, type EssenceInventory } from "../lib/essence-planner";
+import { AheadStrategyPanel } from "../components/AheadStrategyPanel";
 
 interface StrategyPageProps {
   progress: PlayerManager[];
   inventory: PlayerInventoryEntry[];
 }
 
-type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal" | "essence";
+type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal" | "essence" | "ahead";
 
 /** Check whether a load state represents an active package (any source). */
 function isActive(ls: LoadState): boolean {
@@ -203,6 +204,7 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
           progressCount={progressSummary(progressResults).complete}
         />
       </details>
+      {selectedPlan === "ahead" && <AheadStrategyPanel catalog={catalogManagers} progress={progress} />}
       {selectedPlan === "frontier" && <FrontierPlaybook
         roster={frontierRoster}
         barrierId={frontierBarrierId}
@@ -334,6 +336,7 @@ function StrategyPlanMenu({ selectedPlan, onSelect, hasFrontierRoster, lineupCou
   progressCount: number;
 }) {
   const plans: Array<{ id: StrategyPlanId; title: string; detail: string; badge: string }> = [
+    { id: "ahead", title: "Ahead & combos", detail: "Diagnose Elevator/Warehouse/Shaft-Ahead from live rates, run owned combos, see what to unlock/learn next.", badge: "live rates" },
     { id: "frontier", title: "Frontier Mine start", detail: "Set your FC checkpoint, prepare the right roles, and run the opening burst.", badge: hasFrontierRoster ? "Roster ready" : "Sync roster" },
     { id: "lineup", title: "General lineup", detail: "One best owned manager for each operating area.", badge: `${lineupCount} managers` },
     { id: "upgrades", title: "Upgrade focus", detail: "Prioritize your most useful available rank and level gains.", badge: `${upgradeCount} targets` },
