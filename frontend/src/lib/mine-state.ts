@@ -173,3 +173,32 @@ export function decodeMineNumber(mineNumber: number | null): { continentType: nu
   const name = CONTINENT_NAMES[continentType];
   return { continentType, localNumber, label: name ? `${name} · Mine ${localNumber}` : `Mine ${mineNumber}` };
 }
+
+export interface MineContinentGroup {
+  continentType: number;
+  name: string;
+  mines: SaveMine[];
+  /** Combined idle cash/sec across the continent's mines. */
+  totalIdlePerSecond: number;
+}
+
+/** Group save mines by continent (decoded from the mine number), each
+ * group sorted biggest idle earner first, groups in game order. */
+export function groupMinesByContinent(mines: SaveMine[]): MineContinentGroup[] {
+  const idleOf = (m: SaveMine) => m.idleCashPerSecond ?? m.cashPerSecondWhenClosed ?? 0;
+  const groups = new Map<number, SaveMine[]>();
+  for (const mine of mines) {
+    const type = decodeMineNumber(mine.mineNumber)?.continentType ?? -1;
+    const list = groups.get(type) ?? [];
+    list.push(mine);
+    groups.set(type, list);
+  }
+  return [...groups.entries()]
+    .map(([continentType, list]) => ({
+      continentType,
+      name: CONTINENT_NAMES[continentType] ?? "Other mines",
+      mines: [...list].sort((a, b) => idleOf(b) - idleOf(a)),
+      totalIdlePerSecond: list.reduce((sum, m) => sum + idleOf(m), 0),
+    }))
+    .sort((a, b) => a.continentType - b.continentType);
+}

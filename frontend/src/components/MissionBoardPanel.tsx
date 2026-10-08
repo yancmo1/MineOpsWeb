@@ -132,7 +132,29 @@ export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { 
         <label>
           <span>Mine</span>
           <select aria-label="Active mine" value={mine.id} onChange={(e) => setActiveMineId(e.target.value)}>
-            {mines.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+            {(() => {
+              const saveMines = mines.filter((m) => m.source === "save");
+              const others = mines.filter((m) => m.source !== "save");
+              const byContinent = new Map<number, MineProfile[]>();
+              for (const m of saveMines) {
+                const type = decodeMineNumber(m.save?.mineNumber ?? null)?.continentType ?? -1;
+                byContinent.set(type, [...(byContinent.get(type) ?? []), m]);
+              }
+              return (
+                <>
+                  {[...byContinent.entries()].sort((a, b) => a[0] - b[0]).map(([type, list]) => (
+                    <optgroup key={type} label={list[0]?.name.split(" · ")[0] ?? "Mines"}>
+                      {list.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </optgroup>
+                  ))}
+                  {others.length > 0 && (
+                    <optgroup label="More mines">
+                      {others.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </optgroup>
+                  )}
+                </>
+              );
+            })()}
           </select>
         </label>
         <button type="button" className="secondary" onClick={addMine}>+ Custom mine</button>

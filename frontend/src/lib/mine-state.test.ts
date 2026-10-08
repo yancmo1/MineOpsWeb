@@ -45,3 +45,14 @@ describe("decodeMineNumber", () => {
     expect(decodeMineNumber(null)).toBeNull();
   });
 });
+
+describe("groupMinesByContinent", () => {
+  it("groups by decoded continent and totals idle cash", async () => {
+    const { groupMinesByContinent } = await import("./mine-state");
+    const mine = (n: number, idle: number) => ({ mineNumber: n, mineId: n, elevatorLevel: 1, warehouseLevel: 1, corridorLevels: [], prestigeCount: 0, selected: false, idleCashPerSecond: idle, cashPerSecondWhenClosed: null, storedCash: null });
+    const groups = groupMinesByContinent([mine(3, 10), mine(5003, 5), mine(5, 30)]);
+    expect(groups.map((g) => g.name)).toEqual(["Start", "Ancient"]);
+    expect(groups[0].mines.map((m) => m.mineNumber)).toEqual([5, 3]);
+    expect(groups[0].totalIdlePerSecond).toBe(40);
+  });
+});
