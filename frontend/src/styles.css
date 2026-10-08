@@ -823,3 +823,4 @@ code, .settings-hash, .manager-card-stat-value, .leader-level { font-family: var
 .save-mine-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); }
 .save-mine-cash { display: grid; gap: 3px; text-align: right; font-family: var(--font-mono); font-size: .8rem; white-space: nowrap; }
 .save-mine-levels, .save-mine-assigned { font-size: .8rem; margin-top: 3px; }
+.save-facts { margin-top: 8px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); font-size: .86rem; }
