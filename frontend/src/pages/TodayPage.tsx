@@ -100,7 +100,7 @@ export function TodayPage({
         </p>
       </div>
 
-      <MissionBoardPanel catalog={catalog} progress={progress} onImport={() => onNavigate?.("more")} />
+      <MissionBoardPanel catalog={catalog} progress={progress} mineState={mineState ?? null} onImport={() => onNavigate?.("more")} />
 
       <SaveMinesPanel mineState={mineState ?? null} catalog={catalog} />
 

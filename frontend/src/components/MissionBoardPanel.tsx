@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogManager, PlayerManager } from "../lib/db";
-import { bestPlay, effectiveRates, loadMines, minesFromCatalogDomain, rankPlays, saveMines, suggestedMultipliers, type MineProfile } from "../lib/mission-board";
+import { bestPlay, effectiveRates, loadMines, minesFromCatalogDomain, minesFromSaveState, rankPlays, saveMines, suggestedMultipliers, type MineProfile } from "../lib/mission-board";
+import { decodeMineNumber, type MineState } from "../lib/mine-state";
 import { diagnoseAhead, type MineRates } from "../lib/ahead-strategy";
 import { formatCashValue, parseCashValue } from "../lib/cash-units";
 import { catalogClient } from "../lib/catalog-client";
@@ -13,9 +14,20 @@ import { catalogClient } from "../lib/catalog-client";
  * (mine-economy-domain.json continent identities). Mine profiles persist
  * in localStorage for now; PocketBase sync is future work.
  */
-export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: CatalogManager[]; progress: PlayerManager[]; onImport?: () => void }) {
-  const [mines, setMines] = useState<MineProfile[]>(() => loadMines(window.localStorage));
-  const [activeMineId, setActiveMineId] = useState<string>(() => loadMines(window.localStorage)[0]?.id ?? "everdeep");
+export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { catalog: CatalogManager[]; progress: PlayerManager[]; mineState?: MineState | null; onImport?: () => void }) {
+  const labelFor = (n: number | null) => decodeMineNumber(n)?.label ?? `Mine ${n ?? "?"}`;
+  const [mines, setMines] = useState<MineProfile[]>(() => minesFromSaveState(mineState ?? null, loadMines(window.localStorage), labelFor));
+  const [activeMineId, setActiveMineId] = useState<string>(() => minesFromSaveState(mineState ?? null, loadMines(window.localStorage), labelFor)[0]?.id ?? "everdeep");
+
+  useEffect(() => {
+    if (!mineState) return;
+    setMines((stored) => {
+      const next = minesFromSaveState(mineState, stored, labelFor);
+      saveMines(window.localStorage, next);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mineState]);
   const [mineSource, setMineSource] = useState<"loading" | "catalog" | "fallback">("loading");
 
   useEffect(() => {
@@ -127,8 +139,16 @@ export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: Ca
         {mine.kind === "custom" && <button type="button" className="btn-danger" onClick={removeCustomMine}>Remove this custom mine</button>}
       </div>
       <p className="muted mine-source-note">
-        {mineSource === "catalog" ? "Mine list pulled from the current verified catalog (mine-economy continents) plus Everdeep and Frontier Mine." : mineSource === "loading" ? "Loading the current mine list from the verified catalog…" : "Saved mine list shown; the current catalog mine list could not be loaded in this view."}
+        {mine?.source === "save" ? "Mine list from your saved game (synced). Your own mines come first, biggest idle earner on top." : mineSource === "catalog" ? "Mine list pulled from the current verified catalog (mine-economy continents) plus Everdeep and Frontier Mine." : mineSource === "loading" ? "Loading the current mine list from the verified catalog…" : "Saved mine list shown; the current catalog mine list could not be loaded in this view."}
       </p>
+      {mine?.save && (
+        <p className="save-facts">
+          From your save: Elevator {mine.save.elevatorLevel ?? "—"} · Warehouse {mine.save.warehouseLevel ?? "—"}
+          {mine.save.shaftCount > 0 && <> · Shafts {mine.save.shaftCount} (top {mine.save.topShaftLevel ?? "—"})</>}
+          {mine.save.idleCashPerSecond != null && mine.save.idleCashPerSecond > 0 && <> · Idle <strong>{formatCashValue(mine.save.idleCashPerSecond)}/s</strong></>}
+          {mine.save.prestigeCount != null && mine.save.prestigeCount > 0 && <> · Prestige {mine.save.prestigeCount}</>}
+        </p>
+      )}
 
       {!hasRoster && (
         <div className="preimport-callout">

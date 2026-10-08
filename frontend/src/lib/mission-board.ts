@@ -31,7 +31,18 @@ export interface MineProfile {
   multipliers: MineRates;
   ratesUpdatedAt?: string;
   selectedPlayId?: string;
-  source?: "catalog" | "stored" | "fallback";
+  source?: "catalog" | "stored" | "fallback" | "save";
+  /** Save facts for a mine read from the player's Kolibri save. */
+  save?: {
+    mineNumber: number | null;
+    elevatorLevel: number | null;
+    warehouseLevel: number | null;
+    shaftCount: number;
+    topShaftLevel: number | null;
+    idleCashPerSecond: number | null;
+    storedCash: number | null;
+    prestigeCount: number | null;
+  };
 }
 
 export type MineMultipliers = MineRates;
@@ -84,6 +95,42 @@ export function minesFromCatalogDomain(domain: unknown, stored: MineProfile[] = 
   ];
   const custom = stored.filter((mine) => mine.kind === "custom" && !fromCatalog.some((m) => m.id === mine.id) && !modes.some((m) => m.id === mine.id));
   return [...fromCatalog, ...modes, ...custom];
+}
+
+/**
+ * Build selectable profiles from the player's save mines. Save mines lead
+ * the dropdown (they are the mines the player actually has); stored
+ * catalog/custom profiles merge back in by id so typed rates survive.
+ */
+export function minesFromSaveState(
+  state: { mines: Array<{ mineNumber: number | null; elevatorLevel: number | null; warehouseLevel: number | null; corridorLevels: number[]; idleCashPerSecond: number | null; cashPerSecondWhenClosed: number | null; storedCash: number | null; prestigeCount: number | null }> } | null,
+  stored: MineProfile[] = [],
+  labelFor: (mineNumber: number | null) => string = (n) => `Mine ${n ?? "?"}`,
+): MineProfile[] {
+  if (!state || state.mines.length === 0) return stored;
+  const byId = new Map(stored.map((mine) => [mine.id, mine]));
+  const idleOf = (m: (typeof state.mines)[number]) => m.idleCashPerSecond ?? m.cashPerSecondWhenClosed ?? 0;
+  const fromSave: MineProfile[] = [...state.mines]
+    .sort((a, b) => idleOf(b) - idleOf(a))
+    .map((m) => {
+      const id = `save-${m.mineNumber ?? "unknown"}`;
+      const previous = byId.get(id);
+      const save = {
+        mineNumber: m.mineNumber,
+        elevatorLevel: m.elevatorLevel,
+        warehouseLevel: m.warehouseLevel,
+        shaftCount: m.corridorLevels.length,
+        topShaftLevel: m.corridorLevels.length > 0 ? Math.max(...m.corridorLevels) : null,
+        idleCashPerSecond: m.idleCashPerSecond ?? m.cashPerSecondWhenClosed,
+        storedCash: m.storedCash,
+        prestigeCount: m.prestigeCount,
+      };
+      return previous
+        ? { ...previous, name: labelFor(m.mineNumber), save, source: "save" as const }
+        : { id, name: labelFor(m.mineNumber), kind: "continent" as const, rates: EMPTY_RATES, multipliers: DEFAULT_MULTIPLIERS, source: "save" as const, save };
+    });
+  const rest = stored.filter((mine) => !fromSave.some((m) => m.id === mine.id));
+  return [...fromSave, ...rest];
 }
 
 export function normalizeMine(mine: MineProfile): MineProfile {
