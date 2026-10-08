@@ -37,22 +37,30 @@ describe("extractMineState", () => {
 });
 
 describe("decodeMineNumber", () => {
-  it("splits continent and local mine number", async () => {
+  it("names normal mines in blocks of five per continent", async () => {
     const { decodeMineNumber } = await import("./mine-state");
-    expect(decodeMineNumber(5003)).toMatchObject({ continentType: 5, localNumber: 3, label: "Ancient · Mine 3" });
-    expect(decodeMineNumber(3)).toMatchObject({ continentType: 0, localNumber: 3, label: "Start · Mine 3" });
-    expect(decodeMineNumber(34)).toMatchObject({ label: "Start · Mine 34" });
+    expect(decodeMineNumber(1)).toMatchObject({ continentType: 0, label: "Coal", special: false });
+    expect(decodeMineNumber(3)).toMatchObject({ continentType: 0, label: "Ruby" });
+    expect(decodeMineNumber(8)).toMatchObject({ continentType: 1, label: "Crystal" });
+    expect(decodeMineNumber(10)).toMatchObject({ continentType: 1, label: "Sapphire" });
+    expect(decodeMineNumber(13)).toMatchObject({ continentType: 2, label: "Sunstone" });
+    expect(decodeMineNumber(40)).toMatchObject({ continentType: 7, label: "Abyss" });
+  });
+
+  it("labels specials honestly instead of inventing names", async () => {
+    const { decodeMineNumber } = await import("./mine-state");
+    expect(decodeMineNumber(5003)).toMatchObject({ continentType: 5, label: "Ancient · Special 3", special: true });
+    expect(decodeMineNumber(6000)).toMatchObject({ continentType: 6, label: "Lost Desert · Special", special: true });
+    expect(decodeMineNumber(110001)).toMatchObject({ label: "Special mine 110001", special: true });
     expect(decodeMineNumber(null)).toBeNull();
   });
-});
 
-describe("groupMinesByContinent", () => {
-  it("groups by decoded continent and totals idle cash", async () => {
-    const { groupMinesByContinent } = await import("./mine-state");
-    const mine = (n: number, idle: number) => ({ mineNumber: n, mineId: n, elevatorLevel: 1, warehouseLevel: 1, corridorLevels: [], prestigeCount: 0, selected: false, idleCashPerSecond: idle, cashPerSecondWhenClosed: null, storedCash: null });
-    const groups = groupMinesByContinent([mine(3, 10), mine(5003, 5), mine(5, 30)]);
-    expect(groups.map((g) => g.name)).toEqual(["Start", "Ancient"]);
-    expect(groups[0].mines.map((m) => m.mineNumber)).toEqual([5, 3]);
-    expect(groups[0].totalIdlePerSecond).toBe(40);
+  it("never pairs progression levels by list position", () => {
+    const state = extractMineState({ Data: {
+      Mines: [{ MineNumber: 5003, Elevator: { Level: 1491 }, Ground: { Level: 1472 }, IdleSavegame: {} }],
+      ProgressionSavegames: [{ MineId: 1, ElevatorLevel: 2188, WarehouseLevel: 2196, CorridorLevels: [800] }],
+    } });
+    expect(state.mines[0].elevatorLevel).toBe(1491);
+    expect(state.mines[0].corridorLevels).toEqual([]);
   });
 });

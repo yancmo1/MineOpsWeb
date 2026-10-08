@@ -137,7 +137,8 @@ export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { 
               const others = mines.filter((m) => m.source !== "save");
               const byContinent = new Map<number, MineProfile[]>();
               for (const m of saveMines) {
-                const type = decodeMineNumber(m.save?.mineNumber ?? null)?.continentType ?? -1;
+                const decoded = decodeMineNumber(m.save?.mineNumber ?? null);
+                const type = decoded?.continentType ?? -1;
                 byContinent.set(type, [...(byContinent.get(type) ?? []), m]);
               }
               return (

@@ -92,7 +92,10 @@ export function extractMineState(root: Record<string, unknown>): MineState {
     // Progression rows keyed by MineId; MineId appears to track MineNumber.
     // Fall back to same-position row when the key does not line up, and keep
     // levels from Mines[].Elevator/Ground as the primary source.
-    const prog = (mineNumber != null ? progressionByMineId.get(mineNumber) : undefined) ?? asRow(progression[index]) ?? undefined;
+    // Match progression ONLY by MineId === MineNumber. Never fall back to
+    // list position: the save's Mines order is shuffled, and a positional
+    // match once showed mine 1's levels on special mine 5003.
+    const prog = mineNumber != null ? progressionByMineId.get(mineNumber) : undefined;
     const corridorLevels = Array.isArray(prog?.CorridorLevels)
       ? (prog!.CorridorLevels as unknown[]).map(num).filter((v): v is number => v != null)
       : [];
@@ -149,10 +152,15 @@ export function loadMineState(storage: Pick<Storage, "getItem">): MineState | nu
 }
 
 /**
- * Mine numbers look like continentType x 1000 + mine-on-that-continent:
- * the save shows 5003 alongside 3, 32, 33, 34 — 5003 reads as continent 5
- * (Ancient), mine 3; the small numbers are Start-continent mines.
- * Continent type numbers match the catalog's mine-economy domain.
+ * Mine name decoding — cracked from the player's own save numbers
+ * (2026-10-08). ProgressionSavegames lists MineId 1..40 in order, and the
+ * per-mine prestige/level table falls in a clean gradient across blocks
+ * of five: that is the 8 continents in game order, 5 named mines each.
+ *
+ * Mines bigger than 40 are specials: 1000 / 5001-5003 / 6000 carry their
+ * continent in the thousands digit, and 110001 stands alone. Specials are
+ * labelled honestly as "Special" until the player confirms what they are
+ * in game (6000 holds prestige 39 and all current manager assignments).
  */
 export const CONTINENT_NAMES: Record<number, string> = {
   0: "Start",
@@ -166,12 +174,56 @@ export const CONTINENT_NAMES: Record<number, string> = {
   3000: "Impossible Island",
 };
 
-export function decodeMineNumber(mineNumber: number | null): { continentType: number; localNumber: number; label: string } | null {
+/** The 5 mines on each continent, in unlock order (game data trail). */
+export const CONTINENT_MINES: Record<number, string[]> = {
+  0: ["Coal", "Gold", "Ruby", "Diamond", "Emerald"],
+  1: ["Moonstone", "Amethyst", "Crystal", "Jade", "Sapphire"],
+  2: ["Amber", "Topaz", "Sunstone", "Platinum", "Obsidian"],
+  3: ["Heliodor", "Realgar", "Alexandrite", "Celestine", "Titanite"],
+  4: ["Fluorite", "Quartz", "Aragonite", "Beryl", "Calcite"],
+  5: ["Aquamarine", "Ammolite", "Azurite", "Pearl", "Turquoise"],
+  6: ["Crysoberyl", "Labradorite", "Aventurine", "Jasper", "Carnelian"],
+  7: ["Nautilus", "Atlantic", "Bermuda", "Siren", "Abyss"],
+};
+
+export interface DecodedMine {
+  continentType: number | null;
+  continentName: string;
+  /** 0-based position on the continent (named mines only). */
+  localIndex: number | null;
+  label: string;
+  special: boolean;
+}
+
+export function decodeMineNumber(mineNumber: number | null): DecodedMine | null {
   if (mineNumber == null || !Number.isFinite(mineNumber)) return null;
-  const continentType = Math.floor(mineNumber / 1000);
-  const localNumber = mineNumber % 1000;
-  const name = CONTINENT_NAMES[continentType];
-  return { continentType, localNumber, label: name ? `${name} · Mine ${localNumber}` : `Mine ${mineNumber}` };
+  if (mineNumber >= 1 && mineNumber <= 40) {
+    const continentType = Math.floor((mineNumber - 1) / 5);
+    const localIndex = (mineNumber - 1) % 5;
+    const mineName = CONTINENT_MINES[continentType]?.[localIndex];
+    return {
+      continentType,
+      continentName: CONTINENT_NAMES[continentType] ?? "Unknown continent",
+      localIndex,
+      label: mineName ?? `Mine ${mineNumber}`,
+      special: false,
+    };
+  }
+  if (mineNumber >= 1000 && mineNumber < 10000) {
+    const continentType = Math.floor(mineNumber / 1000);
+    const name = CONTINENT_NAMES[continentType];
+    const local = mineNumber % 1000;
+    if (name) {
+      return {
+        continentType,
+        continentName: name,
+        localIndex: null,
+        label: local > 0 ? `${name} · Special ${local}` : `${name} · Special`,
+        special: true,
+      };
+    }
+  }
+  return { continentType: null, continentName: "Special mines", localIndex: null, label: `Special mine ${mineNumber}`, special: true };
 }
 
 export interface MineContinentGroup {
@@ -183,12 +235,13 @@ export interface MineContinentGroup {
 }
 
 /** Group save mines by continent (decoded from the mine number), each
- * group sorted biggest idle earner first, groups in game order. */
+ * group sorted biggest idle earner first, groups in game order with the
+ * special-mines group last. */
 export function groupMinesByContinent(mines: SaveMine[]): MineContinentGroup[] {
   const idleOf = (m: SaveMine) => m.idleCashPerSecond ?? m.cashPerSecondWhenClosed ?? 0;
   const groups = new Map<number, SaveMine[]>();
   for (const mine of mines) {
-    const type = decodeMineNumber(mine.mineNumber)?.continentType ?? -1;
+    const type = decodeMineNumber(mine.mineNumber)?.continentType ?? -2;
     const list = groups.get(type) ?? [];
     list.push(mine);
     groups.set(type, list);
@@ -196,9 +249,9 @@ export function groupMinesByContinent(mines: SaveMine[]): MineContinentGroup[] {
   return [...groups.entries()]
     .map(([continentType, list]) => ({
       continentType,
-      name: CONTINENT_NAMES[continentType] ?? "Other mines",
+      name: CONTINENT_NAMES[continentType] ?? "Special mines",
       mines: [...list].sort((a, b) => idleOf(b) - idleOf(a)),
       totalIdlePerSecond: list.reduce((sum, m) => sum + idleOf(m), 0),
     }))
-    .sort((a, b) => a.continentType - b.continentType);
+    .sort((a, b) => (a.continentType < 0 ? 99 : a.continentType) - (b.continentType < 0 ? 99 : b.continentType));
 }
