@@ -13,7 +13,7 @@ import { catalogClient } from "../lib/catalog-client";
  * (mine-economy-domain.json continent identities). Mine profiles persist
  * in localStorage for now; PocketBase sync is future work.
  */
-export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManager[]; progress: PlayerManager[] }) {
+export function MissionBoardPanel({ catalog, progress, onImport }: { catalog: CatalogManager[]; progress: PlayerManager[]; onImport?: () => void }) {
   const [mines, setMines] = useState<MineProfile[]>(() => loadMines(window.localStorage));
   const [activeMineId, setActiveMineId] = useState<string>(() => loadMines(window.localStorage)[0]?.id ?? "everdeep");
   const [mineSource, setMineSource] = useState<"loading" | "catalog" | "fallback">("loading");
@@ -96,6 +96,12 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
 
   if (!mine) return null;
 
+  const hasRoster = progress.some((player) => player.unlocked);
+
+  function useSampleRates() {
+    updateMine({ rates: { mineshaft: parseCashValue("6.84 aj"), elevator: parseCashValue("122 aj"), warehouse: parseCashValue("17.7 aj") }, ratesUpdatedAt: new Date().toISOString() });
+  }
+
   const rateFields: Array<{ key: keyof MineRates; label: string; placeholder: string; burst: number | null }> = [
     { key: "mineshaft", label: "Mineshaft", placeholder: "e.g. 6.84", burst: burstRates.mineshaft },
     { key: "elevator", label: "Elevator", placeholder: "e.g. 122", burst: burstRates.elevator },
@@ -118,9 +124,19 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
         {mine.kind === "custom" && <button type="button" className="btn-danger" onClick={removeCustomMine}>Remove this custom mine</button>}
       </div>
       <p className="muted mine-source-note">
-        {mineSource === "catalog" ? "Mine list pulled from the current verified catalog (mine-economy continents) plus Everdeep and Frontier Mine." : mineSource === "loading" ? "Loading the current mine list from the verified catalog…" : "Current catalog mine list unavailable here, so the saved/fallback mine list is shown."}
+        {mineSource === "catalog" ? "Mine list pulled from the current verified catalog (mine-economy continents) plus Everdeep and Frontier Mine." : mineSource === "loading" ? "Loading the current mine list from the verified catalog…" : "Saved mine list shown; the current catalog mine list could not be loaded in this view."}
       </p>
 
+      {!hasRoster && (
+        <div className="preimport-callout">
+          <div><strong>No roster imported yet.</strong><span>Import/sync your player data to unlock lineup-specific plays. You can still preview the math with sample rates.</span></div>
+          <div className="preimport-actions">
+            {onImport && <button type="button" onClick={onImport}>Import / sync player data</button>}
+            <button type="button" className="secondary" onClick={useSampleRates}>Use sample rates</button>
+          </div>
+        </div>
+      )}
+      <p className="muted mine-rate-help">Enter rates in game notation (for example <strong>6.84 aj</strong>). Multiplier is the active SM boost you plan to run; “Use lineup multipliers” fills it from your strongest owned manager.</p>
       <div className="mine-rate-entry" aria-label="Current mine rates and multipliers">
         {rateFields.map((field) => (
           <div className="mine-rate-field" key={field.key}>
@@ -132,7 +148,7 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
               <span>Multiplier ×</span>
               <input inputMode="decimal" placeholder="1" defaultValue={multipliers[field.key] ?? 1} key={`mult-${field.key}-${mine.id}-${multipliers[field.key]}`} onBlur={(e) => updateMultiplier(field.key, e.target.value)} />
             </label>
-            <small>{field.burst != null ? `Burst pace ${formatCashValue(field.burst)}/s` : "Use game notation, e.g. 6.84 aj"}</small>
+            <small>{field.burst != null ? `Burst pace ${formatCashValue(field.burst)}/s` : "Not entered"}</small>
           </div>
         ))}
         <div className="mine-rate-actions">
@@ -142,8 +158,8 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
           </span>
         </div>
         <p className="muted">
-          {mine.ratesUpdatedAt ? `Profile updated ${new Date(mine.ratesUpdatedAt).toLocaleString()}. ` : "Enter the three Mine Overview totals and the multiplier you plan to run. "}
-          {diagnosis.labelText} — {diagnosis.headline} Multipliers change the burst read; the raw totals remain the idle/baseline read.
+          {mine.ratesUpdatedAt ? `Profile updated ${new Date(mine.ratesUpdatedAt).toLocaleString()}. ` : ""}
+          {diagnosis.labelText} — {diagnosis.headline}
         </p>
       </div>
 
@@ -159,6 +175,14 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
           {recommended.lineup.length > 0 && (
             <p>Lineup: {recommended.lineup.map((l) => `${l.area}: ${l.name}`).join(" · ")}</p>
           )}
+          <p><span className="play-badge">{recommended.profitabilityLabel}</span></p>
+          <details className="play-details best-details">
+            <summary>What this does & how to run it</summary>
+            <p>{recommended.whatItDoes}</p>
+            <ol>{recommended.howToRun.map((step) => <li key={step}>{step}</li>)}</ol>
+            <p><strong>Best when:</strong> {recommended.bestWhen}</p>
+            <p><strong>Watch out:</strong> {recommended.watchOut}</p>
+          </details>
         </div>
       )}
 
@@ -167,9 +191,17 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
           <div key={play.id} className={`play-row ${selected?.id === play.id ? "selected" : ""} ${play.playable ? "" : "locked"}`}>
             <div>
               <strong>{play.title}</strong>
+              <span className="play-badge rank-badge">{play.profitabilityLabel}</span>
               {recommended?.id === play.id && <span className="play-badge"> Biggest earner</span>}
               {!play.playable && <span className="play-badge locked-badge"> Locked</span>}
               <p className="muted">{play.playable ? play.nextStep : `Needs: ${play.missing.join(", ")}`}</p>
+              <details className="play-details">
+                <summary>How to run this play</summary>
+                <p>{play.whatItDoes}</p>
+                <ol>{play.howToRun.map((step) => <li key={step}>{step}</li>)}</ol>
+                <p><strong>Best when:</strong> {play.bestWhen}</p>
+                <p><strong>Watch out:</strong> {play.watchOut}</p>
+              </details>
             </div>
             <div className="play-actions">
               {play.paceScore != null && <span className="muted">Projected pace {play.paceScore}/100</span>}
@@ -181,7 +213,7 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
         ))}
       </div>
       {playablePlays.length === 0 && <p className="muted">No playable lineup strategy yet for this roster. Sync your managers or unlock one of the combo managers to reveal runnable plays here.</p>}
-      <p className="muted">Only strategies you can actually run are shown. Projected pace is a relative score from live rates, multipliers, and verified roster strength — not a promised dollar figure.</p>
+      <p className="muted">Only strategies you can actually run are shown, ordered by researched payout ceiling. Projected pace is today's relative fit from live rates, multipliers, and verified roster strength — not a promised dollar figure.</p>
     </section>
   );
 }

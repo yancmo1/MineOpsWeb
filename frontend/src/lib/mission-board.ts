@@ -119,13 +119,81 @@ export interface StrategyPlay {
   engine: "balanced" | "shaft" | "elevator" | "warehouse" | "instant-cash" | "handoff";
   playable: boolean;
   missing: string[];
+  /** Researched payout-ceiling order (1 = highest ceiling when set up correctly).
+   * This is a mechanics order, not a guarantee for today's rates. */
+  profitabilityRank: number;
+  profitabilityLabel: string;
   /** 0..100 projected-pace score (relative, labelled — not a dollar figure). */
   paceScore: number | null;
   /** Sustainable bottleneck pace when rates are known ($/s, min of 3 legs). */
   bottleneckPace: number | null;
   why: string;
   nextStep: string;
+  /** Plain-English explanation of what the play actually does. */
+  whatItDoes: string;
+  /** Step-by-step run instructions using the current combo definitions. */
+  howToRun: string[];
+  /** When this play is the right tool. */
+  bestWhen: string;
+  /** The failure mode to avoid. */
+  watchOut: string;
   lineup: Array<{ area: string; name: string; managerId: string }>;
+}
+
+const PLAY_GUIDES: Record<string, { profitabilityRank: number; profitabilityLabel: string; whatItDoes: string; howToRun: string[]; bestWhen: string; watchOut: string }> = {
+  "instant-cash-chain": {
+    profitabilityRank: 1,
+    profitabilityLabel: "#1 ceiling — Instant Cash chain",
+    whatItDoes: "Sir Axiom converts elevator unloads into Instant Cash and boosts other Super Managers' Instant Cash while active. Harumi then stores all Instant Cash produced during her window and pays the stored total multiplied at the end.",
+    howToRun: ["Build an elevator-building pile or shaft crate first.", "Assign Sir Axiom to the Elevator and activate him.", "While Axiom is active, fire other Instant Cash producers you own (Turner/Selena-type effects) so their output is boosted.", "Finish with Harumi at the Warehouse before the window closes so she stores and multiplies the total."],
+    bestWhen: "You have a large pile ready and several Instant Cash producers available together.",
+    watchOut: "Do not fire Harumi first. She only multiplies Instant Cash produced while she is storing it.",
+  },
+  "sue-belle-handoff": {
+    profitabilityRank: 2,
+    profitabilityLabel: "#2 ceiling — repeatable endgame handoff",
+    whatItDoes: "Ranger Sue builds the pile, the handoff chain moves/collects it into the elevator building, and Belle Snowdrop repeatedly gains a percentage of that frozen pile without consuming it.",
+    howToRun: ["Run Ranger Sue on the deepest/collecting shaft to build resources.", "Use your handoff/collector/mover chain to build the elevator-building pile.", "Hold warehouse finishers back while the pile grows.", "Assign Belle Snowdrop to the Warehouse and activate her; repeat on cooldown while the same pile remains."],
+    bestWhen: "The elevator building can hold a very large pile and Belle is unlocked.",
+    watchOut: "A consuming warehouse finisher can spend the pile Belle needs to re-read. Keep the pile frozen until Belle has taken her cut.",
+  },
+  "elevator-ahead-lilly": {
+    profitabilityRank: 3,
+    profitabilityLabel: "#3 ceiling — proven Elevator-Ahead burst",
+    whatItDoes: "The shafts build a crate while transport is held back. Dr Lilly then beams a multiple of what the elevator collects directly to the Warehouse, bypassing the warehouse transport bottleneck for that burst.",
+    howToRun: ["Leave the Elevator unassigned so resources stockpile in the deepest shaft crate.", "Run Ranger Sue, Gordon, or Chester on that shaft to build the crate faster.", "When the crate is large, assign Dr Lilly to the Elevator.", "Activate Lilly and let the beam land. Re-enter your mine rates afterward because the mine shape will have changed."],
+    bestWhen: "Your Elevator is the strongest leg and the Warehouse is too slow to clear a normal pile.",
+    watchOut: "Assigning Lilly too early beams a small pile. The setup time is part of the play.",
+  },
+  "warehouse-ahead-zi": {
+    profitabilityRank: 4,
+    profitabilityLabel: "#4 ceiling — Warehouse conversion burst",
+    whatItDoes: "Zi Galvani beams mined resources into the elevator building. Luxario then multiplies every Warehouse unload while active; Jade Kim is the alternate warehouse converter where her in-game active fits.",
+    howToRun: ["Make sure the Warehouse can clear volume; level it first if it is choking.", "Assign Zi Galvani to the deepest shaft and activate the beam.", "Immediately assign/activate Luxario at the Warehouse so multiplied unloads land during his window.", "If using Jade Kim instead, verify her current in-game active first; public documentation is thin."],
+    bestWhen: "Your Warehouse is fast enough to clear the elevator building and Luxario is off cooldown.",
+    watchOut: "A slow Warehouse wastes Zi's beam. Fix the clearing leg before firing the combo.",
+  },
+  "shaft-ahead-rotation": {
+    profitabilityRank: 5,
+    profitabilityLabel: "#5 ceiling — direct shaft cash rotation",
+    whatItDoes: "Mineshaft Super Managers pay cash or beam resources directly from the deepest shaft, bypassing the slower Elevator/Warehouse legs instead of waiting for normal transport.",
+    howToRun: ["Stop over-levelling Elevator/Warehouse if you are deliberately running Shaft-Ahead.", "On the deepest shaft, activate Mr Turner first; his Piggy Bank stores a short window, then unloads multiplied direct to cash.", "Activate Blingsley next for repeated Instant Cash during his window.", "Activate Dr Steiner next to beam a multiple of mined resources to the Warehouse.", "Expect little or no idle income between rotations."],
+    bestWhen: "Your shafts are much stronger than transport and the rotation managers are off cooldown together.",
+    watchOut: "This is a burst rotation, not an idle setup. If you need away income, Balanced is safer.",
+  },
+  "balanced-idle": {
+    profitabilityRank: 6,
+    profitabilityLabel: "#6 ceiling — sustainable idle baseline",
+    whatItDoes: "All three legs move at a similar pace, so cash flows continuously without a setup window or cooldown choreography. Your weakest leg sets the sustainable pace.",
+    howToRun: ["Keep Mineshaft, Elevator, and Warehouse rates reasonably close.", "Assign your strongest passive/income managers for away play.", "Level the current bottleneck first rather than pushing one leg far ahead.", "Re-check rates after major upgrades and switch to a burst play when a large pile is ready."],
+    bestWhen: "You are away from the game or do not have a burst combo off cooldown.",
+    watchOut: "Balanced is dependable, not explosive. A bottleneck left behind quietly caps every dollar.",
+  },
+};
+
+function withGuide(play: Omit<StrategyPlay, "profitabilityRank" | "profitabilityLabel" | "whatItDoes" | "howToRun" | "bestWhen" | "watchOut">): StrategyPlay {
+  const guide = PLAY_GUIDES[play.id];
+  return { ...play, ...(guide ?? { profitabilityRank: 99, profitabilityLabel: "Unranked", whatItDoes: play.why, howToRun: [play.nextStep], bestWhen: "Use when its required managers and mine shape fit.", watchOut: "Check the required managers and current rates before running it." }) };
 }
 
 function strongestByArea(catalog: CatalogManager[], progress: PlayerManager[]) {
@@ -185,7 +253,7 @@ export function rankPlays(catalog: CatalogManager[], progress: PlayerManager[], 
 
   const rosterReady = progress.some((p) => p.unlocked);
 
-  const plays: StrategyPlay[] = [
+  const plays: Array<Omit<StrategyPlay, "profitabilityRank" | "profitabilityLabel" | "whatItDoes" | "howToRun" | "bestWhen" | "watchOut">> = [
     {
       id: "balanced-idle",
       title: "Balanced / idle",
@@ -260,10 +328,15 @@ export function rankPlays(catalog: CatalogManager[], progress: PlayerManager[], 
     },
   ];
 
-  // Rank: playable first, then projected pace. Plays without rates keep
-  // their natural order after scored ones within the same playability.
-  return plays.sort((a, b) => {
+  const guided = plays.map(withGuide);
+
+  // Researched ceiling order first: Instant Cash chain, Belle handoff,
+  // Lilly burst, Zi conversion, shaft rotation, then balanced idle. Projected
+  // pace breaks ties/near-ties; it does not pretend a universal dollar payout
+  // exists independent of rates, pile size, cooldowns, and manager levels.
+  return guided.sort((a, b) => {
     if (a.playable !== b.playable) return a.playable ? -1 : 1;
+    if (a.profitabilityRank !== b.profitabilityRank) return a.profitabilityRank - b.profitabilityRank;
     return (b.paceScore ?? -1) - (a.paceScore ?? -1);
   });
 }

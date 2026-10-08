@@ -25,9 +25,11 @@ describe("rankPlays", () => {
     expect(plays[0].playable).toBe(true);
   });
 
-  it("ranks Shaft-Ahead top when shafts are the strongest leg", () => {
+  it("keeps researched ceiling order ahead of a one-off rate fit", () => {
     const plays = rankPlays(catalog, fullRoster, { mineshaft: 200, elevator: 40, warehouse: 30 });
-    expect(bestPlay(plays)?.id).toBe("shaft-ahead-rotation");
+    expect(bestPlay(plays)?.id).toBe("elevator-ahead-lilly");
+    expect(plays.find((p) => p.id === "shaft-ahead-rotation")?.profitabilityRank).toBe(5);
+    expect(plays.find((p) => p.id === "elevator-ahead-lilly")?.howToRun.length).toBeGreaterThan(2);
   });
 
   it("marks locked chains unplayable with missing managers named", () => {

@@ -116,7 +116,7 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
   const [frontierFreeSkips, setFrontierFreeSkips] = useState("0");
   const [frontierTimeJumps, setFrontierTimeJumps] = useState("0");
   const [frontierPass, setFrontierPass] = useState<FrontierPass>("free");
-  const [selectedPlan, setSelectedPlan] = useState<StrategyPlanId>("frontier");
+  const [selectedPlan, setSelectedPlan] = useState<StrategyPlanId>("ahead");
 
   // Subscribe to catalog client state changes for reactive rendering
   useEffect(() => {
@@ -337,19 +337,19 @@ function StrategyPlanMenu({ selectedPlan, onSelect, hasFrontierRoster, lineupCou
 }) {
   const plans: Array<{ id: StrategyPlanId; title: string; detail: string; badge: string }> = [
     { id: "ahead", title: "Ahead & combos", detail: "Diagnose Elevator/Warehouse/Shaft-Ahead from live rates, run owned combos, see what to unlock/learn next.", badge: "live rates" },
-    { id: "frontier", title: "Frontier Mine start", detail: "Set your FC checkpoint, prepare the right roles, and run the opening burst.", badge: hasFrontierRoster ? "Roster ready" : "Sync roster" },
-    { id: "lineup", title: "General lineup", detail: "One best owned manager for each operating area.", badge: `${lineupCount} managers` },
+        { id: "lineup", title: "General lineup", detail: "One best owned manager for each operating area.", badge: `${lineupCount} managers` },
     { id: "upgrades", title: "Upgrade focus", detail: "Prioritize your most useful available rank and level gains.", badge: `${upgradeCount} targets` },
     { id: "tierlist", title: "Tier list & compare", detail: "Rank your roster by verified score and compare managers side by side.", badge: `${tierlistCount} ranked` },
     { id: "progress", title: "Progress tracker", detail: "The roadmap: which promotion milestones are done across your roster.", badge: `${progressCount} done` },
     { id: "stella", title: "Stella's Elevator", detail: "Mid-run bomb-decision calculator for Stella's Lucky Elevator events.", badge: "run stats" },
     { id: "crystal", title: "Crystal planner", detail: "Level/promo crystal budget calculator with discount and structural gates.", badge: "budget" },
     { id: "essence", title: "Essence planner", detail: "Choose a Super Manager rank target and see the essence surplus or shortfall from your synced save.", badge: "save-backed" },
+    { id: "frontier", title: "Frontier Mine (separate mode)", detail: "Frontier has its own credits, barriers, and opening burst. Open this only when you are planning a Frontier run.", badge: hasFrontierRoster ? "Roster ready" : "Sync roster" },
   ];
   return <section className="card-container strategy-plan-menu">
-    <p className="eyebrow">Playbook library</p>
+    <p className="eyebrow">Explore</p>
     <h2 className="card-title">Strategy tools</h2>
-    <p className="muted strategy-plan-menu-intro">Start with the recommended play, or open a focused tool when you know the job: diagnose a mine, build a lineup, plan upgrades, or run an event.</p>
+    <p className="muted strategy-plan-menu-intro">Start with the recommendation above, or open a focused playbook when you know what you want to investigate.</p>
     <div className="strategy-plan-grid">
       {plans.map((plan) => <button key={plan.id} className={`strategy-plan-card ${selectedPlan === plan.id ? "active" : ""}`} onClick={() => onSelect(plan.id)} aria-pressed={selectedPlan === plan.id}>
         <span className="strategy-plan-card-top"><strong>{plan.title}</strong><em>{plan.badge}</em></span>
