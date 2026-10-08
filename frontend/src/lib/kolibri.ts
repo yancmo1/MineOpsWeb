@@ -254,7 +254,10 @@ async function decodePayload(bytes: Uint8Array): Promise<{ json: Uint8Array; for
  */
 export const KOLIBRI_BASE_URL = ((import.meta.env.VITE_KOLIBRI_BASE_URL as string | undefined) ?? "").replace(/\/+$/, "");
 
-export async function fetchKolibri(credentials: KolibriCredentials, catalog: CatalogManager[]): Promise<KolibriResult> {
+/** Fetch and decode the raw save once. Returns the parsed root object only;
+ * callers decide what to read. Used by both the sync parser and the
+ * names-only save inspector. */
+export async function fetchSaveRoot(credentials: KolibriCredentials): Promise<{ root: Record<string, unknown>; format: string; statusCode: number; rawBytes: number; decodedBytes: number }> {
   const id = lastUUID(credentials.kolibriId);
   if (!id) throw new Error("Kolibri ID is required.");
   if (!credentials.authToken.trim()) throw new Error("Kolibri auth token is required.");
@@ -264,6 +267,11 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
   if (!response.ok) throw new Error(`Kolibri returned HTTP ${response.status}. Check the player ID, token, and save-game key.`);
   const decoded = await decodePayload(raw);
   const root = JSON.parse(new TextDecoder().decode(decoded.json)) as Record<string, unknown>;
+  return { root, format: decoded.format, statusCode: response.status, rawBytes: raw.byteLength, decodedBytes: decoded.json.byteLength };
+}
+
+export async function fetchKolibri(credentials: KolibriCredentials, catalog: CatalogManager[]): Promise<KolibriResult> {
+  const { root, format: payloadFormat, statusCode, rawBytes, decodedBytes } = await fetchSaveRoot(credentials);
   const data = (root.Data ?? root) as Record<string, unknown>;
   const inventory = extractInventoryFromSave(root);
   const managers = (((data.SuperManagers ?? {}) as Record<string, unknown>).Managers ?? []) as Array<Record<string, unknown>>;
@@ -459,10 +467,10 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     progress,
     inventory,
     diagnostics: {
-      statusCode: response.status,
-      payloadFormat: decoded.format,
-      rawBytes: raw.byteLength,
-      decodedBytes: decoded.json.byteLength,
+      statusCode,
+      payloadFormat,
+      rawBytes,
+      decodedBytes,
       managerCount: managers.length,
       unknownManagerCount: unresolvedCount,
       fragmentFieldCount,
