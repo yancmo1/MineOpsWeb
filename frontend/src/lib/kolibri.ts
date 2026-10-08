@@ -3,6 +3,7 @@ import { resolveIds, fetchOverrides, type MappingEvidence } from "./catalog-mapp
 import { catalogClient } from "./catalog-client";
 import { managersFromVerifiedPackage } from "./strategy";
 import type { CachedCatalogPackage } from "./catalog-cache";
+import { extractMineState, type MineState } from "./mine-state";
 
 export type KolibriCredentials = { kolibriId: string; authToken: string; saveGameKey: string };
 export type KolibriDiagnostics = { statusCode: number; payloadFormat: string; rawBytes: number; decodedBytes: number; managerCount: number; unknownManagerCount: number; fragmentFieldCount?: number; fragmentMissingCount?: number; passiveValueManagerCount?: number; equipmentAssignmentManagerCount?: number; inventoryEntryCount?: number; essenceEntryCount?: number; crystalEntryCount?: number; materialEntryCount?: number; ownedEquipmentEntryCount?: number; unresolvedSampleIds?: string[] };
@@ -17,6 +18,8 @@ export interface KolibriResult {
   unresolved: MappingEvidence[];
   /** The catalog version used for resolution */
   catalogVersion: string | null;
+  /** Mine/continent state from the save (levels, idle cash, assignments). */
+  mineState: MineState;
 }
 
 function numericQuantity(value: unknown): number | undefined {
@@ -318,6 +321,7 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
       mappingEvidence: new Map(),
       unresolved: managers.map((r) => ({ sourceValue: String(r.Id ?? ""), sourceKind: "kolibri_id", canonicalId: null, resolution: "unresolved" as const, confidence: null, catalogVersion: "", releaseId: "", displayName: null })),
       catalogVersion: null,
+      mineState: extractMineState(root),
     };
   }
   let catalogVersion = pkg?.catalogVersion ?? null;
@@ -489,5 +493,6 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     mappingEvidence: evidenceMap,
     unresolved,
     catalogVersion,
+    mineState: extractMineState(root),
   };
 }

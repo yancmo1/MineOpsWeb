@@ -1,6 +1,8 @@
 import { CatalogManager, PlayerManager, rankThreshold, strengthScore, type AppSettings } from "../lib/db";
 import { buildUpgradeFocus, clampFocusLevel, FOCUS_LEVELS } from "../lib/upgrade-focus";
 import { MissionBoardPanel } from "../components/MissionBoardPanel";
+import { SaveMinesPanel } from "../components/SaveMinesPanel";
+import type { MineState } from "../lib/mine-state";
 import { spriteURL } from "../lib/sprites";
 
 interface OverviewPageProps {
@@ -9,6 +11,7 @@ interface OverviewPageProps {
   lastSyncAt?: string;
   syncError?: string;
   syncStatus: "never" | "current" | "stale" | "offline";
+  mineState?: MineState | null;
   settings: AppSettings;
   onSettingsChange: (settings: AppSettings) => void;
   onNavigate?: (tab: "managers" | "more") => void;
@@ -17,6 +20,7 @@ interface OverviewPageProps {
 export function TodayPage({
   catalog,
   progress,
+  mineState,
   lastSyncAt,
   syncError,
   syncStatus,
@@ -97,6 +101,8 @@ export function TodayPage({
       </div>
 
       <MissionBoardPanel catalog={catalog} progress={progress} onImport={() => onNavigate?.("more")} />
+
+      <SaveMinesPanel mineState={mineState ?? null} catalog={catalog} />
 
       <details className="later-details"><summary>Later: leaders and upgrade focus</summary><div className="today-work-grid">
         {hasCoverage && (
