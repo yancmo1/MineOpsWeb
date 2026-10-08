@@ -26,14 +26,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
       - name: Install and build frontend
         working-directory: frontend
         env:
           VITE_BASE: /MineOpsWeb/
         run: |
-          npm ci
+          # package-lock.json was generated on macOS; npm ci can skip the
+          # Linux Rollup binary (npm optional-deps bug). Install it explicitly.
+          npm ci || npm install
+          npm install --no-save @rollup/rollup-linux-x64-gnu
           npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
