@@ -1,24 +1,49 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CatalogManager, PlayerManager } from "../lib/db";
-import { bestPlay, loadMines, rankPlays, saveMines, type MineProfile } from "../lib/mission-board";
+import { bestPlay, effectiveRates, loadMines, minesFromCatalogDomain, rankPlays, saveMines, suggestedMultipliers, type MineProfile } from "../lib/mission-board";
 import { diagnoseAhead, type MineRates } from "../lib/ahead-strategy";
+import { catalogClient } from "../lib/catalog-client";
 
 /**
  * Mission Board — home screen (Yancy direction, 2026-10-08):
- * mine switcher -> fast rate entry -> "Biggest cash earner" ranked plays,
- * with the player free to choose a different play to run. v1 persists
- * mine profiles in localStorage; PocketBase sync is future work.
- * Light theme is the app default; this panel adds no theme assumptions.
+ * mine switcher -> fast rate + multiplier entry -> "Biggest cash earner"
+ * ranked plays, with the player free to choose a different play to run.
+ * Mine list comes from the current verified catalog package
+ * (mine-economy-domain.json continent identities). Mine profiles persist
+ * in localStorage for now; PocketBase sync is future work.
  */
 export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManager[]; progress: PlayerManager[] }) {
   const [mines, setMines] = useState<MineProfile[]>(() => loadMines(window.localStorage));
   const [activeMineId, setActiveMineId] = useState<string>(() => loadMines(window.localStorage)[0]?.id ?? "everdeep");
+  const [mineSource, setMineSource] = useState<"loading" | "catalog" | "fallback">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    void catalogClient.getArtifact("mine-economy-domain.json").then((artifact) => {
+      if (cancelled) return;
+      if (artifact?.content) {
+        setMines((stored) => {
+          const next = minesFromCatalogDomain(artifact.content, stored);
+          saveMines(window.localStorage, next);
+          return next;
+        });
+        setMineSource("catalog");
+      } else {
+        setMineSource("fallback");
+      }
+    }).catch(() => { if (!cancelled) setMineSource("fallback"); });
+    return () => { cancelled = true; };
+  }, []);
 
   const mine = mines.find((m) => m.id === activeMineId) ?? mines[0];
-  const plays = useMemo(() => rankPlays(catalog, progress, mine?.rates ?? { mineshaft: null, elevator: null, warehouse: null }), [catalog, progress, mine]);
+  const rates = mine?.rates ?? { mineshaft: null, elevator: null, warehouse: null };
+  const multipliers = mine?.multipliers ?? { mineshaft: 1, elevator: 1, warehouse: 1 };
+  const burstRates = effectiveRates(rates, multipliers);
+  const plays = useMemo(() => rankPlays(catalog, progress, rates, multipliers), [catalog, progress, rates, multipliers]);
   const recommended = bestPlay(plays);
   const selected = plays.find((p) => p.id === mine?.selectedPlayId) ?? recommended;
-  const diagnosis = diagnoseAhead(mine?.rates ?? { mineshaft: null, elevator: null, warehouse: null });
+  const diagnosis = diagnoseAhead(rates);
+  const suggestions = useMemo(() => suggestedMultipliers(catalog, progress), [catalog, progress]);
 
   function persist(next: MineProfile[]) {
     setMines(next);
@@ -33,21 +58,44 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
   function updateRate(key: keyof MineRates, raw: string) {
     if (!mine) return;
     const value = raw.trim() === "" ? null : Number(raw);
-    updateMine({ rates: { ...mine.rates, [key]: Number.isFinite(value) ? value : null }, ratesUpdatedAt: new Date().toISOString() });
+    updateMine({ rates: { ...rates, [key]: Number.isFinite(value) ? value : null }, ratesUpdatedAt: new Date().toISOString() });
+  }
+
+  function updateMultiplier(key: keyof MineRates, raw: string) {
+    if (!mine) return;
+    const value = Number(raw);
+    updateMine({ multipliers: { ...multipliers, [key]: Number.isFinite(value) && value > 0 ? value : 1 }, ratesUpdatedAt: new Date().toISOString() });
+  }
+
+  function applySuggestions() {
+    if (!mine) return;
+    const next = { ...multipliers };
+    for (const suggestion of suggestions) {
+      if (suggestion.area === "Mine Shaft") next.mineshaft = suggestion.multiplier;
+      if (suggestion.area === "Elevator") next.elevator = suggestion.multiplier;
+      if (suggestion.area === "Warehouse") next.warehouse = suggestion.multiplier;
+    }
+    updateMine({ multipliers: next, ratesUpdatedAt: new Date().toISOString() });
   }
 
   function addMine() {
     const id = `mine-${Date.now()}`;
-    const next = [...mines, { id, name: `Mine ${mines.length + 1}`, kind: "custom" as const, rates: { mineshaft: null, elevator: null, warehouse: null } }];
+    const next = [...mines, { id, name: `Custom mine ${mines.filter((m) => m.kind === "custom").length + 1}`, kind: "custom" as const, rates: { mineshaft: null, elevator: null, warehouse: null }, multipliers: { mineshaft: 1, elevator: 1, warehouse: 1 } }];
     persist(next);
     setActiveMineId(id);
   }
 
   if (!mine) return null;
 
+  const rateFields: Array<{ key: keyof MineRates; label: string; placeholder: string; burst: number | null }> = [
+    { key: "mineshaft", label: "Mineshaft", placeholder: "e.g. 6.84", burst: burstRates.mineshaft },
+    { key: "elevator", label: "Elevator", placeholder: "e.g. 122", burst: burstRates.elevator },
+    { key: "warehouse", label: "Warehouse", placeholder: "e.g. 17.7", burst: burstRates.warehouse },
+  ];
+
   return (
     <section className="card-container mission-board" aria-labelledby="mission-board-title">
-      <div className="panel-label">Mission Board</div>
+      <div className="panel-label">Mission Board · Mine Profile</div>
       <h2 id="mission-board-title">How to play this mine</h2>
 
       <div className="mine-switcher" role="group" aria-label="Active mine">
@@ -56,25 +104,35 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
             {m.name}
           </button>
         ))}
-        <button type="button" className="mine-chip add" onClick={addMine}>+ Add mine</button>
+        <button type="button" className="mine-chip add" onClick={addMine}>+ Custom</button>
       </div>
+      <p className="muted mine-source-note">
+        {mineSource === "catalog" ? "Mine list pulled from the current verified catalog (mine-economy continents) plus Everdeep and Frontier Mine." : mineSource === "loading" ? "Loading the current mine list from the verified catalog…" : "Current catalog mine list unavailable here, so the saved/fallback mine list is shown."}
+      </p>
 
-      <div className="mine-rate-entry" aria-label="Current mine rates">
-        <label>
-          <span>Mineshaft $/s</span>
-          <input inputMode="decimal" placeholder="e.g. 6.84" defaultValue={mine.rates.mineshaft ?? ""} key={`ms-${mine.id}-${mine.rates.mineshaft}`} onBlur={(e) => updateRate("mineshaft", e.target.value)} />
-        </label>
-        <label>
-          <span>Elevator $/s</span>
-          <input inputMode="decimal" placeholder="e.g. 122" defaultValue={mine.rates.elevator ?? ""} key={`e-${mine.id}-${mine.rates.elevator}`} onBlur={(e) => updateRate("elevator", e.target.value)} />
-        </label>
-        <label>
-          <span>Warehouse $/s</span>
-          <input inputMode="decimal" placeholder="e.g. 17.7" defaultValue={mine.rates.warehouse ?? ""} key={`w-${mine.id}-${mine.rates.warehouse}`} onBlur={(e) => updateRate("warehouse", e.target.value)} />
-        </label>
+      <div className="mine-rate-entry" aria-label="Current mine rates and multipliers">
+        {rateFields.map((field) => (
+          <div className="mine-rate-field" key={field.key}>
+            <label>
+              <span>{field.label} $/s</span>
+              <input inputMode="decimal" placeholder={field.placeholder} defaultValue={rates[field.key] ?? ""} key={`${field.key}-${mine.id}-${rates[field.key]}`} onBlur={(e) => updateRate(field.key, e.target.value)} />
+            </label>
+            <label>
+              <span>Multiplier ×</span>
+              <input inputMode="decimal" placeholder="1" defaultValue={multipliers[field.key] ?? 1} key={`mult-${field.key}-${mine.id}-${multipliers[field.key]}`} onBlur={(e) => updateMultiplier(field.key, e.target.value)} />
+            </label>
+            <small>{field.burst != null ? `Burst pace ${field.burst.toLocaleString()}/s` : "Add rate + multiplier"}</small>
+          </div>
+        ))}
+        <div className="mine-rate-actions">
+          <button type="button" className="secondary" onClick={applySuggestions} disabled={suggestions.length === 0}>Use lineup multipliers</button>
+          <span className="muted">
+            {suggestions.length > 0 ? suggestions.map((s) => `${s.area}: ${s.name} ×${s.multiplier.toLocaleString()}`).join(" · ") : "Sync a roster to suggest active multipliers from your strongest managers."}
+          </span>
+        </div>
         <p className="muted">
-          {mine.ratesUpdatedAt ? `Rates updated ${new Date(mine.ratesUpdatedAt).toLocaleString()}. ` : "Enter the three Mine Overview totals. "}
-          {diagnosis.labelText} — {diagnosis.headline}
+          {mine.ratesUpdatedAt ? `Profile updated ${new Date(mine.ratesUpdatedAt).toLocaleString()}. ` : "Enter the three Mine Overview totals and the multiplier you plan to run. "}
+          {diagnosis.labelText} — {diagnosis.headline} Multipliers change the burst read; the raw totals remain the idle/baseline read.
         </p>
       </div>
 
@@ -84,7 +142,7 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
           <h3>{recommended.title}</h3>
           <p>{recommended.why}</p>
           <p className="muted">
-            {recommended.bottleneckPace != null ? `Sustainable bottleneck pace: ${recommended.bottleneckPace}/s (your weakest leg). ` : "Add rates above for a pace read. "}
+            {recommended.bottleneckPace != null ? `Sustainable bottleneck pace: ${recommended.bottleneckPace}/s (your weakest leg, before burst multipliers). ` : "Add rates above for a pace read. "}
             Next: {recommended.nextStep}
           </p>
           {recommended.lineup.length > 0 && (
@@ -111,7 +169,7 @@ export function MissionBoardPanel({ catalog, progress }: { catalog: CatalogManag
           </div>
         ))}
       </div>
-      <p className="muted">Projected pace is a relative score from live rates + verified roster strength — not a promised dollar figure. Exact multipliers are level-dependent and partly undocumented.</p>
+      <p className="muted">Projected pace is a relative score from live rates, multipliers, and verified roster strength — not a promised dollar figure.</p>
     </section>
   );
 }
