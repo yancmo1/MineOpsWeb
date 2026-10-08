@@ -249,8 +249,9 @@ export function decodeMineNumber(mineNumber: number | null): DecodedMine | null 
   }
   const known = SPECIAL_MINE_NAMES[mineNumber];
   if (known) {
-    const continentType = mineNumber >= 1000 && mineNumber < 10000 ? Math.floor(mineNumber / 1000) : null;
-    return { continentType, continentName: continentType != null ? (CONTINENT_NAMES[continentType] ?? "Special mines") : "Special mines", localIndex: null, label: known, special: true };
+    // A named special (Everdeep) is its own place, not a continent mine:
+    // it gets its own group (synthetic type 9000, ordered after continents).
+    return { continentType: 9000, continentName: known, localIndex: null, label: known, special: true };
   }
   if (mineNumber >= 1000 && mineNumber < 10000) {
     const continentType = Math.floor(mineNumber / 1000);
@@ -283,6 +284,14 @@ export interface MineContinentGroup {
   totalIdlePerSecond: number;
 }
 
+/** Group order: continents in game order, named specials (Everdeep)
+ * after them, unnamed special mines last. */
+function groupOrder(continentType: number): number {
+  if (continentType < 0) return 99;
+  if (continentType >= 9000) return 50;
+  return continentType;
+}
+
 /** Group save mines by continent (decoded from the mine number), each
  * group sorted biggest idle earner first, groups in game order with the
  * special-mines group last. */
@@ -298,9 +307,9 @@ export function groupMinesByContinent(mines: SaveMine[]): MineContinentGroup[] {
   return [...groups.entries()]
     .map(([continentType, list]) => ({
       continentType,
-      name: CONTINENT_NAMES[continentType] ?? "Special mines",
+      name: (list[0] ? decodeMineNumber(list[0].mineNumber)?.continentName : null) ?? CONTINENT_NAMES[continentType] ?? "Special mines",
       mines: [...list].sort((a, b) => idleOf(b) - idleOf(a)),
       totalIdlePerSecond: list.reduce((sum, m) => sum + idleOf(m), 0),
     }))
-    .sort((a, b) => (a.continentType < 0 ? 99 : a.continentType) - (b.continentType < 0 ? 99 : b.continentType));
+    .sort((a, b) => groupOrder(a.continentType) - groupOrder(b.continentType));
 }

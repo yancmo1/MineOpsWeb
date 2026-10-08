@@ -50,9 +50,23 @@ describe("decodeMineNumber", () => {
   it("labels specials honestly instead of inventing names", async () => {
     const { decodeMineNumber } = await import("./mine-state");
     expect(decodeMineNumber(5003)).toMatchObject({ continentType: 5, label: "Ancient · Special 3", special: true });
-    expect(decodeMineNumber(6000)).toMatchObject({ continentType: 6, label: "Everdeep", special: true });
+    expect(decodeMineNumber(6000)).toMatchObject({ continentType: 9000, label: "Everdeep", special: true });
     expect(decodeMineNumber(110001)).toMatchObject({ label: "Special mine 110001", special: true });
     expect(decodeMineNumber(null)).toBeNull();
+  });
+
+  it("gives Everdeep its own group, not Lost Desert", async () => {
+    const { groupMinesByContinent } = await import("./mine-state");
+    const mine = (mineNumber: number) => ({
+      mineNumber, elevatorLevel: null, warehouseLevel: null, corridorLevels: [],
+      idleCashPerSecond: null, cashPerSecondWhenClosed: null, cashStored: null,
+      prestigeCount: null, idleBoost: 1,
+    }) as never;
+    const groups = groupMinesByContinent([mine(31), mine(6000)]);
+    const lostDesert = groups.find((g) => g.name === "Lost Desert");
+    const everdeep = groups.find((g) => g.name === "Everdeep");
+    expect(lostDesert?.mines).toHaveLength(1);
+    expect(everdeep?.mines).toHaveLength(1);
   });
 
   it("never pairs progression levels by list position", () => {
