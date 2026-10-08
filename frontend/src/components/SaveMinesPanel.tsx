@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CatalogManager } from "../lib/db";
 import { decodeMineNumber, gameIdlePerSecond, groupMinesByContinent, type MineState } from "../lib/mine-state";
 import { formatCashValue } from "../lib/cash-units";
+import { continentUnlockFor, elementalConfigFor, prestigeFactorFor } from "../lib/mine-tables";
 
 /**
  * "Your mines, from your save" — grouped by continent, accordion style:
@@ -34,10 +35,13 @@ export function SaveMinesPanel({ mineState, catalog }: { mineState: MineState | 
       <h2 id="save-mines-title">Your mines</h2>
       <p className="muted">Straight from your game save. No typing. Tap a continent to open its mines.</p>
       <div className="save-mine-groups">
-        {groups.map((group) => (
+        {groups.map((group) => {
+          // Continent still locked in the save? Show what it takes to open it.
+          const unlock = mineState.unlockedContinentTypes.includes(group.continentType) ? null : continentUnlockFor(group.continentType);
+          return (
           <div key={group.continentType} className="save-mine-group">
             <button type="button" className="save-mine-group-head" aria-expanded={isOpen(group.continentType)} onClick={() => toggle(group.continentType)}>
-              <span><strong>{group.name}</strong><span className="muted"> · {group.mines.length} mine{group.mines.length === 1 ? "" : "s"}</span></span>
+              <span><strong>{group.name}</strong><span className="muted"> · {group.mines.length} mine{group.mines.length === 1 ? "" : "s"}</span>{unlock && <span className="muted"> · opens for {formatCashValue(unlock.unlockCost)}</span>}</span>
               <span className="save-mine-group-total">{group.totalIdlePerSecond > 0 && <>{formatCashValue(group.totalIdlePerSecond)}/s total</>}<span aria-hidden="true"> {isOpen(group.continentType) ? "▾" : "▸"}</span></span>
             </button>
             {isOpen(group.continentType) && (
@@ -54,7 +58,20 @@ export function SaveMinesPanel({ mineState, catalog }: { mineState: MineState | 
                         <div className="muted save-mine-levels">
                           Elevator {mine.elevatorLevel ?? "—"} · Warehouse {mine.warehouseLevel ?? "—"}
                           {mine.corridorLevels.length > 0 && <> · Shafts {mine.corridorLevels.length} (top {Math.max(...mine.corridorLevels)})</>}
+                          {(() => { const factor = mine.mineNumber != null ? prestigeFactorFor(mine.mineNumber) : null; return factor != null ? <> · Prestige boost ×{factor}</> : null; })()}
                         </div>
+                        {(() => {
+                          const elemental = mine.mineNumber != null ? elementalConfigFor(mine.mineNumber) : null;
+                          if (!elemental || elemental.difficultyMultipliers.length === 0) return null;
+                          const costMult = elemental.difficultyMultipliers[0].costMultiplier;
+                          const maxBoost = elemental.difficultyMultipliers[elemental.difficultyMultipliers.length - 1].prestigeIncomeIncreaseFactor;
+                          return (
+                            <div className="muted save-mine-levels">
+                              Elemental · {elemental.mainElement} · costs ×{costMult} · prestige boost up to ×{maxBoost}
+                              {elemental.unlockCost > 0 && <> · opens for {formatCashValue(elemental.unlockCost)}</>}
+                            </div>
+                          );
+                        })()}
                         {assigned.length > 0 && (
                           <div className="muted save-mine-assigned">
                             Working here: {assigned.map((a) => nameOf(a.managerId) ?? `Manager ${a.managerId ?? "?"}`).join(", ")}
@@ -71,7 +88,8 @@ export function SaveMinesPanel({ mineState, catalog }: { mineState: MineState | 
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
       {mineState.unlockedContinentTypes.length > 0 && (
         <p className="muted">Continents unlocked in save: {mineState.unlockedContinentTypes.length}.</p>
