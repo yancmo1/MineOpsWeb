@@ -667,8 +667,9 @@ export default function App() {
           <section className="grid">
             {managers.length === 0 ? (
               <div className="empty-state" style={{ gridColumn: "1 / -1" }}>
-                <h3>No managers found</h3>
-                <p>Try adjusting your filters or search term.</p>
+                <h3>{unlocked.length === 0 ? "No roster imported yet" : "No managers found"}</h3>
+                <p>{unlocked.length === 0 ? "Sync your player data to see your owned crew, fragments, and rank-up readiness." : "Try adjusting your filters or search term."}</p>
+                {unlocked.length === 0 && <button type="button" onClick={() => navigateToTab("more")}>Import / sync player data</button>}
               </div>
             ) : (
               managers.map((item) => (

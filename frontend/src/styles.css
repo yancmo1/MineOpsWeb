@@ -788,3 +788,18 @@ code, .settings-hash, .manager-card-stat-value, .leader-level { font-family: var
 .mine-picker { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
 .mine-picker label { display: grid; gap: 6px; min-width: min(320px, 100%); color: var(--ink-faint); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .mine-picker select { min-height: 46px; font-family: var(--font-display); font-size: 1rem; font-weight: 700; text-transform: none; letter-spacing: 0; }
+
+/* Strategy detail expanders */
+.play-details { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; font-size: .84rem; }
+.play-details summary { cursor: pointer; color: var(--teal); font-weight: 800; }
+.play-details ol { margin: 8px 0 8px 18px; padding: 0; display: grid; gap: 5px; }
+.play-details p { margin: 7px 0 0; }
+.rank-badge { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--line-strong); }
+.best-details { color: var(--ink); max-width: 720px; }
+
+/* Pre-import / first-run help */
+.preimport-callout { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 14px; padding: 13px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--amber-soft); }
+.preimport-callout strong { display: block; margin-bottom: 3px; }
+.preimport-callout span { color: var(--ink-soft); font-size: .84rem; }
+.preimport-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.mine-rate-help { margin: -2px 0 10px; font-size: .8rem; }
