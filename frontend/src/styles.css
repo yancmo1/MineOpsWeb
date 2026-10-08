@@ -803,3 +803,9 @@ code, .settings-hash, .manager-card-stat-value, .leader-level { font-family: var
 .preimport-callout span { color: var(--ink-soft); font-size: .84rem; }
 .preimport-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .mine-rate-help { margin: -2px 0 10px; font-size: .8rem; }
+
+/* ELI12 start steps and later drawer */
+.start-steps { display: grid; gap: 5px; margin: 0 0 14px 20px; padding: 0; font-weight: 700; }
+.later-details { margin-top: 16px; }
+.later-details > summary { cursor: pointer; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); font-family: var(--font-display); font-weight: 800; }
+.show-more-plays { margin-top: 10px; }
