@@ -35,11 +35,12 @@ export interface SaveMine {
   cashPerSecondWhenClosed: number | null;
   /** Stored (uncollected) cash, base units. */
   storedCash: number | null;
-  /** Live boost multiplier on this mine right now: the product of its
-   * active buff Factors, times 2 when the Double Idle Cash boost is on.
-   * Cracked from a real save (2026-10-08): buffs 4 x 3.13 with double
-   * idle on = 25.04x, exactly the gap between the save's base idle and
-   * the number the game shows. 1 when no boost is active. */
+  /** Live idle multiplier on this mine right now, using the game's own
+   * stacking rules (read off the in-game Boost Overview, 2026-10-08):
+   * income boosts ADD together (2 + 4 + 5 = 13x), the per-mine ad boost
+   * multiplies that sum (13 x 3.13 = 40.7x), the permanent Double Cash
+   * adds +2 to the sum, and Double Idle Cash adds +2 more for idle only.
+   * 1 when no boost is active. */
   idleBoost: number;
 }
 
@@ -80,16 +81,26 @@ export function bigNumberToValue(value: unknown): number | null {
 export function extractMineState(root: Record<string, unknown>): MineState {
   const data = asRow(root.Data) ?? root;
 
-  // Global Double Idle Cash boost doubles every mine's idle (save-proven).
-  const doubleIdle = asRow(data.Iaps)?.DoubleIdleCashBoostActive === true ? 2 : 1;
-  const buffProduct = (row: Row): number => {
+  // Permanent boosts add +2 each to the income sum (save + Boost Overview).
+  const doubleCash = asRow(data.Iaps)?.DoubleCashBoostActive === true ? 2 : 0;
+  const doubleIdle = asRow(data.Iaps)?.DoubleIdleCashBoostActive === true ? 2 : 0;
+  // Per-mine buffs: Type 1 is the ad boost (multiplies); every other active
+  // buff is an income boost (adds). Expired buffs sit at State 0 - skip them.
+  const idleBoostFor = (row: Row): number => {
+    let incomeSum = doubleCash;
+    let adProduct = 1;
     const buffs = asRow(row.BuffCollection)?.Buffs;
-    if (!Array.isArray(buffs)) return 1;
-    return buffs.reduce((product, item) => {
-      const buff = asRow(item);
-      const factor = buff ? num(buff.Factor) : null;
-      return buff && buff.State === 1 && factor != null && factor > 0 ? product * factor : product;
-    }, 1);
+    if (Array.isArray(buffs)) {
+      for (const item of buffs) {
+        const buff = asRow(item);
+        const factor = buff ? num(buff.Factor) : null;
+        if (!buff || buff.State !== 1 || factor == null || factor <= 0) continue;
+        if (buff.Type === 1) adProduct *= factor;
+        else incomeSum += factor;
+      }
+    }
+    const idleSum = incomeSum + doubleIdle;
+    return (idleSum > 0 ? idleSum : 1) * adProduct;
   };
 
   const progression = Array.isArray(data.ProgressionSavegames) ? data.ProgressionSavegames : [];
@@ -131,7 +142,7 @@ export function extractMineState(root: Record<string, unknown>): MineState {
         bigNumberToValue(idle?.PossibleBigIdleCashWithoutBuffsPerSec),
       cashPerSecondWhenClosed: bigNumberToValue(row.BigCashPerSecondWhenClosed),
       storedCash: bigNumberToValue(row.BigCashStored),
-      idleBoost: buffProduct(row) * doubleIdle,
+      idleBoost: idleBoostFor(row),
     };
   });
 

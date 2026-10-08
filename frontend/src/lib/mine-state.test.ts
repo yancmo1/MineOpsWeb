@@ -66,18 +66,31 @@ describe("decodeMineNumber", () => {
 });
 
 describe("idle boost", () => {
-  it("multiplies base idle by active buff factors and double-idle", async () => {
+  it("adds income boosts, then multiplies by the ad boost (game rules)", async () => {
     const { extractMineState, gameIdlePerSecond } = await import("./mine-state");
     const state = extractMineState({ Data: {
-      Iaps: { DoubleIdleCashBoostActive: true },
+      Iaps: { DoubleCashBoostActive: true, DoubleIdleCashBoostActive: true },
       Mines: [{ MineNumber: 3, IdleSavegame: { BigIdleCashWithoutBuffsPerSec: { m: 1.27, e: 33 } },
         BuffCollection: { Buffs: [
-          { Factor: 4, State: 1 }, { Factor: 3.13, State: 1 }, { Factor: 9, State: 0 },
+          { Factor: 4, Type: 0, State: 1 }, { Factor: 3.13, Type: 1, State: 1 }, { Factor: 9, Type: 0, State: 0 },
         ] } }],
     } });
+    // (2 cash + 4 income + 2 idle) x 3.13 ad = 25.04x
     expect(state.mines[0].idleBoost).toBeCloseTo(25.04, 2);
-    // 1.27bb base x 25.04 = ~31.8bb, the number the game shows.
     expect(gameIdlePerSecond(state.mines[0])).toBeCloseTo(1.27e33 * 25.04, -25);
+  });
+
+  it("stacks a second and third income token additively, not multiplied", async () => {
+    const { extractMineState } = await import("./mine-state");
+    const state = extractMineState({ Data: {
+      Iaps: { DoubleCashBoostActive: true, DoubleIdleCashBoostActive: true },
+      Mines: [{ MineNumber: 3, IdleSavegame: {}, BuffCollection: { Buffs: [
+        { Factor: 4, Type: 0, State: 1 }, { Factor: 2, Type: 0, State: 1 },
+        { Factor: 5, Type: 0, State: 1 }, { Factor: 3.13, Type: 1, State: 1 },
+      ] } }],
+    } });
+    // (2 + 4 + 2 + 5 + 2) x 3.13 = 46.95x — the game's own overview math.
+    expect(state.mines[0].idleBoost).toBeCloseTo(46.95, 2);
   });
 
   it("stays at 1x with no active buffs", async () => {
