@@ -64,3 +64,25 @@ describe("decodeMineNumber", () => {
     expect(state.mines[0].corridorLevels).toEqual([]);
   });
 });
+
+describe("idle boost", () => {
+  it("multiplies base idle by active buff factors and double-idle", async () => {
+    const { extractMineState, gameIdlePerSecond } = await import("./mine-state");
+    const state = extractMineState({ Data: {
+      Iaps: { DoubleIdleCashBoostActive: true },
+      Mines: [{ MineNumber: 3, IdleSavegame: { BigIdleCashWithoutBuffsPerSec: { m: 1.27, e: 33 } },
+        BuffCollection: { Buffs: [
+          { Factor: 4, State: 1 }, { Factor: 3.13, State: 1 }, { Factor: 9, State: 0 },
+        ] } }],
+    } });
+    expect(state.mines[0].idleBoost).toBeCloseTo(25.04, 2);
+    // 1.27bb base x 25.04 = ~31.8bb, the number the game shows.
+    expect(gameIdlePerSecond(state.mines[0])).toBeCloseTo(1.27e33 * 25.04, -25);
+  });
+
+  it("stays at 1x with no active buffs", async () => {
+    const { extractMineState } = await import("./mine-state");
+    const state = extractMineState({ Data: { Mines: [{ MineNumber: 3, IdleSavegame: {} }] } });
+    expect(state.mines[0].idleBoost).toBe(1);
+  });
+});

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { CatalogManager } from "../lib/db";
-import { decodeMineNumber, groupMinesByContinent, type MineState } from "../lib/mine-state";
+import { decodeMineNumber, gameIdlePerSecond, groupMinesByContinent, type MineState } from "../lib/mine-state";
 import { formatCashValue } from "../lib/cash-units";
 
 /**
@@ -44,7 +44,7 @@ export function SaveMinesPanel({ mineState, catalog }: { mineState: MineState | 
               <div className="save-mine-list">
                 {group.mines.map((mine, i) => {
                   const assigned = mineState.assignments.filter((a) => a.mineNumber === mine.mineNumber);
-                  const idle = mine.idleCashPerSecond ?? mine.cashPerSecondWhenClosed;
+                  const idle = gameIdlePerSecond(mine);
                   return (
                     <div key={`${mine.mineNumber ?? "?"}-${i}`} className="save-mine-row">
                       <div>

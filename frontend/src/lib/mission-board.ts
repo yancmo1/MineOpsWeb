@@ -103,13 +103,13 @@ export function minesFromCatalogDomain(domain: unknown, stored: MineProfile[] = 
  * catalog/custom profiles merge back in by id so typed rates survive.
  */
 export function minesFromSaveState(
-  state: { mines: Array<{ mineNumber: number | null; elevatorLevel: number | null; warehouseLevel: number | null; corridorLevels: number[]; idleCashPerSecond: number | null; cashPerSecondWhenClosed: number | null; storedCash: number | null; prestigeCount: number | null }> } | null,
+  state: { mines: Array<{ mineNumber: number | null; elevatorLevel: number | null; warehouseLevel: number | null; corridorLevels: number[]; idleCashPerSecond: number | null; cashPerSecondWhenClosed: number | null; storedCash: number | null; prestigeCount: number | null; idleBoost?: number }> } | null,
   stored: MineProfile[] = [],
   labelFor: (mineNumber: number | null) => string = (n) => `Mine ${n ?? "?"}`,
 ): MineProfile[] {
   if (!state || state.mines.length === 0) return stored;
   const byId = new Map(stored.map((mine) => [mine.id, mine]));
-  const idleOf = (m: (typeof state.mines)[number]) => m.idleCashPerSecond ?? m.cashPerSecondWhenClosed ?? 0;
+  const idleOf = (m: (typeof state.mines)[number]) => (m.idleCashPerSecond ?? m.cashPerSecondWhenClosed ?? 0) * (m.idleBoost || 1);
   const fromSave: MineProfile[] = [...state.mines]
     .sort((a, b) => idleOf(b) - idleOf(a))
     .map((m) => {
@@ -121,7 +121,7 @@ export function minesFromSaveState(
         warehouseLevel: m.warehouseLevel,
         shaftCount: m.corridorLevels.length,
         topShaftLevel: m.corridorLevels.length > 0 ? Math.max(...m.corridorLevels) : null,
-        idleCashPerSecond: m.idleCashPerSecond ?? m.cashPerSecondWhenClosed,
+        idleCashPerSecond: (m.idleCashPerSecond ?? m.cashPerSecondWhenClosed) != null ? (m.idleCashPerSecond ?? m.cashPerSecondWhenClosed)! * (m.idleBoost || 1) : null,
         storedCash: m.storedCash,
         prestigeCount: m.prestigeCount,
       };

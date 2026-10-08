@@ -35,6 +35,12 @@ export interface SaveMine {
   cashPerSecondWhenClosed: number | null;
   /** Stored (uncollected) cash, base units. */
   storedCash: number | null;
+  /** Live boost multiplier on this mine right now: the product of its
+   * active buff Factors, times 2 when the Double Idle Cash boost is on.
+   * Cracked from a real save (2026-10-08): buffs 4 x 3.13 with double
+   * idle on = 25.04x, exactly the gap between the save's base idle and
+   * the number the game shows. 1 when no boost is active. */
+  idleBoost: number;
 }
 
 export interface SaveAssignment {
@@ -74,6 +80,18 @@ export function bigNumberToValue(value: unknown): number | null {
 export function extractMineState(root: Record<string, unknown>): MineState {
   const data = asRow(root.Data) ?? root;
 
+  // Global Double Idle Cash boost doubles every mine's idle (save-proven).
+  const doubleIdle = asRow(data.Iaps)?.DoubleIdleCashBoostActive === true ? 2 : 1;
+  const buffProduct = (row: Row): number => {
+    const buffs = asRow(row.BuffCollection)?.Buffs;
+    if (!Array.isArray(buffs)) return 1;
+    return buffs.reduce((product, item) => {
+      const buff = asRow(item);
+      const factor = buff ? num(buff.Factor) : null;
+      return buff && buff.State === 1 && factor != null && factor > 0 ? product * factor : product;
+    }, 1);
+  };
+
   const progression = Array.isArray(data.ProgressionSavegames) ? data.ProgressionSavegames : [];
   const progressionByMineId = new Map<number, Row>();
   for (const item of progression) {
@@ -107,9 +125,13 @@ export function extractMineState(root: Record<string, unknown>): MineState {
       corridorLevels,
       prestigeCount: num(row.PrestigeCount),
       selected: row.Selected === true,
-      idleCashPerSecond: bigNumberToValue(idle?.BigIdleCashWithoutBuffsPerSec),
+      // Base idle; a few special mines only record the "possible" figure.
+      idleCashPerSecond:
+        bigNumberToValue(idle?.BigIdleCashWithoutBuffsPerSec) ??
+        bigNumberToValue(idle?.PossibleBigIdleCashWithoutBuffsPerSec),
       cashPerSecondWhenClosed: bigNumberToValue(row.BigCashPerSecondWhenClosed),
       storedCash: bigNumberToValue(row.BigCashStored),
+      idleBoost: buffProduct(row) * doubleIdle,
     };
   });
 
@@ -236,6 +258,12 @@ export function decodeMineNumber(mineNumber: number | null): DecodedMine | null 
   return { continentType: null, continentName: "Special mines", localIndex: null, label: `Special mine ${mineNumber}`, special: true };
 }
 
+/** Idle cash/sec the way the game shows it: base rate x live boost. */
+export function gameIdlePerSecond(mine: Pick<SaveMine, "idleCashPerSecond" | "cashPerSecondWhenClosed" | "idleBoost">): number | null {
+  const base = mine.idleCashPerSecond ?? mine.cashPerSecondWhenClosed;
+  return base == null ? null : base * (mine.idleBoost || 1);
+}
+
 export interface MineContinentGroup {
   continentType: number;
   name: string;
@@ -248,7 +276,7 @@ export interface MineContinentGroup {
  * group sorted biggest idle earner first, groups in game order with the
  * special-mines group last. */
 export function groupMinesByContinent(mines: SaveMine[]): MineContinentGroup[] {
-  const idleOf = (m: SaveMine) => m.idleCashPerSecond ?? m.cashPerSecondWhenClosed ?? 0;
+  const idleOf = (m: SaveMine) => gameIdlePerSecond(m) ?? 0;
   const groups = new Map<number, SaveMine[]>();
   for (const mine of mines) {
     const type = decodeMineNumber(mine.mineNumber)?.continentType ?? -2;
