@@ -16,3 +16,12 @@ describe("summarizeSave", () => {
     expect(report).toContain("MineSavegame");
   });
 });
+
+describe("deep peek", () => {
+  it("expands one level inside mine-related drawers, names only", () => {
+    const structure = summarizeSave({ Data: { Mines: [{ Elevator: { Level: 5, Workers: [1] }, Ground: { Shafts: [{ Depth: 1 }] } }] } });
+    const mines = structure.sections.find((s) => s.key === "Mines")!;
+    expect(mines.children.map((c) => c.key)).toEqual(["Elevator", "Ground"]);
+    expect(mines.children[0].fieldNames).toEqual(["Level", "Workers"]);
+  });
+});

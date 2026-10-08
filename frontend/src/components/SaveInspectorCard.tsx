@@ -71,6 +71,13 @@ export function SaveInspectorCard({ credentials }: { credentials: KolibriCredent
                 <strong>{section.interesting ? "⭐ " : ""}{section.key}</strong>
                 <span className="muted"> — {section.kind === "list" ? `list of ${section.count}` : section.kind === "box" ? `box with ${section.count} parts` : "single value"}</span>
                 {section.fieldNames.length > 0 && <div className="muted save-inspector-fields">Inside: {section.fieldNames.join(", ")}</div>}
+                {section.children.length > 0 && (
+                  <ul className="save-inspector-children">
+                    {section.children.map((child) => (
+                      <li key={child.key}><strong>{child.key}</strong><span className="muted"> — {child.kind === "list" ? `list of ${child.count}` : child.kind === "box" ? `box with ${child.count} parts` : "single"}</span>{child.fieldNames.length > 0 && <div className="muted save-inspector-fields">Inside: {child.fieldNames.join(", ")}</div>}</li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>

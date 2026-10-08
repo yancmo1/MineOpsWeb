@@ -9,6 +9,13 @@
  */
 
 
+export interface SaveChildSummary {
+  key: string;
+  kind: "list" | "box" | "single";
+  count: number;
+  fieldNames: string[];
+}
+
 export interface SaveSectionSummary {
   key: string;
   kind: "list" | "box" | "single";
@@ -18,6 +25,9 @@ export interface SaveSectionSummary {
   fieldNames: string[];
   /** True when the name smells like mines/economy (worth a deeper look). */
   interesting: boolean;
+  /** One level deeper, for interesting sections only: what is inside each
+   * object/list field of a sample item. Still names and counts only. */
+  children: SaveChildSummary[];
 }
 
 export interface SaveStructure {
@@ -36,6 +46,25 @@ function fieldNamesOf(value: unknown): string[] {
   return [];
 }
 
+function kindOf(value: unknown): SaveChildSummary["kind"] {
+  return Array.isArray(value) ? "list" : typeof value === "object" && value != null ? "box" : "single";
+}
+
+function countOf(value: unknown): number {
+  if (Array.isArray(value)) return value.length;
+  if (typeof value === "object" && value != null) return Object.keys(value as Record<string, unknown>).length;
+  return 1;
+}
+
+/** Deep-peek one level into a sample item's object/list fields. Names only. */
+function childrenOf(value: unknown): SaveChildSummary[] {
+  const sample = Array.isArray(value) ? value.find((item) => typeof item === "object" && item != null) : value;
+  if (typeof sample !== "object" || sample == null || Array.isArray(sample)) return [];
+  return Object.entries(sample as Record<string, unknown>)
+    .filter(([, v]) => typeof v === "object" && v != null)
+    .map(([key, v]) => ({ key, kind: kindOf(v), count: countOf(v), fieldNames: fieldNamesOf(v) }));
+}
+
 export function summarizeSave(root: Record<string, unknown>): SaveStructure {
   const data = (typeof root.Data === "object" && root.Data != null ? root.Data : root) as Record<string, unknown>;
   const sections: SaveSectionSummary[] = Object.entries(data).map(([key, value]) => {
@@ -43,7 +72,7 @@ export function summarizeSave(root: Record<string, unknown>): SaveStructure {
     const count = Array.isArray(value) ? value.length : kind === "box" ? Object.keys(value as Record<string, unknown>).length : 1;
     const fieldNames = fieldNamesOf(value);
     const interesting = INTERESTING.test(key) || fieldNames.some((name) => INTERESTING.test(name));
-    return { key, kind, count, fieldNames, interesting };
+    return { key, kind, count, fieldNames, interesting, children: interesting ? childrenOf(value) : [] };
   });
   sections.sort((a, b) => Number(b.interesting) - Number(a.interesting) || a.key.localeCompare(b.key));
   return { rootKeys: Object.keys(root), sections };
@@ -56,6 +85,9 @@ export function formatSaveReport(structure: SaveStructure): string {
   for (const section of structure.sections) {
     lines.push(`${section.interesting ? "⭐ " : ""}${section.key} — ${section.kind}, ${section.count}`);
     if (section.fieldNames.length > 0) lines.push(`   fields: ${section.fieldNames.join(", ")}`);
+    for (const child of section.children) {
+      lines.push(`   > ${child.key} — ${child.kind}, ${child.count}${child.fieldNames.length > 0 ? ` — fields: ${child.fieldNames.join(", ")}` : ""}`);
+    }
   }
   return lines.join("\n");
 }

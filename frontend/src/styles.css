@@ -815,3 +815,4 @@ code, .settings-hash, .manager-card-stat-value, .leader-level { font-family: var
 .save-inspector-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .save-inspector-results ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 8px; }
 .save-inspector-fields { font-size: .76rem; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.save-inspector-children { margin: 6px 0 0; padding-left: 16px; display: grid; gap: 6px; }
