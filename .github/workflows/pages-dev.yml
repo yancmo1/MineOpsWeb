@@ -30,6 +30,8 @@ jobs:
         working-directory: frontend
         env:
           VITE_BASE: /MineOpsWeb/
+          # No /kolibri proxy on Pages: borrow production's (CORS allows this origin)
+          VITE_KOLIBRI_BASE_URL: https://mineops.shepswork.com
         run: |
           # package-lock.json was generated on macOS; npm ci can skip the
           # Linux Rollup binary (npm optional-deps bug). Install it explicitly.
