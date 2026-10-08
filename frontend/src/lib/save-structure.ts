@@ -33,6 +33,9 @@ export interface SaveSectionSummary {
 export interface SaveStructure {
   rootKeys: string[];
   sections: SaveSectionSummary[];
+  /** Structural ID labels only (mine numbers / continent types). These are
+   * map labels, not player data — included so mine naming can be decoded. */
+  mineIds: { progressionMineIds: number[]; saveMineNumbers: number[]; continentTypes: number[] };
 }
 
 const INTERESTING = /mine|continent|research|coin|cash|money|prestige|frontier|everdeep|shaft|elevator|warehouse|econom|island|tesseract|spark|crystal|essence/i;
@@ -75,13 +78,29 @@ export function summarizeSave(root: Record<string, unknown>): SaveStructure {
     return { key, kind, count, fieldNames, interesting, children: interesting ? childrenOf(value) : [] };
   });
   sections.sort((a, b) => Number(b.interesting) - Number(a.interesting) || a.key.localeCompare(b.key));
-  return { rootKeys: Object.keys(root), sections };
+  const idsOf = (value: unknown, field: string): number[] =>
+    Array.isArray(value)
+      ? value.map((item) => (typeof item === "object" && item != null ? (item as Record<string, unknown>)[field] : undefined)).filter((v): v is number => typeof v === "number")
+      : [];
+  const continent = typeof data.ContinentSavegame === "object" && data.ContinentSavegame != null ? (data.ContinentSavegame as Record<string, unknown>).UnlockSavegames : undefined;
+  return {
+    rootKeys: Object.keys(root),
+    sections,
+    mineIds: {
+      progressionMineIds: idsOf(data.ProgressionSavegames, "MineId"),
+      saveMineNumbers: idsOf(data.Mines, "MineNumber"),
+      continentTypes: idsOf(continent, "ContinentType"),
+    },
+  };
 }
 
 
 /** Plain-text report the player can copy and paste to share the drawer list. */
 export function formatSaveReport(structure: SaveStructure): string {
   const lines = ["MineOps save inspector (names only — no values)", `Top level: ${structure.rootKeys.join(", ")}`, ""];
+  if (structure.mineIds) {
+    lines.push(`Mine IDs (labels only): progression=[${structure.mineIds.progressionMineIds.join(", ")}] mines=[${structure.mineIds.saveMineNumbers.join(", ")}] continents=[${structure.mineIds.continentTypes.join(", ")}]`, "");
+  }
   for (const section of structure.sections) {
     lines.push(`${section.interesting ? "⭐ " : ""}${section.key} — ${section.kind}, ${section.count}`);
     if (section.fieldNames.length > 0) lines.push(`   fields: ${section.fieldNames.join(", ")}`);

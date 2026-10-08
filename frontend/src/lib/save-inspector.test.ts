@@ -25,3 +25,19 @@ describe("deep peek", () => {
     expect(mines.children[0].fieldNames).toEqual(["Level", "Workers"]);
   });
 });
+
+describe("mine id labels", () => {
+  it("collects only MineId/MineNumber/ContinentType numbers", () => {
+    const structure = summarizeSave({ Data: {
+      ProgressionSavegames: [{ MineId: 1002, ElevatorLevel: 5 }],
+      Mines: [{ MineNumber: 3, PrestigeCount: 9 }],
+      ContinentSavegame: { UnlockSavegames: [{ ContinentType: 1, HasClaimedRewards: true }] },
+    } });
+    expect(structure.mineIds.progressionMineIds).toEqual([1002]);
+    expect(structure.mineIds.saveMineNumbers).toEqual([3]);
+    expect(structure.mineIds.continentTypes).toEqual([1]);
+    const report = formatSaveReport(structure);
+    expect(report).toContain("progression=[1002]");
+    expect(report).not.toContain("PrestigeCount: 9");
+  });
+});
