@@ -174,6 +174,11 @@ export const CONTINENT_NAMES: Record<number, string> = {
   3000: "Impossible Island",
 };
 
+/** Special mines identified so far (confirmed in game by the player). */
+export const SPECIAL_MINE_NAMES: Record<number, string> = {
+  6000: "Everdeep",
+};
+
 /** The 5 mines on each continent, in unlock order (game data trail). */
 export const CONTINENT_MINES: Record<number, string[]> = {
   0: ["Coal", "Gold", "Ruby", "Diamond", "Emerald"],
@@ -208,6 +213,11 @@ export function decodeMineNumber(mineNumber: number | null): DecodedMine | null 
       label: mineName ?? `Mine ${mineNumber}`,
       special: false,
     };
+  }
+  const known = SPECIAL_MINE_NAMES[mineNumber];
+  if (known) {
+    const continentType = mineNumber >= 1000 && mineNumber < 10000 ? Math.floor(mineNumber / 1000) : null;
+    return { continentType, continentName: continentType != null ? (CONTINENT_NAMES[continentType] ?? "Special mines") : "Special mines", localIndex: null, label: known, special: true };
   }
   if (mineNumber >= 1000 && mineNumber < 10000) {
     const continentType = Math.floor(mineNumber / 1000);

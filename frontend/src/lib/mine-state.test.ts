@@ -50,7 +50,7 @@ describe("decodeMineNumber", () => {
   it("labels specials honestly instead of inventing names", async () => {
     const { decodeMineNumber } = await import("./mine-state");
     expect(decodeMineNumber(5003)).toMatchObject({ continentType: 5, label: "Ancient · Special 3", special: true });
-    expect(decodeMineNumber(6000)).toMatchObject({ continentType: 6, label: "Lost Desert · Special", special: true });
+    expect(decodeMineNumber(6000)).toMatchObject({ continentType: 6, label: "Everdeep", special: true });
     expect(decodeMineNumber(110001)).toMatchObject({ label: "Special mine 110001", special: true });
     expect(decodeMineNumber(null)).toBeNull();
   });

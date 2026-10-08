@@ -49,8 +49,8 @@ describe("mine table", () => {
       { MineNumber: 3, PrestigeCount: 5, Elevator: { Level: 2183 }, Ground: { Level: 2186 }, MineRegion: { CurrentOrder: 2, UnlockState: 2 } },
     ] } });
     expect(structure.mineTable).toEqual([
-      "mine 3: prestige 5, elevator 2183, warehouse 2186, selected 0, regionOrder 2, unlockState 2",
-      "mine 6000: prestige 39, elevator 1832, warehouse 1813, selected 1, regionOrder 0, unlockState 2",
+      "mine 3: prestige 5, elevator 2183, warehouse 2186, selected 0, regionOrder 2, unlockState 2, idleBase -/s, idleClosed -/s, idlePossible -/s, stored -",
+      "mine 6000: prestige 39, elevator 1832, warehouse 1813, selected 1, regionOrder 0, unlockState 2, idleBase -/s, idleClosed -/s, idlePossible -/s, stored -",
     ]);
     expect(formatSaveReport(structure)).toContain("Mine table (prestige + levels only, no cash):");
   });

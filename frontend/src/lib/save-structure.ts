@@ -30,6 +30,28 @@ export interface SaveSectionSummary {
   children: SaveChildSummary[];
 }
 
+/** Game big-number { m, e } -> base units. */
+function bigValue(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "object" && v != null) {
+    const m = (v as Record<string, unknown>).m;
+    const e = (v as Record<string, unknown>).e;
+    if (typeof m === "number" && typeof e === "number") return m * 10 ** e;
+  }
+  return null;
+}
+
+function cashText(v: number | null): string {
+  if (v == null || v <= 0) return "-";
+  const suffixes = ["", "K", "M", "B", "T"];
+  let step = Math.max(0, Math.floor(Math.log10(v) / 3));
+  let suffix: string;
+  if (step < suffixes.length) suffix = suffixes[step];
+  else { const a = step - 5; suffix = String.fromCharCode(97 + Math.floor(a / 26)) + String.fromCharCode(97 + (a % 26)); }
+  const scaled = v / 10 ** (step * 3);
+  return `${scaled >= 100 ? scaled.toFixed(0) : scaled >= 10 ? scaled.toFixed(1) : scaled.toFixed(2)}${suffix}`;
+}
+
 export interface SaveStructure {
   rootKeys: string[];
   sections: SaveSectionSummary[];
@@ -102,7 +124,17 @@ export function summarizeSave(root: Record<string, unknown>): SaveStructure {
     }))
     .filter((r) => r.n != null)
     .sort((a, b) => (a.n ?? 0) - (b.n ?? 0));
-  const mineTable = mineRows.map((r) => `mine ${r.n}: prestige ${r.prestige ?? "?"}, elevator ${r.elevator ?? "?"}, warehouse ${r.warehouse ?? "?"}, selected ${r.selected}, regionOrder ${r.order ?? "?"}, unlockState ${r.unlock ?? "?"}`);
+  const idleByNumber = new Map<number, Record<string, unknown>>();
+  for (const item of Array.isArray(data.Mines) ? data.Mines : []) {
+    const row = boxOf(item);
+    const n = numOf(row.MineNumber);
+    if (n != null) idleByNumber.set(n, row);
+  }
+  const mineTable = mineRows.map((r) => {
+    const row = idleByNumber.get(r.n ?? -1) ?? {};
+    const idle = boxOf(row.IdleSavegame);
+    return `mine ${r.n}: prestige ${r.prestige ?? "?"}, elevator ${r.elevator ?? "?"}, warehouse ${r.warehouse ?? "?"}, selected ${r.selected}, regionOrder ${r.order ?? "?"}, unlockState ${r.unlock ?? "?"}, idleBase ${cashText(bigValue(idle.BigIdleCashWithoutBuffsPerSec))}/s, idleClosed ${cashText(bigValue(row.BigCashPerSecondWhenClosed))}/s, idlePossible ${cashText(bigValue(idle.PossibleBigIdleCashWithoutBuffsPerSec))}/s, stored ${cashText(bigValue(row.BigCashStored))}`;
+  });
   return {
     rootKeys: Object.keys(root),
     sections,
