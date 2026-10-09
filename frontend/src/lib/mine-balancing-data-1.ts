@@ -31,14 +31,24 @@
  *   carry WorkerIncrement (1 worker at L1, 5 by L500); leaving the workers
  *   out made the warehouse look ~6.5x weaker than the other legs and
  *   flipped the bottleneck call. Elevator has no workers - one car.
- * - HONEST GAP: the game's leg totals also carry player progression
- *   (research skill tree, artifacts, collectibles) and regular-manager
- *   multipliers that do not live in these tables or in the save's leg
- *   levels. For mine 15 every leg lands the same ~1.8e4-2.9e4 BELOW the
- *   game's own numbers (shaft 1, elevator, warehouse once workers are
- *   counted), so treat these as true relative leg speeds and bottleneck
- *   shape - not as a promise of the final idle number. The residual band
- *   is asserted in mine-balancing.test.ts; it must not silently shrink.
+ * - PRESTIGE (applied): RemoteMineGlobal.PrestigeModifiers gives each
+ *   mine a GeneralGainFactor per prestige count (Obsidian x110 at P5,
+ *   Ruby x80 at P5, Coal x145 at P6). deriveMineRates multiplies every
+ *   leg by it when the save's prestige count is passed. This one factor
+ *   was most of the old ~2e4 gap.
+ * - HONEST GAP (what is left): the player's research skill tree
+ *   (per-continent x per-leg nodes), collectibles, artifacts, and
+ *   assigned-manager passives/equipment multiply production further.
+ *   They live in the save (SkillSavegames {SkillId, Level}, the
+ *   collectible/artifact savegames, SuperManagers.Assignments), NOT in
+ *   these balancing tables, so the model still lands below the game:
+ *   on the 2026-10-08 calibration save, ~x8-36 under the save's own
+ *   unboosted idle once prestige is counted (the game's Mine Overview
+ *   totals read a further ~10x above its idle stack - active buffs and
+ *   manager effects on the open mine). Treat the derived legs as true
+ *   relative leg speeds and bottleneck shape - not as a promise of
+ *   the final idle number. The residual bands are asserted in
+ *   mine-balancing.test.ts; they must not silently shrink.
  */
 
 // Generated tables, part 1 of 3: raw segment/config
