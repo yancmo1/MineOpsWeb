@@ -25,7 +25,7 @@ export interface SaveMine {
   mineId: number | null;
   elevatorLevel: number | null;
   warehouseLevel: number | null;
-  /** Shaft (corridor) levels, deepest first as stored. */
+  /** Shaft (corridor) levels in shaft order: element i is Mineshaft i+1. */
   corridorLevels: number[];
   prestigeCount: number | null;
   selected: boolean;
@@ -199,20 +199,25 @@ export function saveMineState(storage: Pick<Storage, "setItem">, state: MineStat
   storage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+/** Heal stale multipliers: recompute each mine's idleBoost from its saved
+ * ingredients with the current rules. Applies to any state, wherever it came
+ * from (local storage or a PocketBase snapshot saved by an older build). */
+export function healMineState(parsed: MineState): MineState {
+  if (parsed && Array.isArray(parsed.mines) && parsed.boostFlags) {
+    for (const mine of parsed.mines) {
+      if (mine.buffs) mine.idleBoost = computeIdleBoost(mine.buffs, parsed.boostFlags.doubleCash, parsed.boostFlags.doubleIdle);
+    }
+  }
+  return parsed;
+}
+
 export function loadMineState(storage: Pick<Storage, "getItem">): MineState | null {
   try {
     const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as MineState;
     if (!Array.isArray(parsed.mines)) return null;
-    // Heal stale multipliers: recompute from the saved ingredients with the
-    // current rules, so a state saved by an older build fixes itself.
-    if (parsed.boostFlags) {
-      for (const mine of parsed.mines) {
-        if (mine.buffs) mine.idleBoost = computeIdleBoost(mine.buffs, parsed.boostFlags.doubleCash, parsed.boostFlags.doubleIdle);
-      }
-    }
-    return parsed;
+    return healMineState(parsed);
   } catch {
     return null;
   }
@@ -244,6 +249,16 @@ export const CONTINENT_NAMES: Record<number, string> = {
 /** Special mines identified so far (confirmed in game by the player). */
 export const SPECIAL_MINE_NAMES: Record<number, string> = {
   6000: "Everdeep",
+  // Mine 1000 is the Mainland mine (Yancy's game screenshots 2026-10-08:
+  // the "Mainland" entrance on the Main map tab, Elevator/Warehouse 2400).
+  1000: "Mainland",
+};
+
+/** Each named special gets its own group (synthetic continent types,
+ * ordered after the real continents by groupOrder). */
+const SPECIAL_MINE_TYPES: Record<number, number> = {
+  6000: 9000,
+  1000: 9001,
 };
 
 /** The 5 mines on each continent, in unlock order (game data trail). */
@@ -283,9 +298,9 @@ export function decodeMineNumber(mineNumber: number | null): DecodedMine | null 
   }
   const known = SPECIAL_MINE_NAMES[mineNumber];
   if (known) {
-    // A named special (Everdeep) is its own place, not a continent mine:
-    // it gets its own group (synthetic type 9000, ordered after continents).
-    return { continentType: 9000, continentName: known, localIndex: null, label: known, special: true };
+    // A named special (Everdeep, Mainland) is its own place, not a
+    // continent mine: it gets its own group after the continents.
+    return { continentType: SPECIAL_MINE_TYPES[mineNumber] ?? 9000, continentName: known, localIndex: null, label: known, special: true };
   }
   if (mineNumber >= 1000 && mineNumber < 10000) {
     const continentType = Math.floor(mineNumber / 1000);

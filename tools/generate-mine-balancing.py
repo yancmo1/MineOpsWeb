@@ -375,8 +375,16 @@ HEADER = """/**
  * + RemoteMineConfig entities. Big numbers stay as [mantissa, exponent]
  * pairs (value = m x 10^e), the game's own format.
  *
- * MODEL SEMANTICS (pinned by calibration against the game's config and a
- * real save, 2026-10-08):
+ * MODEL SEMANTICS (pinned by calibration against the game's own Mine
+ * Overview for a real save - Obsidian, save mine 15 - on 2026-10-08):
+ * - Shaft tiers are shaft numbers: the save's CorridorLevels list is in
+ *   shaft order (Mineshaft 1 first), and shaft k works tier k. (In the
+ *   game, Mineshaft 2 produces exactly 50x Mineshaft 1 at equal level -
+ *   the tier-2/tier-1 base-gain ratio. Grouping shafts into shared tiers
+ *   (ceil(k/5) or cycling 1..6) would need a ~1e41 progression factor to
+ *   reach the game's totals; shaft numbers need ~2e4, like the other
+ *   legs.) An earlier build paired the list backwards (first entry with
+ *   the highest tier) and overshot the shaft total by ~2e9.
  * - Inside a level block, each level-up multiplies by that block's increase
  *   factor, using the block of the level being LEFT. (Tier-1 shaft gain:
  *   5 @L1, 33.6 @L21, ~1.59e4 @L101, ~1.38e7 @L201, ~1.7e37 @L800 - the
@@ -385,12 +393,18 @@ HEADER = """/**
  * - Shaft gain per shaft = block growth x milestone GainRate x workers
  *   (the growth underneath is the exactly-checked part; the milestone and
  *   worker composition follows the game's own class shape).
- * - HONEST GAP: the game's idle cash also carries player progression
- *   multipliers (research skill tree, artifacts, collectibles, manager
- *   passives) that do not live in these tables or in the save's leg
- *   levels. Against a real save the raw legs come out ~400-3700x BELOW
- *   the game's idle (mainland), so treat these as the true leg speeds
- *   and bottleneck shape - not as a promise of the final idle number.
+ * - Warehouse throughput = loading rate x workers. Warehouse milestones
+ *   carry WorkerIncrement (1 worker at L1, 5 by L500); leaving the workers
+ *   out made the warehouse look ~6.5x weaker than the other legs and
+ *   flipped the bottleneck call. Elevator has no workers - one car.
+ * - HONEST GAP: the game's leg totals also carry player progression
+ *   (research skill tree, artifacts, collectibles) and regular-manager
+ *   multipliers that do not live in these tables or in the save's leg
+ *   levels. For mine 15 every leg lands the same ~1.8e4-2.9e4 BELOW the
+ *   game's own numbers (shaft 1, elevator, warehouse once workers are
+ *   counted), so treat these as true relative leg speeds and bottleneck
+ *   shape - not as a promise of the final idle number. The residual band
+ *   is asserted in mine-balancing.test.ts; it must not silently shrink.
  */
 """
 
@@ -543,11 +557,22 @@ export function elevatorPerSecond(config: MineBalancingConfig, level: number): n
   return grown * milestoneProduct(config.elevatorMilestones, level, (m) => m.loadingPerSecond);
 }
 
-/** Warehouse throughput (loading rate) at a level. */
+/** Warehouse workers at a level: base crew + milestone WorkerIncrements. */
+export function warehouseWorkersAt(config: MineBalancingConfig, level: number): number {
+  let workers = config.warehouseBase.workers;
+  for (const milestone of config.warehouseMilestones) {
+    if (milestone.level <= level) workers += milestone.workerIncrement ?? 0;
+  }
+  return workers;
+}
+
+/** Warehouse throughput at a level: loading rate x workers. The loading
+ * rate alone (an earlier build) ignores the crew the milestones hire and
+ * undershoots the game's warehouse by the crew size. */
 export function warehousePerSecond(config: MineBalancingConfig, level: number): number {
   if (level <= 0) return 0;
   const grown = growSegments(bigPairValue(config.warehouseBase.loadingPerSecond), config.warehouseSegments, level, (s) => s.loadingPerSecond);
-  return grown * milestoneProduct(config.warehouseMilestones, level, (m) => m.loadingPerSecond);
+  return grown * milestoneProduct(config.warehouseMilestones, level, (m) => m.loadingPerSecond) * warehouseWorkersAt(config, level);
 }
 
 export type SlowLeg = "shaft" | "elevator" | "warehouse";
@@ -563,23 +588,24 @@ export interface DerivedMineRates {
 
 /**
  * Derive a mine's leg speeds from its save levels.
- * `shaftLevelsDeepestFirst` is the save's CorridorLevels order (deepest
- * shaft first): element i works tier (count - i). Returns null when the
- * mine has no balancing config or no levels to work with.
+ * `shaftLevels` is the save's CorridorLevels order - shaft order, so
+ * element i is Mineshaft (i + 1) and works tier (i + 1). (Game check:
+ * Mineshaft 2 / Mineshaft 1 output ratio is exactly the tier-2/tier-1
+ * base ratio, 50x, at equal levels.) Returns null when the mine has no
+ * balancing config or no levels to work with.
  */
 export function deriveMineRates(
   mineNumber: number | null,
-  shaftLevelsDeepestFirst: number[],
+  shaftLevels: number[],
   elevatorLevel: number | null,
   warehouseLevel: number | null,
 ): DerivedMineRates | null {
   const config = balancingConfigForMine(mineNumber);
   if (!config) return null;
-  if (shaftLevelsDeepestFirst.length === 0 && elevatorLevel == null && warehouseLevel == null) return null;
-  const count = shaftLevelsDeepestFirst.length;
+  if (shaftLevels.length === 0 && elevatorLevel == null && warehouseLevel == null) return null;
   let shaftPerSecond = 0;
-  shaftLevelsDeepestFirst.forEach((level, i) => {
-    shaftPerSecond += shaftGainPerSecond(config, count - i, level);
+  shaftLevels.forEach((level, i) => {
+    shaftPerSecond += shaftGainPerSecond(config, i + 1, level);
   });
   const elevator = elevatorLevel != null ? elevatorPerSecond(config, elevatorLevel) : 0;
   const warehouse = warehouseLevel != null ? warehousePerSecond(config, warehouseLevel) : 0;

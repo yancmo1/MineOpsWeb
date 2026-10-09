@@ -141,3 +141,18 @@ describe("idle boost", () => {
     expect(loaded?.mines[0].idleBoost).toBeCloseTo(25.04, 2);
   });
 });
+
+describe("Mainland mine 1000 (Yancy screenshots 2026-10-08)", () => {
+  it("decodes as its own Mainland group, not Ice", async () => {
+    const { decodeMineNumber, groupMinesByContinent } = await import("./mine-state");
+    const decoded = decodeMineNumber(1000);
+    expect(decoded?.continentName).toBe("Mainland");
+    expect(decoded?.label).toBe("Mainland");
+    const mine = { mineNumber: 1000, continentType: null, elevatorLevel: 2400, warehouseLevel: 2400,
+      corridorLevels: [], idleCashPerSecond: 12.2, cashPerSecondWhenClosed: null, storedCash: null,
+      prestigeCount: 0, selected: false, idleBoost: 1 };
+    const groups = groupMinesByContinent([mine as never]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].name).toBe("Mainland");
+  });
+});

@@ -37,7 +37,7 @@ export interface MineProfile {
     mineNumber: number | null;
     elevatorLevel: number | null;
     warehouseLevel: number | null;
-    /** Per-shaft levels, deepest first (the save's CorridorLevels order). */
+    /** Per-shaft levels in shaft order: element i is Mineshaft i+1. */
     shaftLevels: number[];
     shaftCount: number;
     topShaftLevel: number | null;
