@@ -7,8 +7,8 @@ describe("Idle Miner cash suffix conversion", () => {
     expect(suffixStep("aa")).toBe(5);
     expect(suffixStep("aj")).toBe(14);
     expect(parseCashValue("1 aa")).toBe(1e15);
-    expect(parseCashValue("6.84 aj") / 6.84e42).toBeCloseTo(1, 12);
-    expect(parseCashValue("122 ak") / 122e45).toBeCloseTo(1, 12);
+    expect((parseCashValue("6.84 aj") ?? 0) / 6.84e42).toBeCloseTo(1, 12);
+    expect((parseCashValue("122 ak") ?? 0) / 122e45).toBeCloseTo(1, 12);
   });
 
   it("formats base values back into game notation", () => {
