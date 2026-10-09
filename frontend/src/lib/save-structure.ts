@@ -184,6 +184,36 @@ export function summarizeSave(root: Record<string, unknown>): SaveStructure {
       });
     }
   }
+  // Every mine's boost list, one compact line each — Everdeep (6000) does not
+  // seem to carry its boosts on its map row, so we need the whole picture.
+  for (const n of [...idleByNumber.keys()].sort((a, b) => a - b)) {
+    const row = idleByNumber.get(n) ?? {};
+    const buffs = boxOf(row.BuffCollection).Buffs;
+    if (!Array.isArray(buffs) || buffs.length === 0) {
+      boostReadout.push(`mine ${n} buffs: none on row`);
+      continue;
+    }
+    const parts = buffs.map((buff) => {
+      const b = boxOf(buff);
+      return `F${scalar(b.Factor) ?? "?"} T${scalar(b.Type) ?? "?"} S${scalar(b.State) ?? "?"}`;
+    });
+    boostReadout.push(`mine ${n} buffs: ${parts.join(" | ")}`);
+  }
+  // Everdeep / feature state boxes: scalar fields only (game stats).
+  for (const key of ["SuperMineSystemStateSavegame", "ScalableMineFeatureSavegame", "SuperFeatureSavegame"]) {
+    const box = boxOf(data[key]);
+    const parts: string[] = [];
+    const walk = (obj: Record<string, unknown>, prefix: string, depth: number): void => {
+      for (const [k, v] of Object.entries(obj)) {
+        const sv = scalar(v);
+        if (sv != null) parts.push(`${prefix}${k}=${sv}`);
+        else if (depth < 1 && typeof v === "object" && v != null && !Array.isArray(v)) walk(v as Record<string, unknown>, `${prefix}${k}.`, depth + 1);
+        else if (Array.isArray(v)) parts.push(`${prefix}${k}=<list ${v.length}>`);
+      }
+    };
+    walk(box, "", 0);
+    if (parts.length > 0) boostReadout.push(`${key}: ${parts.slice(0, 24).join(", ")}`);
+  }
   return {
     rootKeys: Object.keys(root),
     sections,
