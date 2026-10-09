@@ -42,6 +42,10 @@ export interface SaveMine {
    * adds +2 to the sum, and Double Idle Cash adds +2 more for idle only.
    * 1 when no boost is active. */
   idleBoost: number;
+  /** Raw boost ingredients, [factor, type, state] per buff on this mine.
+   * Kept so the multiplier can be recomputed on load: a formula fix then
+   * heals a stale saved state instead of showing the old wrong number. */
+  buffs?: Array<[number, number, number]>;
 }
 
 export interface SaveAssignment {
@@ -56,6 +60,30 @@ export interface MineState {
   /** ContinentType numbers the player has unlocked (catalog-compatible). */
   unlockedContinentTypes: number[];
   assignments: SaveAssignment[];
+  /** Permanent boost switches from the save (Iaps), for recomputing idleBoost. */
+  boostFlags?: { doubleCash: boolean; doubleIdle: boolean };
+}
+
+/** One mine's idle multiplier from its boost ingredients.
+ * Active buffs are State 1 AND State 2 (the game counts both — State 2 is
+ * what fresh boost tokens land as; State 0 is expired). Income buffs (all
+ * types except 1) ADD; Type 1 is the ad boost and multiplies last. The
+ * permanent Double Cash adds +2 and Double Idle Cash adds +2 more. */
+export function computeIdleBoost(
+  buffs: Array<[number, number, number]> | undefined,
+  doubleCash: boolean,
+  doubleIdle: boolean,
+): number {
+  let incomeSum = doubleCash ? 2 : 0;
+  let adProduct = 1;
+  for (const [factor, type, state] of buffs ?? []) {
+    if (state !== 1 && state !== 2) continue;
+    if (!(factor > 0)) continue;
+    if (type === 1) adProduct *= factor;
+    else incomeSum += factor;
+  }
+  const idleSum = incomeSum + (doubleIdle ? 2 : 0);
+  return (idleSum > 0 ? idleSum : 1) * adProduct;
 }
 
 type Row = Record<string, unknown>;
@@ -82,25 +110,22 @@ export function extractMineState(root: Record<string, unknown>): MineState {
   const data = asRow(root.Data) ?? root;
 
   // Permanent boosts add +2 each to the income sum (save + Boost Overview).
-  const doubleCash = asRow(data.Iaps)?.DoubleCashBoostActive === true ? 2 : 0;
-  const doubleIdle = asRow(data.Iaps)?.DoubleIdleCashBoostActive === true ? 2 : 0;
-  // Per-mine buffs: Type 1 is the ad boost (multiplies); every other active
-  // buff is an income boost (adds). Expired buffs sit at State 0 - skip them.
-  const idleBoostFor = (row: Row): number => {
-    let incomeSum = doubleCash;
-    let adProduct = 1;
+  const doubleCash = asRow(data.Iaps)?.DoubleCashBoostActive === true;
+  const doubleIdle = asRow(data.Iaps)?.DoubleIdleCashBoostActive === true;
+  // Per-mine buff ingredients, kept raw so the multiplier can be recomputed
+  // on load (see computeIdleBoost for the game's stacking rules).
+  const buffsOf = (row: Row): Array<[number, number, number]> => {
     const buffs = asRow(row.BuffCollection)?.Buffs;
-    if (Array.isArray(buffs)) {
-      for (const item of buffs) {
-        const buff = asRow(item);
-        const factor = buff ? num(buff.Factor) : null;
-        if (!buff || buff.State !== 1 || factor == null || factor <= 0) continue;
-        if (buff.Type === 1) adProduct *= factor;
-        else incomeSum += factor;
-      }
+    if (!Array.isArray(buffs)) return [];
+    const out: Array<[number, number, number]> = [];
+    for (const item of buffs) {
+      const buff = asRow(item);
+      const factor = buff ? num(buff.Factor) : null;
+      const type = buff ? num(buff.Type) : null;
+      const state = buff ? num(buff.State) : null;
+      if (factor != null && type != null && state != null) out.push([factor, type, state]);
     }
-    const idleSum = incomeSum + doubleIdle;
-    return (idleSum > 0 ? idleSum : 1) * adProduct;
+    return out;
   };
 
   const progression = Array.isArray(data.ProgressionSavegames) ? data.ProgressionSavegames : [];
@@ -142,7 +167,8 @@ export function extractMineState(root: Record<string, unknown>): MineState {
         bigNumberToValue(idle?.PossibleBigIdleCashWithoutBuffsPerSec),
       cashPerSecondWhenClosed: bigNumberToValue(row.BigCashPerSecondWhenClosed),
       storedCash: bigNumberToValue(row.BigCashStored),
-      idleBoost: idleBoostFor(row),
+      buffs: buffsOf(row),
+      idleBoost: computeIdleBoost(buffsOf(row), doubleCash, doubleIdle),
     };
   });
 
@@ -164,7 +190,7 @@ export function extractMineState(root: Record<string, unknown>): MineState {
     };
   });
 
-  return { mines, unlockedContinentTypes, assignments };
+  return { mines, unlockedContinentTypes, assignments, boostFlags: { doubleCash, doubleIdle } };
 }
 
 const STORAGE_KEY = "mineops.saveMines.v1";
@@ -178,7 +204,15 @@ export function loadMineState(storage: Pick<Storage, "getItem">): MineState | nu
     const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as MineState;
-    return Array.isArray(parsed.mines) ? parsed : null;
+    if (!Array.isArray(parsed.mines)) return null;
+    // Heal stale multipliers: recompute from the saved ingredients with the
+    // current rules, so a state saved by an older build fixes itself.
+    if (parsed.boostFlags) {
+      for (const mine of parsed.mines) {
+        if (mine.buffs) mine.idleBoost = computeIdleBoost(mine.buffs, parsed.boostFlags.doubleCash, parsed.boostFlags.doubleIdle);
+      }
+    }
+    return parsed;
   } catch {
     return null;
   }

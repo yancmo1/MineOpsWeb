@@ -112,4 +112,32 @@ describe("idle boost", () => {
     const state = extractMineState({ Data: { Mines: [{ MineNumber: 3, IdleSavegame: {} }] } });
     expect(state.mines[0].idleBoost).toBe(1);
   });
+
+  it("counts State-2 boost tokens too (that is how fresh tokens land)", async () => {
+    const { extractMineState } = await import("./mine-state");
+    const state = extractMineState({ Data: {
+      Iaps: { DoubleCashBoostActive: true, DoubleIdleCashBoostActive: true },
+      Mines: [{ MineNumber: 3, IdleSavegame: {}, BuffCollection: { Buffs: [
+        { Factor: 4, Type: 0, State: 1 }, { Factor: 3.13, Type: 1, State: 1 },
+        { Factor: 2, Type: 0, State: 2 }, { Factor: 5, Type: 0, State: 2 },
+      ] } }],
+    } });
+    // (2 + 4 + 2 + 5 + 2) x 3.13 = 46.95x — matches the game's Boost Overview.
+    expect(state.mines[0].idleBoost).toBeCloseTo(46.95, 2);
+  });
+
+  it("heals a stale saved multiplier on load", async () => {
+    const { loadMineState } = await import("./mine-state");
+    const stored = JSON.stringify({
+      mines: [{ mineNumber: 6000, mineId: null, elevatorLevel: 1832, warehouseLevel: 1813,
+        corridorLevels: [], prestigeCount: 39, selected: true,
+        idleCashPerSecond: 2.63e45, cashPerSecondWhenClosed: null, storedCash: null,
+        idleBoost: 1, buffs: [[4, 0, 1], [3.13, 1, 1]] }],
+      unlockedContinentTypes: [], assignments: [],
+      boostFlags: { doubleCash: true, doubleIdle: true },
+    });
+    const storage = { getItem: (k: string) => (k === "mineops.saveMines.v1" ? stored : null) };
+    const loaded = loadMineState(storage as never);
+    expect(loaded?.mines[0].idleBoost).toBeCloseTo(25.04, 2);
+  });
 });
