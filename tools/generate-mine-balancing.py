@@ -55,6 +55,7 @@ def load_entities():
     data = json.loads(SRC.read_text())
     selection = None
     configs = {}
+    prestige_modifiers = []
     for entity in data:
         content = entity.get("content") or {}
         if entity.get("clientVersionRange") != ">=5.63.0":
@@ -63,7 +64,9 @@ def load_entities():
             selection = content["value"]["Mappings"]
         elif content.get("key") == "RemoteMineConfig":
             configs[entity["id"]] = content["value"]
-    return selection, configs
+        elif content.get("key") == "RemoteMineGlobal":
+            prestige_modifiers = content["value"]["PrestigeModifiers"]
+    return selection, configs, prestige_modifiers
 
 
 def wanted_mine_ids():
@@ -202,9 +205,30 @@ NUM_PARTS = 3
 
 
 def main():
-    selection, raw_configs = load_entities()
+    selection, raw_configs, prestige_modifiers = load_entities()
     if selection is None:
         raise SystemExit("no >=5.63.0 RemoteMineSelection found")
+
+    # Prestige gain factors (RemoteMineGlobal.PrestigeModifiers): the game's
+    # own per-mine multiplier on ALL production at a given prestige count,
+    # as [factor @ P0, factor @ P1, ...]. Only mines this app maps get rows;
+    # mines with no rows (Everdeep 2500/6000, Mainland 1000) have no prestige
+    # production factor in the game either.
+    wanted_all = wanted_mine_ids()
+    prestige_factors = {}
+    for row in prestige_modifiers:
+        mine = row["MineNumber"]
+        if mine not in wanted_all:
+            continue
+        rows = prestige_factors.setdefault(mine, [])
+        pc = row["PrestigeCount"]
+        while len(rows) <= pc:
+            rows.append(1)
+        rows[pc] = row["GeneralGainFactor"]
+    prestige_ts = json.dumps(
+        {str(m): rows for m, rows in sorted(prestige_factors.items())},
+        separators=(",", ":"),
+    )
     shaped = {cid: shape_config(cfg) for cid, cfg in raw_configs.items()}
 
     wanted = wanted_mine_ids()
@@ -359,6 +383,13 @@ export const MINE_BALANCING_CONFIGS: Record<string, MineBalancingConfig> = {{ {m
 /** Save mine number -> balancing config key. Save mine 6000 (Everdeep) is
  * keyed 2500 in the game's own selection; both are included. */
 export const MINE_BALANCING_BY_MINE: Record<number, string> = {by_mine_ts};
+
+/** Per-mine prestige gain factors from the game's RemoteMineGlobal
+ * (PrestigeModifiers.GeneralGainFactor): mine number -> [factor at
+ * prestige count 0, 1, 2, ...]. This multiplies ALL of the mine's
+ * production (every leg) - it is the game's prestige bonus, exact.
+ * Mines with no rows (Everdeep/SuperMine, Mainland 1000) get no factor. */
+export const PRESTIGE_GAIN_FACTORS: Record<number, number[]> = {prestige_ts};
 """ + MATH
     )
     print(f"wrote {OUT} ({OUT.stat().st_size} bytes), configs: {sorted(used)}")
@@ -397,14 +428,24 @@ HEADER = """/**
  *   carry WorkerIncrement (1 worker at L1, 5 by L500); leaving the workers
  *   out made the warehouse look ~6.5x weaker than the other legs and
  *   flipped the bottleneck call. Elevator has no workers - one car.
- * - HONEST GAP: the game's leg totals also carry player progression
- *   (research skill tree, artifacts, collectibles) and regular-manager
- *   multipliers that do not live in these tables or in the save's leg
- *   levels. For mine 15 every leg lands the same ~1.8e4-2.9e4 BELOW the
- *   game's own numbers (shaft 1, elevator, warehouse once workers are
- *   counted), so treat these as true relative leg speeds and bottleneck
- *   shape - not as a promise of the final idle number. The residual band
- *   is asserted in mine-balancing.test.ts; it must not silently shrink.
+ * - PRESTIGE (applied): RemoteMineGlobal.PrestigeModifiers gives each
+ *   mine a GeneralGainFactor per prestige count (Obsidian x110 at P5,
+ *   Ruby x80 at P5, Coal x145 at P6). deriveMineRates multiplies every
+ *   leg by it when the save's prestige count is passed. This one factor
+ *   was most of the old ~2e4 gap.
+ * - HONEST GAP (what is left): the player's research skill tree
+ *   (per-continent x per-leg nodes), collectibles, artifacts, and
+ *   assigned-manager passives/equipment multiply production further.
+ *   They live in the save (SkillSavegames {SkillId, Level}, the
+ *   collectible/artifact savegames, SuperManagers.Assignments), NOT in
+ *   these balancing tables, so the model still lands below the game:
+ *   on the 2026-10-08 calibration save, ~x8-36 under the save's own
+ *   unboosted idle once prestige is counted (the game's Mine Overview
+ *   totals read a further ~10x above its idle stack - active buffs and
+ *   manager effects on the open mine). Treat the derived legs as true
+ *   relative leg speeds and bottleneck shape - not as a promise of
+ *   the final idle number. The residual bands are asserted in
+ *   mine-balancing.test.ts; they must not silently shrink.
  */
 """
 
@@ -584,10 +625,33 @@ export interface DerivedMineRates {
   /** Sustainable mine output: the slowest leg sets the pace. */
   outputPerSecond: number;
   slowestLeg: SlowLeg;
+  /** The prestige factor folded into the legs above (1 = none applied). */
+  prestigeFactor: number;
 }
 
 /**
- * Derive a mine's leg speeds from its save levels.
+ * The game's prestige multiplier for a mine at a prestige count
+ * (RemoteMineGlobal.PrestigeModifiers.GeneralGainFactor - it scales ALL
+ * of the mine's production, every leg). Mines with no table rows
+ * (Everdeep/SuperMine 2500/6000, Mainland 1000) and unknown counts get 1.
+ * Prestige counts past the table clamp to the last row.
+ */
+export function prestigeGainFactor(mineNumber: number | null, prestigeCount: number | null): number {
+  if (mineNumber == null || prestigeCount == null || !Number.isFinite(prestigeCount)) return 1;
+  const rows = PRESTIGE_GAIN_FACTORS[mineNumber];
+  if (!rows || rows.length === 0) return 1;
+  const idx = Math.max(0, Math.min(Math.floor(prestigeCount), rows.length - 1));
+  return rows[idx] ?? 1;
+}
+
+/**
+ * Derive a mine's leg speeds from its save levels. When the save's
+ * prestige count is passed, every leg is scaled by the game's prestige
+ * gain factor for that mine (see prestigeGainFactor). Still NOT in
+ * these numbers: the player's research skill tree, collectibles,
+ * artifacts, and assigned-manager passives/equipment - those live in
+ * the save (SkillSavegames, collectible/artifact savegames, manager
+ * assignments), not in the balancing tables.
  * `shaftLevels` is the save's CorridorLevels order - shaft order, so
  * element i is Mineshaft (i + 1) and works tier (i + 1). (Game check:
  * Mineshaft 2 / Mineshaft 1 output ratio is exactly the tier-2/tier-1
@@ -599,10 +663,12 @@ export function deriveMineRates(
   shaftLevels: number[],
   elevatorLevel: number | null,
   warehouseLevel: number | null,
+  prestigeCount: number | null = null,
 ): DerivedMineRates | null {
   const config = balancingConfigForMine(mineNumber);
   if (!config) return null;
   if (shaftLevels.length === 0 && elevatorLevel == null && warehouseLevel == null) return null;
+  const prestigeFactor = prestigeGainFactor(mineNumber, prestigeCount);
   let shaftPerSecond = 0;
   shaftLevels.forEach((level, i) => {
     shaftPerSecond += shaftGainPerSecond(config, i + 1, level);
@@ -610,17 +676,18 @@ export function deriveMineRates(
   const elevator = elevatorLevel != null ? elevatorPerSecond(config, elevatorLevel) : 0;
   const warehouse = warehouseLevel != null ? warehousePerSecond(config, warehouseLevel) : 0;
   const legs: Array<[SlowLeg, number]> = [
-    ["shaft", shaftPerSecond],
-    ["elevator", elevator],
-    ["warehouse", warehouse],
+    ["shaft", shaftPerSecond * prestigeFactor],
+    ["elevator", elevator * prestigeFactor],
+    ["warehouse", warehouse * prestigeFactor],
   ];
   const slowest = legs.reduce((a, b) => (b[1] < a[1] ? b : a));
   return {
-    shaftPerSecond,
-    elevatorPerSecond: elevator,
-    warehousePerSecond: warehouse,
+    shaftPerSecond: legs[0][1],
+    elevatorPerSecond: legs[1][1],
+    warehousePerSecond: legs[2][1],
     outputPerSecond: slowest[1],
     slowestLeg: slowest[0],
+    prestigeFactor,
   };
 }
 """

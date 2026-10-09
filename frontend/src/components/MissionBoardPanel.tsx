@@ -53,8 +53,8 @@ export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { 
   // Real leg speeds from the game's own balancing tables + this mine's save
   // levels (dig #3). Null when the mine has no save levels to work from.
   const derivedRates = useMemo(
-    () => (mine?.save ? deriveMineRates(mine.save.mineNumber, mine.save.shaftLevels ?? [], mine.save.elevatorLevel, mine.save.warehouseLevel) : null),
-    [mine?.id, mine?.save?.mineNumber, mine?.save?.elevatorLevel, mine?.save?.warehouseLevel, mine?.save?.shaftLevels],
+    () => (mine?.save ? deriveMineRates(mine.save.mineNumber, mine.save.shaftLevels ?? [], mine.save.elevatorLevel, mine.save.warehouseLevel, mine.save.prestigeCount) : null),
+    [mine?.id, mine?.save?.mineNumber, mine?.save?.elevatorLevel, mine?.save?.warehouseLevel, mine?.save?.shaftLevels, mine?.save?.prestigeCount],
   );
   // Filling the rate boxes from these derived floors is the player's call
   // (the "Use these numbers" button below) — never silent: research and
@@ -194,7 +194,8 @@ export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { 
           <p className="muted">
             <strong>{derivedRates.slowestLeg === "shaft" ? "Shafts are" : derivedRates.slowestLeg === "elevator" ? "Elevator is" : "Warehouse is"} the slow leg</strong> — it sets this mine's pace.
             Worked out from the game's own tables and your synced levels, no typing.
-            Your research and artifacts push the real numbers higher than these.
+            {derivedRates.prestigeFactor > 1 ? <> Prestige boost ×{derivedRates.prestigeFactor} is counted in.</> : null}
+            Your research and collections push the real numbers higher than these.
           </p>
           <button type="button" className="secondary" onClick={() => updateMine({ rates: { mineshaft: derivedRates.shaftPerSecond, elevator: derivedRates.elevatorPerSecond, warehouse: derivedRates.warehousePerSecond }, ratesUpdatedAt: new Date().toISOString() })}>
             Use these numbers
