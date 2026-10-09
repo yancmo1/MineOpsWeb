@@ -31,14 +31,24 @@
  *   carry WorkerIncrement (1 worker at L1, 5 by L500); leaving the workers
  *   out made the warehouse look ~6.5x weaker than the other legs and
  *   flipped the bottleneck call. Elevator has no workers - one car.
- * - HONEST GAP: the game's leg totals also carry player progression
- *   (research skill tree, artifacts, collectibles) and regular-manager
- *   multipliers that do not live in these tables or in the save's leg
- *   levels. For mine 15 every leg lands the same ~1.8e4-2.9e4 BELOW the
- *   game's own numbers (shaft 1, elevator, warehouse once workers are
- *   counted), so treat these as true relative leg speeds and bottleneck
- *   shape - not as a promise of the final idle number. The residual band
- *   is asserted in mine-balancing.test.ts; it must not silently shrink.
+ * - PRESTIGE (applied): RemoteMineGlobal.PrestigeModifiers gives each
+ *   mine a GeneralGainFactor per prestige count (Obsidian x110 at P5,
+ *   Ruby x80 at P5, Coal x145 at P6). deriveMineRates multiplies every
+ *   leg by it when the save's prestige count is passed. This one factor
+ *   was most of the old ~2e4 gap.
+ * - HONEST GAP (what is left): the player's research skill tree
+ *   (per-continent x per-leg nodes), collectibles, artifacts, and
+ *   assigned-manager passives/equipment multiply production further.
+ *   They live in the save (SkillSavegames {SkillId, Level}, the
+ *   collectible/artifact savegames, SuperManagers.Assignments), NOT in
+ *   these balancing tables, so the model still lands below the game:
+ *   on the 2026-10-08 calibration save, ~x8-36 under the save's own
+ *   unboosted idle once prestige is counted (the game's Mine Overview
+ *   totals read a further ~10x above its idle stack - active buffs and
+ *   manager effects on the open mine). Treat the derived legs as true
+ *   relative leg speeds and bottleneck shape - not as a promise of
+ *   the final idle number. The residual bands are asserted in
+ *   mine-balancing.test.ts; they must not silently shrink.
  */
 
 export type BigPair = [mantissa: number, exponent: number];
@@ -115,6 +125,13 @@ export const MINE_BALANCING_CONFIGS: Record<string, MineBalancingConfig> = { ...
 /** Save mine number -> balancing config key. Save mine 6000 (Everdeep) is
  * keyed 2500 in the game's own selection; both are included. */
 export const MINE_BALANCING_BY_MINE: Record<number, string> = {"1":"fde44e49","2":"fde44e49","3":"fde44e49","4":"fde44e49","5":"fde44e49","6":"fde44e49","7":"fde44e49","8":"fde44e49","9":"fde44e49","10":"fde44e49","11":"fde44e49","12":"fde44e49","13":"fde44e49","14":"fde44e49","15":"fde44e49","16":"fde44e49","17":"fde44e49","18":"fde44e49","19":"fde44e49","20":"fde44e49","21":"fde44e49","22":"fde44e49","23":"fde44e49","24":"fde44e49","25":"fde44e49","26":"fde44e49","27":"fde44e49","28":"fde44e49","29":"fde44e49","30":"2f83ad2c","31":"fde44e49","32":"fde44e49","33":"fde44e49","34":"fde44e49","35":"b76ae713","36":"fde44e49","37":"fde44e49","38":"fde44e49","39":"fde44e49","40":"08b00aff","1000":"a52767ad","2500":"b5e31ec5","5001":"e03f2f42","5002":"e03f2f42","5003":"e03f2f42","5004":"e03f2f42","5005":"e03f2f42","5006":"e03f2f42","5007":"e03f2f42","5008":"e03f2f42","5009":"e03f2f42","5010":"e03f2f42","5011":"e03f2f42","5012":"e03f2f42","5013":"e03f2f42","5014":"e03f2f42","5015":"e03f2f42","5016":"e03f2f42","5017":"e03f2f42","5018":"e03f2f42","5019":"e03f2f42","5020":"e03f2f42","6000":"b5e31ec5"};
+
+/** Per-mine prestige gain factors from the game's RemoteMineGlobal
+ * (PrestigeModifiers.GeneralGainFactor): mine number -> [factor at
+ * prestige count 0, 1, 2, ...]. This multiplies ALL of the mine's
+ * production (every leg) - it is the game's prestige bonus, exact.
+ * Mines with no rows (Everdeep/SuperMine, Mainland 1000) get no factor. */
+export const PRESTIGE_GAIN_FACTORS: Record<number, number[]> = {"1":[1,10,20,30,45,60,145],"2":[3,12,28,42,63,90,154],"3":[4,14,33,52,76,80,150],"4":[6,17,38,57,84,120,158],"5":[8,24,48,70,100,140,162],"6":[1,4,20,30,45,60,145],"7":[3,8,28,42,63,90,154],"8":[6,12,33,52,76,80,150],"9":[10,17,38,57,84,120,158],"10":[14,24,48,70,100,140,162],"11":[1,4,20,30,45,60,115],"12":[3,8,28,42,63,80,120],"13":[6,12,33,52,76,90,124],"14":[10,17,38,57,84,105,127],"15":[14,24,48,70,100,110,130],"16":[1,4,20,30,45,60,115],"17":[3,8,28,42,63,80,120],"18":[6,12,33,52,76,90,124],"19":[10,17,38,57,84,105,127],"20":[14,24,48,70,100,110,130],"21":[1,4,20,30,45,60,115],"22":[3,8,28,42,63,80,120],"23":[6,12,33,52,76,90,124],"24":[10,17,38,57,84,105,127],"25":[14,24,48,70,100,110,130],"26":[1,4,20,30,45,60,115],"27":[3,8,28,42,63,80,120],"28":[6,12,33,52,76,90,124],"29":[10,17,38,57,84,105,127],"30":[14,24,48,70,100,110,130],"31":[1,4,20,30,45,60,115],"32":[3,8,28,42,63,80,120],"33":[6,12,33,52,76,90,124],"34":[10,17,38,57,84,105,127],"35":[14,24,48,70,100,110,130],"36":[1,4,20,30,45,60,115],"37":[3,8,28,42,63,80,120],"38":[6,12,33,52,76,90,124],"39":[10,17,38,57,84,105,127],"40":[14,24,48,70,100,110,130],"5001":[1,4,20,30,45,60,120,150],"5002":[5,7,25,35,51,68,129,155],"5003":[6,10,30,40,57,76,138,160],"5004":[10,13,35,45,63,84,147,165],"5005":[14,16,40,50,69,92,156,170],"5006":[1,4,20,30,45,60,120,150],"5007":[5,7,25,35,51,68,129,155],"5008":[6,10,30,40,57,76,138,160],"5009":[10,13,35,45,63,84,147,165],"5010":[14,16,40,50,69,92,156,170],"5011":[1,4,20,30,45,60,120,150],"5012":[5,7,25,35,51,68,129,155],"5013":[6,10,30,40,57,76,138,160],"5014":[10,13,35,45,63,84,147,165],"5015":[14,16,40,50,69,92,156,170],"5016":[1,4,20,30,45,60,120,150],"5017":[5,7,25,35,51,68,129,155],"5018":[6,10,30,40,57,76,138,160],"5019":[10,13,35,45,63,84,147,165],"5020":[14,16,40,50,69,92,156,170]};
 
 // ------------------------------------------------------------------- math
 
@@ -228,10 +245,33 @@ export interface DerivedMineRates {
   /** Sustainable mine output: the slowest leg sets the pace. */
   outputPerSecond: number;
   slowestLeg: SlowLeg;
+  /** The prestige factor folded into the legs above (1 = none applied). */
+  prestigeFactor: number;
 }
 
 /**
- * Derive a mine's leg speeds from its save levels.
+ * The game's prestige multiplier for a mine at a prestige count
+ * (RemoteMineGlobal.PrestigeModifiers.GeneralGainFactor - it scales ALL
+ * of the mine's production, every leg). Mines with no table rows
+ * (Everdeep/SuperMine 2500/6000, Mainland 1000) and unknown counts get 1.
+ * Prestige counts past the table clamp to the last row.
+ */
+export function prestigeGainFactor(mineNumber: number | null, prestigeCount: number | null): number {
+  if (mineNumber == null || prestigeCount == null || !Number.isFinite(prestigeCount)) return 1;
+  const rows = PRESTIGE_GAIN_FACTORS[mineNumber];
+  if (!rows || rows.length === 0) return 1;
+  const idx = Math.max(0, Math.min(Math.floor(prestigeCount), rows.length - 1));
+  return rows[idx] ?? 1;
+}
+
+/**
+ * Derive a mine's leg speeds from its save levels. When the save's
+ * prestige count is passed, every leg is scaled by the game's prestige
+ * gain factor for that mine (see prestigeGainFactor). Still NOT in
+ * these numbers: the player's research skill tree, collectibles,
+ * artifacts, and assigned-manager passives/equipment - those live in
+ * the save (SkillSavegames, collectible/artifact savegames, manager
+ * assignments), not in the balancing tables.
  * `shaftLevels` is the save's CorridorLevels order - shaft order, so
  * element i is Mineshaft (i + 1) and works tier (i + 1). (Game check:
  * Mineshaft 2 / Mineshaft 1 output ratio is exactly the tier-2/tier-1
@@ -243,10 +283,12 @@ export function deriveMineRates(
   shaftLevels: number[],
   elevatorLevel: number | null,
   warehouseLevel: number | null,
+  prestigeCount: number | null = null,
 ): DerivedMineRates | null {
   const config = balancingConfigForMine(mineNumber);
   if (!config) return null;
   if (shaftLevels.length === 0 && elevatorLevel == null && warehouseLevel == null) return null;
+  const prestigeFactor = prestigeGainFactor(mineNumber, prestigeCount);
   let shaftPerSecond = 0;
   shaftLevels.forEach((level, i) => {
     shaftPerSecond += shaftGainPerSecond(config, i + 1, level);
@@ -254,16 +296,17 @@ export function deriveMineRates(
   const elevator = elevatorLevel != null ? elevatorPerSecond(config, elevatorLevel) : 0;
   const warehouse = warehouseLevel != null ? warehousePerSecond(config, warehouseLevel) : 0;
   const legs: Array<[SlowLeg, number]> = [
-    ["shaft", shaftPerSecond],
-    ["elevator", elevator],
-    ["warehouse", warehouse],
+    ["shaft", shaftPerSecond * prestigeFactor],
+    ["elevator", elevator * prestigeFactor],
+    ["warehouse", warehouse * prestigeFactor],
   ];
   const slowest = legs.reduce((a, b) => (b[1] < a[1] ? b : a));
   return {
-    shaftPerSecond,
-    elevatorPerSecond: elevator,
-    warehousePerSecond: warehouse,
+    shaftPerSecond: legs[0][1],
+    elevatorPerSecond: legs[1][1],
+    warehousePerSecond: legs[2][1],
     outputPerSecond: slowest[1],
     slowestLeg: slowest[0],
+    prestigeFactor,
   };
 }
