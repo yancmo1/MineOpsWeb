@@ -7,6 +7,7 @@ import {
   shaftTierBaseGain,
   shaftWorkersAt,
   warehousePerSecond,
+  warehouseWorkersAt,
 } from "./mine-balancing";
 
 describe("mine balancing tables (game 5.64.1 remote config)", () => {
@@ -77,13 +78,31 @@ describe("mine balancing tables (game 5.64.1 remote config)", () => {
     expect(deriveMineRates(999, [800], 800, 800)).toBeNull();
   });
 
-  it("assigns deepest-first shaft levels to the highest tiers", () => {
+  it("assigns shaft levels in shaft order: element i works tier i+1", () => {
     const config = balancingConfigForMine(1)!;
-    // Two shafts: the deepest (first in the save list) works tier 2.
+    // Two shafts: the first in the save list is Mineshaft 1 (tier 1).
+    // (An earlier build paired the list backwards, first entry with the
+    // highest tier, and overshot a real mine's shaft total by ~2e9.)
     const derived = deriveMineRates(1, [101, 1], 800, 800)!;
     const manual =
-      shaftGainPerSecond(config, 2, 101) + shaftGainPerSecond(config, 1, 1);
+      shaftGainPerSecond(config, 1, 101) + shaftGainPerSecond(config, 2, 1);
     expect(derived.shaftPerSecond).toBeCloseTo(manual, 4);
+  });
+
+  it("shaft output scales with the tier base gains (game: shaft 2 = 50x shaft 1)", () => {
+    const config = balancingConfigForMine(15)!;
+    // Game truth (Mine Overview, equal levels): Mineshaft 2 shows exactly
+    // 50x Mineshaft 1 - the tier-2/tier-1 base-gain ratio. This is what
+    // pins "tier = shaft number" over grouped/cycling tier schemes.
+    const ratio = shaftGainPerSecond(config, 2, 800) / shaftGainPerSecond(config, 1, 800);
+    expect(ratio).toBeCloseTo(50, 6);
+  });
+
+  it("counts warehouse workers from milestones (base crew + increments)", () => {
+    const config = balancingConfigForMine(15)!;
+    expect(warehouseWorkersAt(config, 1)).toBe(1);
+    expect(warehouseWorkersAt(config, 20)).toBe(2);
+    expect(warehouseWorkersAt(config, 2003)).toBe(5);
   });
 
   describe("calibration against a real save (2026-10-08)", () => {
@@ -109,14 +128,78 @@ describe("mine balancing tables (game 5.64.1 remote config)", () => {
       const config = balancingConfigForMine(3)!;
       const warehouse = warehousePerSecond(config, 2190);
       const residual = GAME_IDLE_MINE3 / warehouse;
-      expect(residual).toBeGreaterThan(1000);
-      expect(residual).toBeLessThan(500000);
+      // ~1.24e4 with warehouse workers counted - the same progression
+      // band the mine-15 leg calibration pins below.
+      expect(residual).toBeGreaterThan(5000);
+      expect(residual).toBeLessThan(50000);
     });
 
     it("Everdeep elevator is NOT its limit (legs sit above its game idle)", () => {
       const config = balancingConfigForMine(6000)!;
       // Game idle for Everdeep: 2.63av/s = 2.63e78 at elevator 1832.
       expect(elevatorPerSecond(config, 1832)).toBeGreaterThan(2.63e78 * 10);
+    });
+  });
+
+  describe("calibration against the game's Mine Overview (Obsidian, mine 15)", () => {
+    // Game truth, read off the game's own Mine Overview screen 2026-10-08
+    // (Obsidian = save mine 15, Fire, prestige 5; suffixes: ak=1e45,
+    // ay=1e87, az=1e90):
+    // - Mineshaft 1 @800: 6.98 ak/s WITH a regular manager's 3.56x mining
+    //   speed boost on that shaft -> 1.96e45 before that manager.
+    // - Elevator @1997 "Total Transportation": 731 ay/s = 7.31e89.
+    // - Warehouse @2003 "Total Transportation": 1.15 az/s = 1.15e90.
+    // - Mineshafts total (30 shafts): 1.38 az/s = 1.38e90.
+    // The game totals include regular-manager multipliers and player
+    // progression (research/artifacts/collectibles) that the tables
+    // cannot see, so the raw model must land BELOW every game number.
+    // After the 2026-10-08 semantic fixes (tier = shaft number, warehouse
+    // x workers) all four residuals cluster at ~1.8e4-2.9e4 - one
+    // progression band. The band below is that honest gap, asserted so
+    // it cannot silently shrink: [1e4, 6e4] on every leg.
+    const SHAFT1_GAME = 1.96e45;
+    const ELEVATOR_GAME = 7.31e89;
+    const WAREHOUSE_GAME = 1.15e90;
+    const SHAFT_TOTAL_GAME = 1.38e90;
+    const BAND: [number, number] = [1e4, 6e4];
+
+    it("shaft 1 (tier 1 @800) sits in the progression band below the game", () => {
+      const config = balancingConfigForMine(15)!;
+      const model = shaftGainPerSecond(config, 1, 800);
+      expect(model).toBeLessThan(SHAFT1_GAME);
+      const residual = SHAFT1_GAME / model;
+      expect(residual).toBeGreaterThan(BAND[0]);
+      expect(residual).toBeLessThan(BAND[1]);
+    });
+
+    it("elevator and warehouse legs sit in the same band, warehouse above elevator", () => {
+      const config = balancingConfigForMine(15)!;
+      const elevator = elevatorPerSecond(config, 1997);
+      const warehouse = warehousePerSecond(config, 2003);
+      // The game calls the elevator this mine's slow leg; before the
+      // warehouse-workers fix the model had the order flipped.
+      expect(warehouse).toBeGreaterThan(elevator);
+      for (const [model, game] of [[elevator, ELEVATOR_GAME], [warehouse, WAREHOUSE_GAME]] as const) {
+        expect(model).toBeLessThan(game);
+        const residual = game / model;
+        expect(residual).toBeGreaterThan(BAND[0]);
+        expect(residual).toBeLessThan(BAND[1]);
+      }
+    });
+
+    it("calls the elevator the slowest leg, like the game", () => {
+      // All shafts maxed (upper bound for the shaft leg):
+      const maxed = deriveMineRates(15, Array(30).fill(800), 1997, 2003)!;
+      expect(maxed.slowestLeg).toBe("elevator");
+      // Real saves taper with depth (deep shafts lag); a representative
+      // 800 -> 590 taper must keep the same call, and its shaft total
+      // must land in the same progression band below the game's total.
+      const taper = Array.from({ length: 30 }, (_, k) => Math.round(800 - (800 - 590) * (k / 29)));
+      const tapered = deriveMineRates(15, taper, 1997, 2003)!;
+      expect(tapered.slowestLeg).toBe("elevator");
+      const residual = SHAFT_TOTAL_GAME / tapered.shaftPerSecond;
+      expect(residual).toBeGreaterThan(BAND[0]);
+      expect(residual).toBeLessThan(BAND[1]);
     });
   });
 });
