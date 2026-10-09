@@ -3,6 +3,7 @@ import { resolveIds, fetchOverrides, type MappingEvidence } from "./catalog-mapp
 import { catalogClient } from "./catalog-client";
 import { managersFromVerifiedPackage } from "./strategy";
 import type { CachedCatalogPackage } from "./catalog-cache";
+import { extractMineState, type MineState } from "./mine-state";
 
 export type KolibriCredentials = { kolibriId: string; authToken: string; saveGameKey: string };
 export type KolibriDiagnostics = { statusCode: number; payloadFormat: string; rawBytes: number; decodedBytes: number; managerCount: number; unknownManagerCount: number; fragmentFieldCount?: number; fragmentMissingCount?: number; passiveValueManagerCount?: number; equipmentAssignmentManagerCount?: number; inventoryEntryCount?: number; essenceEntryCount?: number; crystalEntryCount?: number; materialEntryCount?: number; ownedEquipmentEntryCount?: number; unresolvedSampleIds?: string[] };
@@ -17,6 +18,8 @@ export interface KolibriResult {
   unresolved: MappingEvidence[];
   /** The catalog version used for resolution */
   catalogVersion: string | null;
+  /** Mine/continent state from the save (levels, idle cash, assignments). */
+  mineState: MineState;
 }
 
 function numericQuantity(value: unknown): number | undefined {
@@ -254,7 +257,10 @@ async function decodePayload(bytes: Uint8Array): Promise<{ json: Uint8Array; for
  */
 export const KOLIBRI_BASE_URL = ((import.meta.env.VITE_KOLIBRI_BASE_URL as string | undefined) ?? "").replace(/\/+$/, "");
 
-export async function fetchKolibri(credentials: KolibriCredentials, catalog: CatalogManager[]): Promise<KolibriResult> {
+/** Fetch and decode the raw save once. Returns the parsed root object only;
+ * callers decide what to read. Used by both the sync parser and the
+ * names-only save inspector. */
+export async function fetchSaveRoot(credentials: KolibriCredentials): Promise<{ root: Record<string, unknown>; format: string; statusCode: number; rawBytes: number; decodedBytes: number }> {
   const id = lastUUID(credentials.kolibriId);
   if (!id) throw new Error("Kolibri ID is required.");
   if (!credentials.authToken.trim()) throw new Error("Kolibri auth token is required.");
@@ -264,6 +270,11 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
   if (!response.ok) throw new Error(`Kolibri returned HTTP ${response.status}. Check the player ID, token, and save-game key.`);
   const decoded = await decodePayload(raw);
   const root = JSON.parse(new TextDecoder().decode(decoded.json)) as Record<string, unknown>;
+  return { root, format: decoded.format, statusCode: response.status, rawBytes: raw.byteLength, decodedBytes: decoded.json.byteLength };
+}
+
+export async function fetchKolibri(credentials: KolibriCredentials, catalog: CatalogManager[]): Promise<KolibriResult> {
+  const { root, format: payloadFormat, statusCode, rawBytes, decodedBytes } = await fetchSaveRoot(credentials);
   const data = (root.Data ?? root) as Record<string, unknown>;
   const inventory = extractInventoryFromSave(root);
   const managers = (((data.SuperManagers ?? {}) as Record<string, unknown>).Managers ?? []) as Array<Record<string, unknown>>;
@@ -310,6 +321,7 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
       mappingEvidence: new Map(),
       unresolved: managers.map((r) => ({ sourceValue: String(r.Id ?? ""), sourceKind: "kolibri_id", canonicalId: null, resolution: "unresolved" as const, confidence: null, catalogVersion: "", releaseId: "", displayName: null })),
       catalogVersion: null,
+      mineState: extractMineState(root),
     };
   }
   let catalogVersion = pkg?.catalogVersion ?? null;
@@ -459,10 +471,10 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     progress,
     inventory,
     diagnostics: {
-      statusCode: response.status,
-      payloadFormat: decoded.format,
-      rawBytes: raw.byteLength,
-      decodedBytes: decoded.json.byteLength,
+      statusCode,
+      payloadFormat,
+      rawBytes,
+      decodedBytes,
       managerCount: managers.length,
       unknownManagerCount: unresolvedCount,
       fragmentFieldCount,
@@ -481,5 +493,6 @@ export async function fetchKolibri(credentials: KolibriCredentials, catalog: Cat
     mappingEvidence: evidenceMap,
     unresolved,
     catalogVersion,
+    mineState: extractMineState(root),
   };
 }

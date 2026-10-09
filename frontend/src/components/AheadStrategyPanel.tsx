@@ -69,8 +69,8 @@ export function AheadStrategyPanel({ catalog, progress }: { catalog: CatalogMana
           </div>
         ))}
 
-      {locked.length > 0 && <>
-        <h3 style={{ fontSize: "1rem", marginTop: "1.25rem" }}>Unlock targets (not playable yet)</h3>
+      {locked.length > 0 && <details style={{ marginTop: "1.25rem" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 800 }}>Unlock targets ({locked.length} not playable yet)</summary>
         {locked.map((combo) => (
           <div key={combo.id} style={{ padding: "0.75rem", marginTop: "0.5rem", borderRadius: "0.5rem", border: "1px solid var(--border-color)", opacity: 0.85 }}>
             <strong>{combo.title}</strong>
@@ -78,7 +78,7 @@ export function AheadStrategyPanel({ catalog, progress }: { catalog: CatalogMana
             <p className="muted" style={{ fontSize: "0.75rem", margin: "0.25rem 0 0 0" }}>{combo.why}</p>
           </div>
         ))}
-      </>}
+      </details>}
 
       <h3 style={{ fontSize: "1rem", marginTop: "1.25rem" }}>Learn / Do next</h3>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>

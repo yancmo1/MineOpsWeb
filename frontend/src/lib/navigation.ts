@@ -7,9 +7,9 @@ export interface NavigationItem {
 
 export const navigationItems: NavigationItem[] = [
   { id: "overview", label: "Today" },
-  { id: "managers", label: "Managers" },
-  { id: "strategy", label: "Strategy" },
-  { id: "more", label: "More" },
+  { id: "managers", label: "Crew" },
+  { id: "strategy", label: "Plays" },
+  { id: "more", label: "Data" },
 ];
 
 export function hashForTab(tab: Tab): string {

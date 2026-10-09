@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildComboCards, buildNextTasks, diagnoseAhead } from "./ahead-strategy";
+import { buildComboCards, buildNextTasks, diagnoseAhead, findOwnedManager } from "./ahead-strategy";
 import type { CatalogManager, PlayerManager } from "./db";
 
 function player(managerId: string, overrides: Partial<PlayerManager> = {}): PlayerManager {
@@ -55,5 +55,19 @@ describe("buildNextTasks", () => {
     const tasks = buildNextTasks(catalog, [player("dr-lilly")], diagnoseAhead(rates), rates);
     expect(tasks.some((t) => t.id === "rate-warehouse-past-elevator")).toBe(true);
     expect(tasks.some((t) => t.id === "unlock-belle-snowdrop")).toBe(true);
+  });
+});
+
+
+describe("live database ID resolution", () => {
+  it("matches canonical sm- IDs by display name so owned managers are not falsely locked", () => {
+    const liveCatalog: CatalogManager[] = [
+      { id: "sm-10001", name: "Dr. Lilly", rarity: "epic", type: "Elevator", elements: [] },
+      { id: "sm-10002", name: "Ranger Sue", rarity: "rare", type: "Mine Shaft", elements: [] },
+    ];
+    const found = findOwnedManager(liveCatalog, [player("sm-10001")], { id: "dr-lilly", name: "Dr Lilly" });
+    expect(found?.id).toBe("sm-10001");
+    const cards = buildComboCards(liveCatalog, [player("sm-10001"), player("sm-10002")]);
+    expect(cards.find((c) => c.id === "lilly-crate-stockpile")!.playable).toBe(true);
   });
 });

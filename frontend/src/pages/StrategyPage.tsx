@@ -13,6 +13,7 @@ import { evaluateProgressStages, progressSummary, type ProgressStageResult } fro
 import { computeBombDecision, assessRunState, type StellaMechanics, type StellaDecision } from "../lib/stella-elevator";
 import { planCrystalSpend, minPromoForLevel, type CrystalPlanResult, type CrystalCostTable } from "../lib/crystal-planner";
 import { emptyEssenceInventory, essenceInventoryFromEntries, planEssenceUpgrade, type EssenceInventory } from "../lib/essence-planner";
+import { EverdeepTeamPanel } from "../components/EverdeepTeamPanel";
 import { AheadStrategyPanel } from "../components/AheadStrategyPanel";
 
 interface StrategyPageProps {
@@ -20,7 +21,7 @@ interface StrategyPageProps {
   inventory: PlayerInventoryEntry[];
 }
 
-type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal" | "essence" | "ahead";
+type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal" | "essence" | "ahead" | "everdeep";
 
 /** Check whether a load state represents an active package (any source). */
 function isActive(ls: LoadState): boolean {
@@ -116,7 +117,7 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
   const [frontierFreeSkips, setFrontierFreeSkips] = useState("0");
   const [frontierTimeJumps, setFrontierTimeJumps] = useState("0");
   const [frontierPass, setFrontierPass] = useState<FrontierPass>("free");
-  const [selectedPlan, setSelectedPlan] = useState<StrategyPlanId>("frontier");
+  const [selectedPlan, setSelectedPlan] = useState<StrategyPlanId>("ahead");
 
   // Subscribe to catalog client state changes for reactive rendering
   useEffect(() => {
@@ -192,8 +193,8 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
         catalogReleaseId={evaluation.catalogReleaseId}
         onOpen={setSelectedPlan}
       />
-      <details className="strategy-tools-disclosure" open={selectedPlan !== "recommendations"}>
-        <summary>Explore strategy tools</summary>
+      <details className="strategy-tools-disclosure">
+        <summary>More tools (open only if you need one)</summary>
         <StrategyPlanMenu
           selectedPlan={selectedPlan}
           onSelect={setSelectedPlan}
@@ -205,6 +206,7 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
         />
       </details>
       {selectedPlan === "ahead" && <AheadStrategyPanel catalog={catalogManagers} progress={progress} />}
+      {selectedPlan === "everdeep" && <EverdeepTeamPanel catalog={catalogManagers} progress={progress} />}
       {selectedPlan === "frontier" && <FrontierPlaybook
         roster={frontierRoster}
         barrierId={frontierBarrierId}
@@ -337,7 +339,7 @@ function StrategyPlanMenu({ selectedPlan, onSelect, hasFrontierRoster, lineupCou
 }) {
   const plans: Array<{ id: StrategyPlanId; title: string; detail: string; badge: string }> = [
     { id: "ahead", title: "Ahead & combos", detail: "Diagnose Elevator/Warehouse/Shaft-Ahead from live rates, run owned combos, see what to unlock/learn next.", badge: "live rates" },
-    { id: "frontier", title: "Frontier Mine start", detail: "Set your FC checkpoint, prepare the right roles, and run the opening burst.", badge: hasFrontierRoster ? "Roster ready" : "Sync roster" },
+        { id: "everdeep", title: "Everdeep team builder", detail: "Pick the element of each slot; get your best owned manager per slot with exact numbers and element math, plus team passives.", badge: "exact numbers" },
     { id: "lineup", title: "General lineup", detail: "One best owned manager for each operating area.", badge: `${lineupCount} managers` },
     { id: "upgrades", title: "Upgrade focus", detail: "Prioritize your most useful available rank and level gains.", badge: `${upgradeCount} targets` },
     { id: "tierlist", title: "Tier list & compare", detail: "Rank your roster by verified score and compare managers side by side.", badge: `${tierlistCount} ranked` },
@@ -345,6 +347,7 @@ function StrategyPlanMenu({ selectedPlan, onSelect, hasFrontierRoster, lineupCou
     { id: "stella", title: "Stella's Elevator", detail: "Mid-run bomb-decision calculator for Stella's Lucky Elevator events.", badge: "run stats" },
     { id: "crystal", title: "Crystal planner", detail: "Level/promo crystal budget calculator with discount and structural gates.", badge: "budget" },
     { id: "essence", title: "Essence planner", detail: "Choose a Super Manager rank target and see the essence surplus or shortfall from your synced save.", badge: "save-backed" },
+    { id: "frontier", title: "Frontier Mine (separate mode)", detail: "Frontier has its own credits, barriers, and opening burst. Open this only when you are planning a Frontier run.", badge: hasFrontierRoster ? "Roster ready" : "Sync roster" },
   ];
   return <section className="card-container strategy-plan-menu">
     <p className="eyebrow">Explore</p>

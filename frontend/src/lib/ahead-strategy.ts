@@ -187,20 +187,60 @@ const COMBOS: ComboDef[] = [
   },
 ];
 
+function normalizeManagerName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+}
+
+function slugManagerId(value: string): string {
+  return normalizeManagerName(value).replace(/ /g, "-");
+}
+
+/**
+ * Resolve a combo requirement against the ACTUAL catalog/progress IDs.
+ * Combo definitions use readable slugs ("dr-lilly"), but the live database
+ * uses canonical IDs ("sm-...") and display names ("Dr. Lilly"). Matching
+ * only the slug made owned managers look locked; match by canonical ID,
+ * slug, gameId, variant, and normalized display name instead.
+ */
+export function findOwnedManager(catalog: CatalogManager[], progress: PlayerManager[], required: { id: string; name: string }): CatalogManager | null {
+  const ownedIds = new Set(progress.filter((p) => p.unlocked).map((p) => p.managerId));
+  const wantedId = required.id;
+  const wantedSlug = slugManagerId(required.name);
+  const wantedName = normalizeManagerName(required.name);
+  const candidate = catalog.find((manager) => {
+    if (manager.id === wantedId) return true;
+    if (slugManagerId(manager.id) === wantedSlug) return true;
+    if (normalizeManagerName(manager.name) === wantedName) return true;
+    if (manager.variantOf && (manager.variantOf === wantedId || slugManagerId(manager.variantOf) === wantedSlug)) return true;
+    return false;
+  });
+  if (!candidate) {
+    // Partial/legacy data (or a unit-test fixture) can carry the readable
+    // slug directly in progress. Treat that as the same manager rather than
+    // reporting a false lock.
+    const direct = [...ownedIds].find((id) => id === wantedId || slugManagerId(id) === wantedSlug);
+    return direct ? { id: direct, name: required.name, rarity: "", type: "", elements: [] } : null;
+  }
+  if (ownedIds.has(candidate.id)) return candidate;
+  if (candidate.variantOf && ownedIds.has(candidate.variantOf)) return candidate;
+  const variant = catalog.find((manager) => manager.variantOf === candidate.id && ownedIds.has(manager.id));
+  return variant ?? null;
+}
+
 export function buildComboCards(catalog: CatalogManager[], progress: PlayerManager[]): ComboCard[] {
-  const owned = new Map(progress.filter((p) => p.unlocked).map((p) => [p.managerId, p]));
-  const nameOf = (id: string, fallback: string) => catalog.find((m) => m.id === id)?.name ?? fallback;
+  const nameOf = (manager: CatalogManager | null, fallback: string) => manager?.name ?? fallback;
   return COMBOS.map((def) => {
     const missing: string[] = [];
     const steps: ComboStep[] = [];
     for (const req of def.required) {
-      if (owned.has(req.id)) steps.push({ managerId: req.id, name: nameOf(req.id, req.name), station: req.station, action: req.action });
+      const ownedManager = findOwnedManager(catalog, progress, req);
+      if (ownedManager) steps.push({ managerId: ownedManager.id, name: nameOf(ownedManager, req.name), station: req.station, action: req.action });
       else missing.push(req.name);
     }
     if (def.anyOf) {
       for (const group of def.anyOf) {
-        const pick = group.find((g) => owned.has(g.id));
-        if (pick) steps.push({ managerId: pick.id, name: nameOf(pick.id, pick.name), station: pick.station, action: pick.action });
+        const found = group.map((g) => ({ req: g, manager: findOwnedManager(catalog, progress, g) })).find((x) => x.manager);
+        if (found?.manager) steps.push({ managerId: found.manager.id, name: nameOf(found.manager, found.req.name), station: found.req.station, action: found.req.action });
         else missing.push(group.map((g) => g.name).join(" or "));
       }
     }
@@ -255,14 +295,16 @@ export function buildNextTasks(catalog: CatalogManager[], progress: PlayerManage
     });
   }
 
-  // Unlock targets still locked
+  // Unlock targets still locked. Resolve through the catalog so canonical
+  // sm- IDs do not make an owned manager look like an unlock target.
   for (const target of UNLOCK_TARGETS) {
-    const p = byId.get(target.id);
-    if (!p?.unlocked) tasks.push({ id: `unlock-${target.id}`, kind: "unlock", title: `Unlock: ${target.name}`, detail: target.detail, progress: 0 });
+    const ownedManager = findOwnedManager(catalog, progress, target);
+    if (!ownedManager) tasks.push({ id: `unlock-${target.id}`, kind: "unlock", title: `Unlock: ${target.name}`, detail: target.detail, progress: 0 });
   }
 
   // Promotion target: Dr Lilly powers the playable EA combo
-  const lilly = byId.get("dr-lilly");
+  const lillyManager = findOwnedManager(catalog, progress, { id: "dr-lilly", name: "Dr Lilly" });
+  const lilly = lillyManager ? byId.get(lillyManager.id) : byId.get("dr-lilly");
   if (lilly?.unlocked && lilly.promoted < 3) {
     tasks.push({
       id: "promote-dr-lilly", kind: "promote",
