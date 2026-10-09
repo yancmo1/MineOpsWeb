@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CatalogManager, PlayerManager } from "../lib/db";
 import { bestPlay, effectiveRates, loadMines, minesFromCatalogDomain, minesFromSaveState, rankPlays, saveMines, suggestedMultipliers, type MineProfile } from "../lib/mission-board";
 import { decodeMineNumber, type MineState } from "../lib/mine-state";
+import { deriveMineRates } from "../lib/mine-balancing";
 import { diagnoseAhead, type MineRates } from "../lib/ahead-strategy";
 import { formatCashValue, parseCashValue } from "../lib/cash-units";
 import { catalogClient } from "../lib/catalog-client";
@@ -49,6 +50,15 @@ export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { 
   }, []);
 
   const mine = mines.find((m) => m.id === activeMineId) ?? mines[0];
+  // Real leg speeds from the game's own balancing tables + this mine's save
+  // levels (dig #3). Null when the mine has no save levels to work from.
+  const derivedRates = useMemo(
+    () => (mine?.save ? deriveMineRates(mine.save.mineNumber, mine.save.shaftLevels ?? [], mine.save.elevatorLevel, mine.save.warehouseLevel) : null),
+    [mine?.id, mine?.save?.mineNumber, mine?.save?.elevatorLevel, mine?.save?.warehouseLevel, mine?.save?.shaftLevels],
+  );
+  // Filling the rate boxes from these derived floors is the player's call
+  // (the "Use these numbers" button below) — never silent: research and
+  // artifacts push real rates far above the raw tables.
   const rates = mine?.rates ?? { mineshaft: null, elevator: null, warehouse: null };
   const multipliers = mine?.multipliers ?? { mineshaft: 1, elevator: 1, warehouse: 1 };
   const burstRates = effectiveRates(rates, multipliers);
@@ -171,6 +181,25 @@ export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { 
           {mine.save.idleCashPerSecond != null && mine.save.idleCashPerSecond > 0 && <> · Idle <strong>{formatCashValue(mine.save.idleCashPerSecond)}/s</strong></>}
           {mine.save.prestigeCount != null && mine.save.prestigeCount > 0 && <> · Prestige {mine.save.prestigeCount}</>}
         </p>
+      )}
+
+      {derivedRates && mine?.save && (
+        <div className="derived-rates" aria-label="Speeds from your save levels">
+          <div className="panel-label">From your save levels</div>
+          <p>
+            Shaft speed <strong>{formatCashValue(derivedRates.shaftPerSecond)}/s</strong> ·{" "}
+            Elevator speed <strong>{formatCashValue(derivedRates.elevatorPerSecond)}/s</strong> ·{" "}
+            Warehouse speed <strong>{formatCashValue(derivedRates.warehousePerSecond)}/s</strong>
+          </p>
+          <p className="muted">
+            <strong>{derivedRates.slowestLeg === "shaft" ? "Shafts are" : derivedRates.slowestLeg === "elevator" ? "Elevator is" : "Warehouse is"} the slow leg</strong> — it sets this mine's pace.
+            Worked out from the game's own tables and your synced levels, no typing.
+            Your research and artifacts push the real numbers higher than these.
+          </p>
+          <button type="button" className="secondary" onClick={() => updateMine({ rates: { mineshaft: derivedRates.shaftPerSecond, elevator: derivedRates.elevatorPerSecond, warehouse: derivedRates.warehousePerSecond }, ratesUpdatedAt: new Date().toISOString() })}>
+            Use these numbers
+          </button>
+        </div>
       )}
 
       {!hasRoster && (

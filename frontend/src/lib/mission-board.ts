@@ -37,6 +37,8 @@ export interface MineProfile {
     mineNumber: number | null;
     elevatorLevel: number | null;
     warehouseLevel: number | null;
+    /** Per-shaft levels, deepest first (the save's CorridorLevels order). */
+    shaftLevels: number[];
     shaftCount: number;
     topShaftLevel: number | null;
     idleCashPerSecond: number | null;
@@ -94,7 +96,11 @@ export function minesFromCatalogDomain(domain: unknown, stored: MineProfile[] = 
     byId.get("frontier-mine") ? { ...byId.get("frontier-mine")!, source: "catalog" } : { id: "frontier-mine", name: "Frontier Mine", kind: "frontier", rates: EMPTY_RATES, multipliers: DEFAULT_MULTIPLIERS, source: "catalog" },
   ];
   const custom = stored.filter((mine) => mine.kind === "custom" && !fromCatalog.some((m) => m.id === mine.id) && !modes.some((m) => m.id === mine.id));
-  return [...fromCatalog, ...modes, ...custom];
+  // The player's own save mines (every mainland mine by name, Everdeep, the
+  // specials) must survive the catalog merge — they carry the save levels
+  // the derived speeds come from. They lead the list.
+  const saved = stored.filter((mine) => mine.source === "save");
+  return [...saved, ...fromCatalog, ...modes, ...custom];
 }
 
 /**
@@ -119,6 +125,7 @@ export function minesFromSaveState(
         mineNumber: m.mineNumber,
         elevatorLevel: m.elevatorLevel,
         warehouseLevel: m.warehouseLevel,
+        shaftLevels: [...m.corridorLevels],
         shaftCount: m.corridorLevels.length,
         topShaftLevel: m.corridorLevels.length > 0 ? Math.max(...m.corridorLevels) : null,
         idleCashPerSecond: (m.idleCashPerSecond ?? m.cashPerSecondWhenClosed) != null ? (m.idleCashPerSecond ?? m.cashPerSecondWhenClosed)! * (m.idleBoost || 1) : null,

@@ -71,3 +71,19 @@ describe("mine list and multipliers", () => {
     expect(effectiveRates({ mineshaft: 10, elevator: 20, warehouse: 5 }, { mineshaft: 2, elevator: 3, warehouse: 4 })).toEqual({ mineshaft: 20, elevator: 60, warehouse: 20 });
   });
 });
+
+describe("catalog merge keeps save mines", () => {
+  it("keeps the player's mainland save mines at the head of the list", async () => {
+    const { minesFromCatalogDomain } = await import("./mission-board");
+    const stored = [
+      { id: "save-3", name: "Ruby", kind: "continent" as const, source: "save" as const,
+        rates: { mineshaft: null, elevator: null, warehouse: null },
+        multipliers: { mineshaft: 1, elevator: 1, warehouse: 1 } },
+    ];
+    const domain = { continents: [{ continentType: 0, name: "Start" }] };
+    const next = minesFromCatalogDomain(domain, stored as never);
+    expect(next[0].id).toBe("save-3");
+    expect(next.some((m) => m.id === "continent-0")).toBe(true);
+    expect(next.some((m) => m.id === "everdeep")).toBe(true);
+  });
+});
