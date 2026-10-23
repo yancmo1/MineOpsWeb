@@ -11,6 +11,13 @@
  * - Data.ContinentSavegame.UnlockSavegames[]: ContinentType (catalog uses
  *   the same continentType numbers), HasClaimedRewards.
  * - Data.SuperManagers.Assignments[] (12): ManagerId, MineNumber, Area, Tier.
+ * - Data.SkillSavegames[]: SkillId, Level — owned research skills (the
+ *   game's Data class names the field Skills; both names are accepted).
+ * - Data.CollectibleSavegames[]: CollectibleId, Level, Parts, State
+ *   (Data field name Collectibles also accepted; State is the
+ *   CollectibleState enum: 0 Locked, 1 Unlocked, 2 Active).
+ * - Data.ArtifactsSavegame: UnlockedArtifacts [int] — parsed only;
+ *   artifact factors are not applied to rates (see progression.ts).
  *
  * Big game numbers are stored as { m, e } (mantissa x 10^exponent).
  * Everything extracted here stays in the browser, same as the rest of sync.
@@ -62,6 +69,12 @@ export interface MineState {
   assignments: SaveAssignment[];
   /** Permanent boost switches from the save (Iaps), for recomputing idleBoost. */
   boostFlags?: { doubleCash: boolean; doubleIdle: boolean };
+  /** Owned research skills: SkillId -> level, from the skills drawer. */
+  skills?: Record<number, number>;
+  /** Collectible savegame entries (id, level, state) from the collectibles drawer. */
+  collectibles?: Array<{ id: number; level: number; state: number }>;
+  /** Unlocked artifact ids from ArtifactsSavegame. Parsed only - not rate-applied. */
+  unlockedArtifacts?: number[];
 }
 
 /** One mine's idle multiplier from its boost ingredients.
@@ -190,7 +203,26 @@ export function extractMineState(root: Record<string, unknown>): MineState {
     };
   });
 
-  return { mines, unlockedContinentTypes, assignments, boostFlags: { doubleCash, doubleIdle } };
+  const skills: Record<number, number> = {};
+  for (const item of Array.isArray(data.SkillSavegames) ? data.SkillSavegames : Array.isArray(data.Skills) ? data.Skills : []) {
+    const row = asRow(item);
+    const id = row ? num(row.SkillId) : null;
+    const level = row ? num(row.Level) : null;
+    if (id != null && level != null) skills[id] = level;
+  }
+  const collectibles: Array<{ id: number; level: number; state: number }> = [];
+  for (const item of Array.isArray(data.CollectibleSavegames) ? data.CollectibleSavegames : Array.isArray(data.Collectibles) ? data.Collectibles : []) {
+    const row = asRow(item);
+    const id = row ? num(row.CollectibleId) : null;
+    if (!row || id == null) continue;
+    collectibles.push({ id, level: num(row.Level) ?? 0, state: num(row.State) ?? 0 });
+  }
+  const artifactsBox = asRow(data.ArtifactsSavegame);
+  const unlockedArtifacts = (Array.isArray(artifactsBox?.UnlockedArtifacts) ? artifactsBox.UnlockedArtifacts : [])
+    .map((value) => num(value))
+    .filter((v): v is number => v != null);
+
+  return { mines, unlockedContinentTypes, assignments, boostFlags: { doubleCash, doubleIdle }, skills, collectibles, unlockedArtifacts };
 }
 
 const STORAGE_KEY = "mineops.saveMines.v1";
