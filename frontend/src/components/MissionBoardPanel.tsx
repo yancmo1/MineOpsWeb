@@ -3,6 +3,7 @@ import type { CatalogManager, PlayerManager } from "../lib/db";
 import { bestPlay, effectiveRates, loadMines, minesFromCatalogDomain, minesFromSaveState, rankPlays, saveMines, suggestedMultipliers, type MineProfile } from "../lib/mission-board";
 import { decodeMineNumber, type MineState } from "../lib/mine-state";
 import { deriveMineRates } from "../lib/mine-balancing";
+import { applyProgressionToRates, hasProgressionFactors, progressionFactorsForMine } from "../lib/progression";
 import { diagnoseAhead, type MineRates } from "../lib/ahead-strategy";
 import { formatCashValue, parseCashValue } from "../lib/cash-units";
 import { catalogClient } from "../lib/catalog-client";
@@ -52,13 +53,25 @@ export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { 
   const mine = mines.find((m) => m.id === activeMineId) ?? mines[0];
   // Real leg speeds from the game's own balancing tables + this mine's save
   // levels (dig #3). Null when the mine has no save levels to work from.
+  // Research-skill + collectible multipliers for this mine, from the
+  // synced save's own drawers (progression.ts). Null without a synced save.
+  const progression = useMemo(
+    () => (mine?.save && mineState ? progressionFactorsForMine(mine.save.mineNumber, { skills: mineState.skills ?? {}, collectibles: mineState.collectibles ?? [] }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mine?.save?.mineNumber, mineState],
+  );
   const derivedRates = useMemo(
-    () => (mine?.save ? deriveMineRates(mine.save.mineNumber, mine.save.shaftLevels ?? [], mine.save.elevatorLevel, mine.save.warehouseLevel, mine.save.prestigeCount) : null),
-    [mine?.id, mine?.save?.mineNumber, mine?.save?.elevatorLevel, mine?.save?.warehouseLevel, mine?.save?.shaftLevels, mine?.save?.prestigeCount],
+    () => {
+      const base = mine?.save ? deriveMineRates(mine.save.mineNumber, mine.save.shaftLevels ?? [], mine.save.elevatorLevel, mine.save.warehouseLevel, mine.save.prestigeCount) : null;
+      if (!base) return null;
+      return progression ? applyProgressionToRates(base, progression) : base;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mine?.id, mine?.save?.mineNumber, mine?.save?.elevatorLevel, mine?.save?.warehouseLevel, mine?.save?.shaftLevels, mine?.save?.prestigeCount, progression],
   );
   // Filling the rate boxes from these derived floors is the player's call
-  // (the "Use these numbers" button below) — never silent: research and
-  // artifacts push real rates far above the raw tables.
+  // (the "Use these numbers" button below) — never silent: artifacts and
+  // manager passives still push real rates above these numbers.
   const rates = mine?.rates ?? { mineshaft: null, elevator: null, warehouse: null };
   const multipliers = mine?.multipliers ?? { mineshaft: 1, elevator: 1, warehouse: 1 };
   const burstRates = effectiveRates(rates, multipliers);
@@ -195,7 +208,7 @@ export function MissionBoardPanel({ catalog, progress, mineState, onImport }: { 
             <strong>{derivedRates.slowestLeg === "shaft" ? "Shafts are" : derivedRates.slowestLeg === "elevator" ? "Elevator is" : "Warehouse is"} the slow leg</strong> — it sets this mine's pace.
             Worked out from the game's own tables and your synced levels, no typing.
             {derivedRates.prestigeFactor > 1 ? <> Prestige boost ×{derivedRates.prestigeFactor} is counted in.</> : null}
-            Your research and collections push the real numbers higher than these.
+            {progression && hasProgressionFactors(progression) ? <> Research + collectibles counted in (shaft ×{Number(progression.shaft.toFixed(2))} · elevator ×{Number(progression.elevator.toFixed(2))} · warehouse ×{Number(progression.warehouse.toFixed(2))}). Artifacts still aren't.</> : <> Your research and collections push the real numbers higher than these.</>}
           </p>
           <button type="button" className="secondary" onClick={() => updateMine({ rates: { mineshaft: derivedRates.shaftPerSecond, elevator: derivedRates.elevatorPerSecond, warehouse: derivedRates.warehousePerSecond }, ratesUpdatedAt: new Date().toISOString() })}>
             Use these numbers

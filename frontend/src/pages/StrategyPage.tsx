@@ -8,10 +8,8 @@ import { buildUpgradeRoi, nextUsefulInvestment, type UpgradeRoiItem } from "../l
 import { bottleneckArea, researchNodesFromDomain, researchPriorities, type Bottleneck, type ResearchPriority } from "../lib/research";
 import { prestigeTiming, verifiedBarrierTableFromDomain } from "../lib/barrier-tables";
 import { saveStrategyPlan, dismissRecommendation, undismissRecommendation, listStrategyPlans, listDismissedRecommendations, deleteStrategyPlan, type SavedStrategyPlan, type DismissedRecommendation } from "../lib/planner-storage";
-import { buildTierlist, compareManagersSideBySide, type TierlistEntry, type ManagerComparisonRow } from "../lib/sm-comparison";
+import { compareManagersSideBySide, type ManagerComparisonRow } from "../lib/sm-comparison";
 import { evaluateProgressStages, progressSummary, type ProgressStageResult } from "../lib/progress-tracker";
-import { computeBombDecision, assessRunState, type StellaMechanics, type StellaDecision } from "../lib/stella-elevator";
-import { planCrystalSpend, minPromoForLevel, type CrystalPlanResult, type CrystalCostTable } from "../lib/crystal-planner";
 import { emptyEssenceInventory, essenceInventoryFromEntries, planEssenceUpgrade, type EssenceInventory } from "../lib/essence-planner";
 import { EverdeepTeamPanel } from "../components/EverdeepTeamPanel";
 import { AheadStrategyPanel } from "../components/AheadStrategyPanel";
@@ -21,7 +19,7 @@ interface StrategyPageProps {
   inventory: PlayerInventoryEntry[];
 }
 
-type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "tierlist" | "progress" | "stella" | "crystal" | "essence" | "ahead" | "everdeep";
+type StrategyPlanId = "recommendations" | "frontier" | "lineup" | "upgrades" | "compare" | "progress" | "essence" | "ahead" | "everdeep";
 
 /** Check whether a load state represents an active package (any source). */
 function isActive(ls: LoadState): boolean {
@@ -54,24 +52,10 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
   const [prestigeNote, setPrestigeNote] = useState<string | null>(null);
   const [savedPlans, setSavedPlans] = useState<SavedStrategyPlan[]>([]);
   const [dismissed, setDismissed] = useState<DismissedRecommendation[]>([]);
-  const [tierlist, setTierlist] = useState<TierlistEntry[]>([]);
   const [comparisonRows, setComparisonRows] = useState<ManagerComparisonRow[]>([]);
   const [catalogManagers, setCatalogManagers] = useState<CatalogManager[]>([]);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [progressResults, setProgressResults] = useState<ProgressStageResult[]>([]);
-  const [stellaMechanics, setStellaMechanics] = useState<StellaMechanics>({
-    totalFloors: 60,
-    safeFloors: [1, 10, 20, 30, 40, 50, 60],
-    bombChancePerRiskFloor: 0.15,
-    continueCostsTickets: [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6],
-    expressStartFloor: 30,
-  });
-  const [stellaInput, setStellaInput] = useState({ currentFloor: 1, target: 30, revivesUsed: 0, elevatorTickets: 20, expressTickets: 1, justBombed: false });
-  const [crystalInput, setCrystalInput] = useState({ fromLevel: 1, toLevel: 20, fromPromo: 0, toPromo: 1, blueBudget: 500, redBudgetEnabled: false, redBudget: 500, discountPct: 0 });
-  const [crystalCosts, setCrystalCosts] = useState<CrystalCostTable>({
-    bluePerLevel: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140],
-    redPerPromo: [0, 50, 100, 200, 400, 800],
-  });
 
   // Load persisted planner state on mount.
   useEffect(() => {
@@ -149,7 +133,6 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
         const barrierStatus = verifiedBarrierTableFromDomain(pkg?.artifacts["frontier-domain.json"]?.content);
         setBarrierDataSource(barrierStatus.available ? barrierStatus.reason : barrierStatus.reason.split(".")[0] + ".");
         setPrestigeNote(nextEvaluation ? prestigeTiming(managers, progress, nextEvaluation).note : null);
-        setTierlist(buildTierlist(managers, progress));
         setComparisonRows(compareManagersSideBySide(managers, progress));
         setProgressResults(evaluateProgressStages(managers, progress));
       }
@@ -201,7 +184,7 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
           hasFrontierRoster={frontierRoster.length > 0}
           lineupCount={evaluation.totalManagersConsidered}
           upgradeCount={roiItems.length}
-          tierlistCount={tierlist.length}
+          compareCount={comparisonRows.length}
           progressCount={progressSummary(progressResults).complete}
         />
       </details>
@@ -283,24 +266,11 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
           </div>)}
         </div>
       </section>}
-      {selectedPlan === "stella" && <StellaElevatorPanel mechanics={stellaMechanics} onMechanicsChange={setStellaMechanics} input={stellaInput} onInputChange={setStellaInput} />}
-      {selectedPlan === "crystal" && <CrystalPlannerPanel input={crystalInput} onInputChange={setCrystalInput} costTable={crystalCosts} onCostTableChange={setCrystalCosts} />}
       {selectedPlan === "essence" && <EssencePlannerPanel managers={catalogManagers} progress={progress} entries={inventory} />}
-      {selectedPlan === "tierlist" && <section className="card-container">
-        <h2 className="card-title">Tier list & compare</h2>
-        <p className="muted" style={{ fontSize: "0.8rem", marginTop: "-0.5rem" }}>Ranked by the documented heuristic score (verified exact tables + equipment). Game-parity power score is not yet available, so this is labeled heuristic, never game power.</p>
-        {tierlist.length > 0 ? <>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-            {(["S", "A", "B", "C"] as const).map((band) => {
-              const entries = tierlist.filter((entry) => entry.tier === band);
-              if (entries.length === 0) return null;
-              return <div key={band} style={{ padding: "0.5rem 0.75rem", borderRadius: "0.5rem", border: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
-                <strong style={{ color: band === "S" ? "var(--accent-orange)" : band === "A" ? "var(--accent-cyan)" : "inherit" }}>Tier {band}</strong> <span className="muted" style={{ fontSize: "0.75rem" }}>{entries[0].tierNote}</span>
-                <div style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>{entries.map((entry) => `${entry.name} (${entry.area}, ${entry.heuristicScore.toFixed(0)})`).join(" · ")}</div>
-              </div>;
-            })}
-          </div>
-          <h3 style={{ fontSize: "1rem", marginTop: "1.5rem" }}>Side-by-side compare</h3>
+      {selectedPlan === "compare" && <section className="card-container">
+        <h2 className="card-title">Compare managers</h2>
+        <p className="muted" style={{ fontSize: "0.8rem", marginTop: "-0.5rem" }}>Your real numbers at your current level, rank, and promotion — straight from the verified tables. No made-up grades.</p>
+        {comparisonRows.length > 0 ? <>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
             {comparisonRows.slice(0, 10).map((row) => <button key={row.managerId} type="button" onClick={() => setCompareIds((ids) => ids.includes(row.managerId) ? ids.filter((id) => id !== row.managerId) : [...ids.slice(-1), row.managerId])} style={{ padding: "0.4rem 0.7rem", borderRadius: "0.4rem", border: "1px solid var(--border-color)", background: compareIds.includes(row.managerId) ? "rgba(0,160,185,0.2)" : "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: "0.8rem" }}>{row.name}</button>)}
           </div>
@@ -317,36 +287,33 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
                   <div>Rank boost: +{row.rankActiveIncreasePct.toFixed(0)}%</div>
                   <div>Passives: {row.passiveCount}</div>
                   {row.equipmentBoost > 0 && <div>Equipment: +{(row.equipmentBoost * 100).toFixed(0)}%</div>}
-                  <div style={{ marginTop: "0.3rem" }}><strong>Score {row.heuristicScore.toFixed(1)}</strong></div>
                 </div>
               </div>;
             })}
           </div>}
-        </> : <div className="empty-state"><h3>No ranked roster</h3><p>Sync unlocked managers to build a tier list.</p></div>}
+        </> : <div className="empty-state"><h3>No roster to compare</h3><p>Sync unlocked managers to compare them here.</p></div>}
       </section>}
     </>
   );
 }
 
-function StrategyPlanMenu({ selectedPlan, onSelect, hasFrontierRoster, lineupCount, upgradeCount, tierlistCount, progressCount }: {
+function StrategyPlanMenu({ selectedPlan, onSelect, hasFrontierRoster, lineupCount, upgradeCount, compareCount, progressCount }: {
   selectedPlan: StrategyPlanId;
   onSelect: (plan: StrategyPlanId) => void;
   hasFrontierRoster: boolean;
   lineupCount: number;
   upgradeCount: number;
-  tierlistCount: number;
+  compareCount: number;
   progressCount: number;
 }) {
   const plans: Array<{ id: StrategyPlanId; title: string; detail: string; badge: string }> = [
     { id: "ahead", title: "Ahead & combos", detail: "Diagnose Elevator/Warehouse/Shaft-Ahead from live rates, run owned combos, see what to unlock/learn next.", badge: "live rates" },
-        { id: "everdeep", title: "Everdeep team builder", detail: "Pick the element of each slot; get your best owned manager per slot with exact numbers and element math, plus team passives.", badge: "exact numbers" },
-    { id: "lineup", title: "General lineup", detail: "One best owned manager for each operating area.", badge: `${lineupCount} managers` },
+    { id: "everdeep", title: "Everdeep team builder", detail: "Pick the element of each slot; get your best owned manager per slot with exact numbers and element math, plus team passives.", badge: "exact numbers" },
     { id: "upgrades", title: "Upgrade focus", detail: "Prioritize your most useful available rank and level gains.", badge: `${upgradeCount} targets` },
-    { id: "tierlist", title: "Tier list & compare", detail: "Rank your roster by verified score and compare managers side by side.", badge: `${tierlistCount} ranked` },
-    { id: "progress", title: "Progress tracker", detail: "The roadmap: which promotion milestones are done across your roster.", badge: `${progressCount} done` },
-    { id: "stella", title: "Stella's Elevator", detail: "Mid-run bomb-decision calculator for Stella's Lucky Elevator events.", badge: "run stats" },
-    { id: "crystal", title: "Crystal planner", detail: "Level/promo crystal budget calculator with discount and structural gates.", badge: "budget" },
+    { id: "lineup", title: "General lineup", detail: "One best owned manager for each operating area.", badge: `${lineupCount} managers` },
+    { id: "compare", title: "Compare managers", detail: "Pick two managers and compare your real numbers side by side.", badge: `${compareCount} managers` },
     { id: "essence", title: "Essence planner", detail: "Choose a Super Manager rank target and see the essence surplus or shortfall from your synced save.", badge: "save-backed" },
+    { id: "progress", title: "Progress tracker", detail: "The roadmap: which promotion milestones are done across your roster.", badge: `${progressCount} done` },
     { id: "frontier", title: "Frontier Mine (separate mode)", detail: "Frontier has its own credits, barriers, and opening burst. Open this only when you are planning a Frontier run.", badge: hasFrontierRoster ? "Roster ready" : "Sync roster" },
   ];
   return <section className="card-container strategy-plan-menu">
@@ -415,7 +382,7 @@ function StrategyRecommendation({
     <p className="strategy-recommendation-reason">{primary.reason}</p>
     <button type="button" onClick={() => onOpen(primary.plan)}>{primary.action} →</button>
     <p className="strategy-source-note">
-      Based on verified catalog <strong>{catalogVersion ?? "unavailable"}</strong> · release <span>{catalogReleaseId ?? "unavailable"}</span>. Unknown effects are excluded rather than estimated.
+      From your synced roster + the verified catalog. Anything unknown is left out, never guessed.
     </p>
     <div className="strategy-recommendation-secondary" aria-label="Other useful paths">
       {upgrade && primary.plan !== "upgrades" && <button type="button" onClick={() => onOpen("upgrades")}>Review upgrade targets</button>}
@@ -561,125 +528,6 @@ function FrontierPlaybook({ roster, barrierId, credits, pass, plan, liveCost, wa
       <ol><li><strong>Prepare:</strong> assign income passives in the active mine and identify one cost reducer for major upgrades.</li><li><strong>Build:</strong> push the cheapest available shafts and save Sparks while barriers are counting down.</li><li><strong>Open a reward checkpoint:</strong> claim the FC or multiplier before committing to the next deep shaft.</li><li><strong>Burst:</strong> pair your strongest shaft run with the best elevator/warehouse converter you own; use cost reduction around the upgrade spend.</li><li><strong>Recalculate:</strong> stop when the next checkpoint costs more than the expected reward-adjusted balance. Waiting for FC is a strategy, not a failure.</li></ol>
     </div>
     <p className="frontier-footnote">Reference basis: Idle Master's Hub Frontier Calculator, official Kolibri Frontier help, and community Frontier Mine guidance. See the full research notes in <code>docs/frontier-mine-guide.md</code>.</p>
-  </section>;
-}
-
-function StellaElevatorPanel({ mechanics, onMechanicsChange, input, onInputChange }: {
-  mechanics: StellaMechanics;
-  onMechanicsChange: (mechanics: StellaMechanics) => void;
-  input: { currentFloor: number; target: number; revivesUsed: number; elevatorTickets: number; expressTickets: number; justBombed: boolean };
-  onInputChange: (input: { currentFloor: number; target: number; revivesUsed: number; elevatorTickets: number; expressTickets: number; justBombed: boolean }) => void;
-}) {
-  const decision: StellaDecision = computeBombDecision(input, mechanics);
-  const runState = decision.runState ?? assessRunState(input.currentFloor, input.revivesUsed + (input.justBombed ? 1 : 0), mechanics, decision.currentRiskPending);
-  const num = (value: string, fallback: number): number => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  };
-  const list = (value: string): number[] => value.split(/[\s,]+/).map((part) => Number(part)).filter((part) => Number.isFinite(part));
-  return <section className="card-container">
-    <h2 className="card-title">Stella's Lucky Elevator — bomb decision</h2>
-    <p className="muted" style={{ fontSize: "0.8rem", marginTop: 0 }}>
-      Mid-run calculator: which option maximizes your chance to reach the target floor with your ticket budget.
-      Event mechanics (safe floors, bomb chance, revive costs, Express start) are <strong>manual inputs</strong> — the APK does not publish them, so enter this event&apos;s values. Math is a faithful port of Idle Master&apos;s Hub.
-    </p>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem", margin: "1rem 0" }}>
-      <details>
-        <summary>Mechanics (per event)</summary>
-        <label>Total floors<input type="number" min="1" value={mechanics.totalFloors} onChange={(event) => onMechanicsChange({ ...mechanics, totalFloors: num(event.target.value, mechanics.totalFloors) })} /></label>
-        <label>Safe floors (comma-separated)<input type="text" value={mechanics.safeFloors.join(", ")} onChange={(event) => onMechanicsChange({ ...mechanics, safeFloors: list(event.target.value) })} /></label>
-        <label>Bomb chance per risk floor (0–1)<input type="number" min="0" max="1" step="0.01" value={mechanics.bombChancePerRiskFloor} onChange={(event) => onMechanicsChange({ ...mechanics, bombChancePerRiskFloor: num(event.target.value, mechanics.bombChancePerRiskFloor) })} /></label>
-        <label>Revive ticket costs (comma-separated)<input type="text" value={mechanics.continueCostsTickets.join(", ")} onChange={(event) => onMechanicsChange({ ...mechanics, continueCostsTickets: list(event.target.value) })} /></label>
-        <label>Express start floor<input type="number" min="1" value={mechanics.expressStartFloor} onChange={(event) => onMechanicsChange({ ...mechanics, expressStartFloor: num(event.target.value, mechanics.expressStartFloor) })} /></label>
-      </details>
-      <details open>
-        <summary>Your run</summary>
-        <label>Current floor<input type="number" min="1" value={input.currentFloor} onChange={(event) => onInputChange({ ...input, currentFloor: num(event.target.value, input.currentFloor) })} /></label>
-        <label>Target floor<input type="number" min="1" value={input.target} onChange={(event) => onInputChange({ ...input, target: num(event.target.value, input.target) })} /></label>
-        <label>Revives used<input type="number" min="0" value={input.revivesUsed} onChange={(event) => onInputChange({ ...input, revivesUsed: num(event.target.value, input.revivesUsed) })} /></label>
-        <label>Elevator Tickets<input type="number" min="0" value={input.elevatorTickets} onChange={(event) => onInputChange({ ...input, elevatorTickets: num(event.target.value, input.elevatorTickets) })} /></label>
-        <label>Express Tickets<input type="number" min="0" value={input.expressTickets} onChange={(event) => onInputChange({ ...input, expressTickets: num(event.target.value, input.expressTickets) })} /></label>
-        <label><input type="checkbox" checked={input.justBombed} onChange={(event) => onInputChange({ ...input, justBombed: event.target.checked })} /> Just bombed (need to clear)</label>
-      </details>
-    </div>
-    {runState && <div style={{ padding: "0.6rem 0.75rem", borderRadius: "0.5rem", marginBottom: "0.75rem", background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}>
-      <strong>Run state: {runState.label}</strong> <span className="muted" style={{ fontSize: "0.8rem" }}>— {runState.risksCleared} risk floors resolved, expected {runState.expectedBombs.toFixed(1)} bombs, you took {runState.actualBombs}.</span>
-    </div>}
-    {decision.best && <div style={{ padding: "0.6rem 0.75rem", borderRadius: "0.5rem", marginBottom: "0.75rem", background: "rgba(0,160,185,0.08)", border: "1px solid var(--accent-cyan)" }}>
-      <strong>Recommended: {decision.best.label}</strong> <span className="muted" style={{ fontSize: "0.8rem" }}>— p(reach target) ≈ {(decision.best.data.viable ? Math.round(decision.best.data.pReach * 100) : 0)}%</span>
-    </div>}
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-      {decision.options.map((option) => <div key={option.id} style={{ padding: "0.6rem 0.75rem", borderRadius: "0.5rem", border: `1px solid ${option.id === decision.best?.id ? "var(--accent-cyan)" : "var(--border-color)"}`, background: option.id === decision.best?.id ? "rgba(0,160,185,0.06)" : "var(--bg-secondary)" }}>
-        <strong>{option.id}. {option.label}</strong>
-        {option.data.viable
-          ? <div className="muted" style={{ fontSize: "0.78rem" }}>p(reach) ≈ {Math.round(option.data.pReach * 100)}% · floor p50 {option.data.p50} · p95 {option.data.p95} · tickets after {option.data.afterTix} · revives {option.data.futureRevives}</div>
-          : <div className="muted" style={{ fontSize: "0.78rem" }}>✗ {option.data.reason}</div>}
-      </div>)}
-    </div>
-  </section>;
-}
-
-function CrystalPlannerPanel({ input, onInputChange, costTable, onCostTableChange }: {
-  input: { fromLevel: number; toLevel: number; fromPromo: number; toPromo: number; blueBudget: number; redBudgetEnabled: boolean; redBudget: number; discountPct: number };
-  onInputChange: (input: { fromLevel: number; toLevel: number; fromPromo: number; toPromo: number; blueBudget: number; redBudgetEnabled: boolean; redBudget: number; discountPct: number }) => void;
-  costTable: CrystalCostTable;
-  onCostTableChange: (table: CrystalCostTable) => void;
-}) {
-  const num = (value: string, fallback: number): number => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  };
-  const list = (value: string, length: number): number[] => {
-    const parsed = value.split(/[\s,]+/).map((part) => Number(part)).filter((part) => Number.isFinite(part));
-    const padded = parsed.concat(Array(Math.max(0, length - parsed.length)).fill(0));
-    return padded.slice(0, length);
-  };
-  const plan: CrystalPlanResult = planCrystalSpend({
-    fromLevel: input.fromLevel,
-    toLevel: input.toLevel,
-    fromPromo: input.fromPromo,
-    toPromo: input.toPromo,
-    costTable,
-    blueBudget: input.blueBudget,
-    redBudget: input.redBudgetEnabled ? input.redBudget : null,
-    discountPct: input.discountPct,
-  });
-  return <section className="card-container">
-    <h2 className="card-title">Crystal planner</h2>
-    <p className="muted" style={{ fontSize: "0.8rem", marginTop: 0 }}>
-      Level/promo crystal budget calculator. The rank/promo/level gates are game mechanics (ported from Idle Master&apos;s Hub);
-      the crystal <em>costs</em> are event-shop data the APK does not publish, so enter the schedule you see in-game below.
-    </p>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.75rem", margin: "1rem 0" }}>
-      <details open>
-        <summary>Level &amp; promo target</summary>
-        <label>From level<input type="number" min="1" max="50" value={input.fromLevel} onChange={(event) => onInputChange({ ...input, fromLevel: num(event.target.value, input.fromLevel) })} /></label>
-        <label>To level<input type="number" min="1" max="50" value={input.toLevel} onChange={(event) => onInputChange({ ...input, toLevel: num(event.target.value, input.toLevel) })} /></label>
-        <label>From promo P<input type="number" min="0" max="5" value={input.fromPromo} onChange={(event) => onInputChange({ ...input, fromPromo: num(event.target.value, input.fromPromo) })} /></label>
-        <label>To promo P<input type="number" min="0" max="5" value={input.toPromo} onChange={(event) => onInputChange({ ...input, toPromo: num(event.target.value, input.toPromo) })} /></label>
-        <div className="muted" style={{ fontSize: "0.75rem" }}>Target level {input.toLevel} needs promo ≥ P{minPromoForLevel(input.toLevel)}.</div>
-      </details>
-      <details>
-        <summary>Costs (per event, manual)</summary>
-        <label>Blue crystals per level (CSV, L1→2 first)<input type="text" value={costTable.bluePerLevel.join(", ")} onChange={(event) => onCostTableChange({ ...costTable, bluePerLevel: list(event.target.value, 50) })} /></label>
-        <label>Red crystals per promo (CSV, P0→1 first)<input type="text" value={costTable.redPerPromo.join(", ")} onChange={(event) => onCostTableChange({ ...costTable, redPerPromo: list(event.target.value, 6) })} /></label>
-      </details>
-      <details>
-        <summary>Budget</summary>
-        <label>Blue budget<input type="number" min="0" value={input.blueBudget} onChange={(event) => onInputChange({ ...input, blueBudget: num(event.target.value, input.blueBudget) })} /></label>
-        <label><input type="checkbox" checked={input.redBudgetEnabled} onChange={(event) => onInputChange({ ...input, redBudgetEnabled: event.target.checked })} /> Cap red budget</label>
-        {input.redBudgetEnabled && <label>Red budget<input type="number" min="0" value={input.redBudget} onChange={(event) => onInputChange({ ...input, redBudget: num(event.target.value, input.redBudget) })} /></label>}
-        <label>Discount %<input type="number" min="0" max="100" value={input.discountPct} onChange={(event) => onInputChange({ ...input, discountPct: num(event.target.value, input.discountPct) })} /></label>
-      </details>
-    </div>
-    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", margin: "0.5rem 0" }}>
-      <span style={{ padding: "0.35rem 0.6rem", borderRadius: "0.4rem", background: input.blueBudget === 0 || plan.blueBudgetOk ? "rgba(0,160,185,0.08)" : "rgba(255,120,80,0.1)", border: "1px solid var(--border-color)", fontSize: "0.85rem" }}>🔵 {plan.blueLevels} level steps → <strong>{plan.blueCost.toLocaleString()} blue</strong> {input.blueBudget > 0 && `/ budget ${input.blueBudget.toLocaleString()}`} {plan.blueBudgetOk ? "✅" : "❌"}</span>
-      <span style={{ padding: "0.35rem 0.6rem", borderRadius: "0.4rem", background: plan.redBudgetOk ? "rgba(0,160,185,0.08)" : "rgba(255,120,80,0.1)", border: "1px solid var(--border-color)", fontSize: "0.85rem" }}>🔴 {plan.redPromos} promo steps → <strong>{plan.redCost.toLocaleString()} red</strong> {input.redBudgetEnabled && `/ budget ${input.redBudget.toLocaleString()}`} {plan.redBudgetOk ? "✅" : "❌"}</span>
-    </div>
-    {plan.gates.some((gate) => !gate.ok) && <div style={{ padding: "0.5rem 0.75rem", borderRadius: "0.5rem", margin: "0.5rem 0", background: "rgba(255,120,80,0.1)", border: "1px solid var(--border-color)", fontSize: "0.8rem" }}>
-      {plan.gates.filter((gate) => !gate.ok).map((gate) => <div key={gate.message}>⚠️ {gate.message}</div>)}
-    </div>}
-    {plan.steps.length > 0 && <details><summary>Step breakdown ({plan.steps.length})</summary><table style={{ width: "100%", fontSize: "0.8rem" }}><thead><tr><th>Step</th><th>From</th><th>To</th><th>Cost</th></tr></thead><tbody>{plan.steps.map((step) => <tr key={`${step.kind}-${step.to}`}><td>{step.kind === "level" ? "Level" : "Promo"}</td><td>{step.kind === "level" ? `L${step.from}` : `P${step.from}`}</td><td>{step.kind === "level" ? `L${step.to}` : `P${step.to}`}</td><td>{step.cost.toLocaleString()}</td></tr>)}</tbody></table></details>}
   </section>;
 }
 
