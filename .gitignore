@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 node_modules/
+.re-dump/
 dist/
 __pycache__/
 *.py[cod]

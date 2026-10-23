@@ -1,5 +1,79 @@
 # Development journal
 
+## 2026-10-23 — Game-config dump audit: skill/collectible/artifact magnitudes are NOT in the local APK dump
+
+**Goal:** Close the HONEST GAP in `mine-balancing.ts` (model lands ~x8–36
+under the save's unboosted idle) by integrating the multiplier definitions
+from the 2026-10-23 UnityPy dump of the game 5.64.1 APK on ubuntumac
+(`~/mineops-re/dump/`). **Outcome: no code change — the mapping breaks at
+the source data, documented here so nobody re-digs this hole.**
+
+**Audit of the current model (what was missing/estimated before):**
+- `deriveMineRates` applies ONLY the balancing tables + prestige
+  GeneralGainFactor. Nothing else was estimated — the gap was left honest.
+- The save parser (`mine-state.ts` `extractMineState`) reads Mines,
+  ProgressionSavegames, ContinentSavegame unlocks, SuperManagers
+  Assignments, Iaps and per-mine Buffs. It does **not** parse
+  SkillSavegames, collectible, or artifact drawers at all — `MineState`
+  has no fields for them, so player-owned multipliers could not be
+  applied even with perfect definition data.
+- `research.ts` is roster-based by design: the research-domain artifact
+  carries node names/tags only; magnitudes were never claimed.
+- Manager passives (`passives.ts`) and equipment boosts
+  (`equipment-effects.ts`) already consume verified catalog rows
+  (equipment-domain `balancing`); those values come from the same APK
+  bundles via the catalog pipeline, and the dump adds nothing new there.
+
+**What the dump actually contains (verified 2026-10-23):**
+- `configfiles.json` skill-node objects (~174) carry identity/presentation
+  only: `_type` (effect-kind enum), `DescriptionKey`, `ContinentType` /
+  `region`, icon refs. **No magnitude, no per-level values, and no numeric
+  SkillID** — they cannot be joined to the save's `SkillSavegame
+  {SkillId, Level}` (class shape confirmed in dump.cs, TypeDefIndex 1546).
+- The real magnitude tables exist as game classes (dump.cs):
+  `SkillLevelsEntity.Param {SkillID, SkillLevel, ParamX, ParamY,
+  SkillPoints}`, `CollectibleProductionFactorsEntity.Param
+  {CollectibleID, CollectibleLevel, ProductionFactor, ...}`,
+  `ArtifactsEntity` / `ArtifactEffectsEntity`. The save side would join
+  cleanly (SkillID + SkillLevel). **But no instance of any of these
+  entities exists in the local assets**, verified three ways:
+  (1) all 63 APK bundles loaded into one UnityPy environment — 48,098
+  MonoBehaviours scanned, 48,096 script-class-resolved; the only Entity
+  instances are SuperManagers*/resource entities (813 hits);
+  (2) typetree `Params` scan of generalassets + configfiles + bin/Data —
+  zero rows keyed by SkillID/CollectibleID/ArtifactID;
+  (3) the trapped Zodiac remote config (399 entities, 73 keys) contains
+  no skill/collectible/artifact data (`SkillID` occurs 0 times).
+- The Addressables catalog (`assets/aa/catalog.json`) *references* the
+  missing assets (key `SkillLevelsEntity`, 23× `SkillConfig`), which
+  points to delivery in a **remote Addressables bundle downloaded at
+  runtime**, not shipped in the APK. No downloaded-bundle cache exists
+  on ubuntumac to pull them from.
+- `configfiles.json` ItemData (1,131 objects) parameters are generic item
+  params (SuperCash cost, type, gem id, …) keyed by unresolved PPtrs —
+  no production magnitudes. Nothing new for equipment either.
+
+**Deliberately NOT done:** no multiplier was invented from the `_type`
+enums, the calibration residual bands in `mine-balancing.test.ts` are
+untouched, and the HONEST GAP header stands as written — it remains
+accurate.
+
+**Forward path (when someone picks this up):** trap the remote
+Addressables bundle the same way the Zodiac config was trapped (boot
+the emulator POC, let the game download its content, pull the app cache),
+extract the *Entity assets above, generate a data module in the style of
+`tools/generate-mine-balancing.py`, add SkillSavegames/collectible/
+artifact parsing to `mine-state.ts`, and only then apply owned
+multipliers in `deriveMineRates` — with the calibration bands re-derived
+from the calibration save's own skill levels, never silently shrunk.
+Probe scripts left on ubuntumac: `~/mineops-re/find_entities.py`,
+`find_entities2.py`, `find_params.py`; results in `~/mineops-re/
+entity-hits.json` (SuperManager/resource only).
+
+**Verification:** no frontend source changed. Test suite before and
+after: 325/325 passing (38 files). `npm run build` clean. Raw dump
+copies were kept in `.re-dump/` (now gitignored), never committed.
+
 ## 2026-09-15 — Make verified manager names authoritative
 
 **Root cause:** The published catalog used APK `NameKey`-derived labels as
@@ -2735,3 +2809,98 @@ Verified the live MineOps browser state after the user's player sync. The import
 Added `docs/frontier-mine-plan-2026-09-14.md`, a roster-specific Frontier plan. It identifies Queen Aurora rank 1→2 as the immediate one-fragment upgrade, Lila Starborne rank 1→2 as the next two-fragment bargain, and Mr. Turner rank 3→4 as the next meaningful shaft burst investment. It separates the user's currently active shaft/elevator/warehouse reducers from barrier- and shaft-unlock reducers using the corrected APK passive IDs, and records the equipment limitation and missing live Frontier fields.
 
 No external account changes, purchases, equipment crafting, catalog activation, or server deployment were performed.
+
+## 2026-10-23 — Missing progression tables FOUND (bin/Data entity assets); research + collectibles now rate-applied
+
+Follow-up to the game-config-dump audit above (same branch). Mission: find
+the Idle Miner Tycoon tables that are not in the APK bundles — skill
+magnitudes, collectible production factors, artifact data — or document
+the dead end of every route. They were found, in the APK itself.
+
+### Where the data was (route B variant — the original audit missed it)
+
+`assets/bin/Data` inside the base APK holds 1,706 files, most of them
+GUID-named standalone serialized assets — one file per game entity asset.
+The audit's UnityPy pass never script-resolved these. Loading them all
+(needs a raised fd limit) surfaces MonoBehaviour entity assets whose
+typetrees are stripped; reading them required TypeTreeGeneratorAPI
+(Assembly-CSharp from the Il2CppDumper output). Extracted on ubuntumac to
+`~/mineops-re/entity-dump/*.json` (copies in this repo's gitignored
+`.re-dump/entities/`):
+
+- SkillLevels 2,365 rows {SkillID, SkillLevel, ParamX (cumulative factor
+  at level), ParamY (target selector), SkillPoints}; SkillNode 215
+  {SkillID, ParentId, EffectId=SkillNodeType, SkillPathID, MaxLevel};
+  SkillPointCosts / PremiumSkillPointCosts 3,604 each; SkillReset 7.
+- CollectibleProductionFactors 1,860 {CollectibleID, CollectibleLevel,
+  ProductionFactor, PartsRequired, SecondaryEffectFactor,
+  ABProductionFactor}; Collectibles 60 (Corridor/Ground/Elevator x20;
+  Ground is the warehouse leg — the save's Ground carries the worker
+  count); CollectibleLevels 31 (levels 0..30).
+- Artifacts 33 + ArtifactEffects 13 + UpgradableArtifacts 16.
+
+Semantics pinned from the data + dump.cs: SkillNodeType enum (1
+SingleMine, 2 AllMines, 14 ContinentMines, 24 WarehouseLoadingSpeed, 25
+WarehouseCapacity, 26 ElevatorLoadingSpeed, 27 ElevatorCapacity, 28
+CorridorGainPerSecond, 29 CorridorCapacity, ...); per-leg nodes key
+ParamY on continentType (0..7); SingleMine keys ParamY on the mine
+number; CollectibleState Locked=0/Unlocked=1/Active=2; savegame shapes
+SkillSavegame {SkillId, Level}, CollectibleSavegame {CollectibleId,
+Level, Parts, State}, ArtifactsSavegame {UnlockedArtifacts, ...}.
+
+### Routes exhausted with evidence (before the find)
+
+- Route A (catalog): parsed `catalog.json` properly (7,199 internalIds).
+  The 101 `http/` ids are all cosmetic remote bundles (luckywheel,
+  mainlandcontent, mazeevent, supermanager-remote...); `settings.json`
+  has exactly one catalog location, the local one — no remote catalog
+  exists, so there is nothing more to fetch. String literals contain no
+  CDN/ServerData URL for content.
+- Route B (emulator cache): AVD `mineops-poc` booted (adb emulator-5556);
+  game runs as a fresh guest. Pulled the full UnityCache (26 bundles,
+  ~50 MB) — only event/cosmetic content. App-private storage is
+  unreachable (production build: no adb root, run-as refused).
+- Zodiac: re-pulled fresh 2026-10-23 (configuration resynced
+  2026-10-23T22:20:23Z); 80 keys, zero SkillID occurrences. Dead end
+  confirmed fresh.
+
+### Integration (this commit)
+
+- `tools/generate-progression-data.py` -> `frontend/src/lib/progression-data.ts`
+  (generated; 119 production-effect skills, 60 collectibles). Raw dumps
+  stay out of git.
+- `frontend/src/lib/progression.ts`: `progressionFactorsForMine` +
+  `applyProgressionToRates`. Applied, only with save-proven ownership:
+  AllMines, ContinentMines (continentType match), SingleMine (mine-number
+  match, nodes stack multiplicatively), the three per-leg speed nodes
+  (continentType match), and collectible ProductionFactor on its own leg
+  for non-Locked entries.
+- `mine-state.ts`: parses the skills/collectibles/artifacts drawers
+  (accepts both the drawers' save names and the game Data field names
+  Skills/Collectibles, since the exact serialized drawer names have not
+  been confirmed against a fresh sync — the parser shows less, never
+  invented numbers, if a name shifts).
+- `MissionBoardPanel`: derived "From your save levels" rates now fold in
+  progression; the caption reports the per-leg factors when any apply.
+
+Deliberately NOT applied (documented in progression.ts): capacity skill
+nodes (no trip mechanics in this model), artifacts (bonus-tree
+composition not established — unlocks are parsed only), collectible
+SecondaryEffectFactor (target resolution unpinned), ABProductionFactor
+(server-side A/B variant), Mainland boost nodes 15/17/19 (ParamY
+encodings unpinned), cost/ad/manager/gem nodes (not production rates).
+
+Calibration bands in mine-balancing.test.ts are UNCHANGED: progression is
+additive and defaults to nothing without a save drawer, so the existing
+no-progression bands still assert honestly. Re-deriving the residual
+bands needs a synced save that includes the new drawers (the calibration
+save predates this parsing); expected effect when present: the ~x20
+elevator residual on the Obsidian save should mostly close (skills +
+collectibles are the right order of magnitude).
+
+Verification: frontend suite 325 -> 339 passing (14 new in
+progression.test.ts: data integrity, application rules, save parsing);
+`npm run build` clean; `tsc --noEmit` clean (repo eslint config is
+currently broken independent of this change). PARITY_MATRIX reviewed —
+no row covers the derived save-level rates; no matrix change. Emulator
+POC on ubuntumac was stopped after the cache pull. Not pushed.
