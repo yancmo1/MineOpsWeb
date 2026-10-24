@@ -20,10 +20,12 @@
  *   - Shaft-open costs are the game's table base costs (Mineshafts
  *     BaseCostBig per tier). Level-ups after opening grow from the same
  *     base via the table's CostIncreases and are NOT summed here.
- *   - The time estimate divides the total open cost by the derived pace.
- *     The derived pace excludes artifacts and regular-manager passives
- *     (the documented calibration gap), so it is labelled an idle-pace
- *     estimate from the game's tables, not a promise.
+ *   - The time estimate divides the total open cost by the mine's pace,
+ *     which is the save's own idle (idle base x active buffs) whenever
+ *     the save records it, and the table-derived pace only as a fallback.
+ *     The fallback pace excludes artifacts and regular-manager passives
+ *     (the documented calibration gap), so fallback estimates are
+ *     labelled as from the game's tables, not a promise.
  */
 
 import { formatCashValue } from "./cash-units";
@@ -37,8 +39,8 @@ import {
 } from "./mine-balancing";
 import {
   decodeMineNumber,
-  gameIdlePerSecond,
   groupMinesByContinent,
+  saveIdlePerSecond,
   type MineState,
   type SaveMine,
 } from "./mine-state";
@@ -111,12 +113,14 @@ export interface MineFacts {
   /** Derived rates with skills/collectibles folded in; null when the
    *  balancing tables cannot model this mine. */
   rates: DerivedMineRates | null;
-  /** Cash/sec the plan uses: derived output when modelled, else the game's
-   *  own idle number from the save. Null when neither exists. */
+  /** Cash/sec the plan uses: the save's own idle (idle base x active
+   *  buffs) when the save records it, else derived table output. Null
+   *  when neither exists. The save's number is the game's own idle, so it
+   *  always wins over the table derivation. */
   pacePerSecond: number | null;
-  paceSource: "tables" | "game" | null;
-  /** The game's own idle cash/sec from the save, when stored. */
-  gameIdlePerSecond: number | null;
+  paceSource: "tables" | "save" | null;
+  /** The save's own idle cash/sec (base x active buffs), when stored. */
+  saveIdlePerSecond: number | null;
 }
 
 export function mineFacts(mine: SaveMine, mineState: MineState): MineFacts | null {
@@ -140,7 +144,7 @@ export function mineFacts(mine: SaveMine, mineState: MineState): MineFacts | nul
       );
     }
   }
-  const gameIdle = gameIdlePerSecond(mine);
+  const saveIdle = saveIdlePerSecond(mine);
   const derivedPace = rates && rates.outputPerSecond > 0 ? rates.outputPerSecond : null;
   return {
     mine,
@@ -154,9 +158,9 @@ export function mineFacts(mine: SaveMine, mineState: MineState): MineFacts | nul
     prestigeCount,
     prestigeFactor: prestigeGainFactor(mineNumber, prestigeCount),
     rates,
-    pacePerSecond: derivedPace ?? (gameIdle != null && gameIdle > 0 ? gameIdle : null),
-    paceSource: derivedPace != null ? "tables" : gameIdle != null && gameIdle > 0 ? "game" : null,
-    gameIdlePerSecond: gameIdle,
+    pacePerSecond: saveIdle != null && saveIdle > 0 ? saveIdle : derivedPace,
+    paceSource: saveIdle != null && saveIdle > 0 ? "save" : derivedPace != null ? "tables" : null,
+    saveIdlePerSecond: saveIdle,
   };
 }
 

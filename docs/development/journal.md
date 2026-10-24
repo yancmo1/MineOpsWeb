@@ -3018,3 +3018,163 @@ derived rates the run/bottleneck steps simply don't appear.
 - Reassessment/mockup provenance:
   `~/workspace/goals/mineops-app-improvements/files/reassessment-simplification-2026-10-23.md`,
   artifact `mineops-home-goal-plan-mockup`.
+
+## 2026-10-24 — Top earners now rank by the save's own idle, not table derivation
+
+### Diagnosis (mechanism, verified against the game's displayed idle)
+
+- Home's top earners came from `mineFacts` in `lib/goal-plan.ts`, which
+  preferred the table-derived pace (`deriveMineRates` + progression) over
+  the save's idle and captioned it "from the game's tables". The derivation
+  misses the live buff multiplier entirely, and on the Start-continent
+  mines it overshoots the save's own idle base by a uniform ~4e13 — a
+  systematic table-derivation scale error (likely elevator/warehouse
+  growth at level ~2200; not isolated, and now irrelevant to Home/Plan
+  because tables are fallback-only there).
+- The save's idle base (`IdleSavegame.BigIdleCashWithoutBuffsPerSec`,
+  already parsed by `extractMineState` in `lib/mine-state.ts`, with the
+  `Possible...` fallback for specials) times the PRODUCT of the factors of
+  buffs with State 1 reproduces the game's displayed idle exactly on two
+  independent anchor mines (within display rounding). The old stacking in
+  `computeIdleBoost` (State 1 AND 2 count, income adds, ad multiplies
+  last, plus Double Cash/Idle flag bonuses) does not: counting State 2
+  alone overshoots by orders of magnitude, and the flags must not be
+  added on top — the matching active buff entry already carries them.
+- The cash formatter (`lib/cash-units.ts`) is NOT at fault: its suffix
+  ladder (K/M/B/T/aa...az/ba/bb...) matches the game's, and the corrected
+  idle values format back to the game's displayed units.
+- A mine-identity trap was checked and cleared: the site's name decoding
+  (`decodeMineNumber`, blocks of five per continent) is correct; an early
+  reading that paired one displayed row with the wrong save row was a
+  mislabel in the report, not in the code — with correct identities all
+  displayed rows share the same uniform derivation overshoot.
+
+### Fix (`feature/top-earners-from-save-idle`, not pushed)
+
+- `lib/mine-state.ts`: new additive helpers `activeBuffProduct` (product
+  of State-1 factors only) and `saveIdlePerSecond` (idle base x that
+  product, null without a base). `computeIdleBoost` / `gameIdlePerSecond`
+  intentionally untouched — they still feed SaveMinesPanel, continent
+  totals, and the mission-board idle, which now disagree with Home/Plan
+  and are a follow-up reconciliation item.
+- `lib/goal-plan.ts` (`mineFacts`): pace is now the save's idle when
+  recorded, table derivation only as fallback; `paceSource` "game" renamed
+  to "save". Home and My Plan share `mineFacts`, so the plan's pace
+  estimate and Home's rows now agree by construction.
+- `pages/HomePage.tsx`: caption "from your save" for save-idle rows,
+  "from the game's tables" only for fallback rows. `pages/PlanPage.tsx`:
+  same wording for the pace estimate.
+- Parser gap: none — `IdleSavegame` and `BuffCollection` (Factor/Type/
+  State triples) were already parsed; the bug was ranking by derivation
+  instead of using them.
+
+### Tests
+
+- Baseline 354 → **362 passing**. `npm run build` clean, `tsc --noEmit`
+  clean. (Repo eslint config remains broken pre-existing.)
+- New `lib/mine-state.test.ts` block (4 tests): State-1-only product,
+  State 0/2 and bad factors excluded, 1x with no buffs, base x product
+  and null-without-base.
+- `lib/goal-plan.test.ts` (+4, 2 updated for the intended behavior
+  change): save-idle-wins assertion, buff multiplication with inactive
+  distractors, ranking by save idle over table output, tables-fallback
+  only when idle is absent, plan pace from save idle (estimate = open
+  cost / save pace).
+## 2026-10-24 — My Plan suggested an already-promoted manager (stale sync rows)
+
+Reported: after promoting a super manager in-game and re-syncing, My Plan
+still suggested its old rank step (Rank 2→3), and the plan's pace/estimate
+did not move either. Investigation found the rank suggestion itself was
+driven by a real staleness hole; the pace symptoms trace to the
+table-derived pace, which structurally cannot see promotions.
+
+### Root cause (rank suggestion)
+
+- `App.tsx` `syncNow` merges each fresh sync over existing progress so a
+  partial sync never wipes the roster: a row the fresh sync leaves
+  unresolved (`unlocked=false`) keeps the previous row. The merge was
+  silent — the sync timestamp still advanced and status read "current" —
+  so a manager that dropped out of resolution kept its pre-promotion
+  rank forever and kept generating its old rank step via
+  `buildUpgradeRoi` (shared by My Plan's invest step and Toolbox's
+  StrategyPage upgrade focus; `upgrade-focus.ts` carries no separate
+  rank logic).
+- The rank/promotion/level fields themselves are read correctly:
+  `kolibri.ts` maps `Data.SuperManagers.Managers` rows
+  (`Level`→level, `Rank`→rank, `Promotion`→promoted) and fragments from
+  `SuperManagerResourcesSavegame.Fragments`. No parser gap, no duplicate
+  manager records, no TemporaryManagers/PinnedManagers involvement.
+- A level-up alone is NOT this bug: level and rank are separate fields,
+  and a level-up correctly leaves a rank step standing. The reported case
+  was a genuine rank promotion, confirmed by the user.
+
+### Fix (this branch)
+
+- `lib/db.ts`: `PlayerManager` gains optional `stale?: boolean`.
+- New `lib/sync-merge.ts`: the App.tsx merge extracted verbatim into
+  pure `mergeProgress`, plus one change — a row preserved only because
+  the fresh sync did not resolve it is returned as `{...existing,
+  stale: true}`. Freshly resolved rows are never stale; the
+  fragment-preservation branch (resolved row, fragments unavailable)
+  stays non-stale.
+- `lib/upgrade-roi.ts`: `buildUpgradeRoi` skips `stale` rows, so a
+  preserved pre-promotion row can no longer generate any suggestion.
+  Display of last-known data elsewhere is unchanged.
+- `lib/sync-feedback.ts` + `pages/MorePage.tsx`: the feedback now
+  carries `staleManagerCount`, and Settings & data shows a line when it
+  is nonzero ("didn't come through in this sync — showing last known
+  data, and they won't drive upgrade suggestions until a sync resolves
+  them").
+- One fresh sync after this ships resolves the reported case either way:
+  the manager resolves fresh at its new rank, or stays unresolved and is
+  marked stale and excluded from suggestions. Rows stored before this
+  fix carry no flag until that next sync.
+
+### Pace findings (same session, no code change here)
+
+- The table-derived pace CANNOT move after a promotion, by
+  construction: `deriveMineRates` (mine-balancing.ts) takes only mine
+  number, shaft levels, elevator/warehouse levels, and prestige count —
+  no super-manager input at all — and `applyProgressionToRates` adds
+  only skills/collectibles. Bolting a promotion effect onto that
+  derivation is NOT the remedy while its systematic overshoot (order
+  10^13, see below) is unexplained.
+- The save-idle pace DOES move with a promotion: it is the game's own
+  computed idle (`IdleSavegame.BigIdleCashWithoutBuffsPerSec` ×
+  active-buff product), surfaced by `extractMineState` +
+  `saveIdlePerSecond`. A fresh sync after the promotion picks up the
+  game's new idle base. (That switch lives on the top-earners branch,
+  not this one; production still shows table pace until it publishes.)
+- Obsidian check (save mine 15, confirmed in-repo): the earlier save's
+  idle base × the State-1 buff product lands in the same universe as
+  the live in-game idle (single-digit percent gap, consistent with the
+  elevator upgrade and promotion that landed after that save plus
+  live-read drift), while the plan's table pace sits ~9×10^13 away —
+  the same systematic derivation overshoot class as the Start-mine
+  finding on the top-earners branch.
+- Elevator display is timing, not a bug: App state `mineState` is
+  replaced wholesale on every successful sync (`setMineState` +
+  `saveMineState`), and PlanPage recomputes from it, so the plan always
+  shows the newest synced levels. A level raised after a sync appears
+  at the next sync.
+- OPEN ITEM — shaft-open cost curve: the 1406-day estimate is
+  arithmetically consistent (table cost / table pace), but the tier
+  cost curve has a 46-order discontinuity at tier 31 (~3 orders/tier
+  through tier 30, then tier 31 jumps to 2.95e112) while the adjacent
+  barrier cost matches the screenshot. Correcting pace alone makes the
+  estimate LONGER, not better — the tier-31+ cost rows need verification
+  against the in-game shaft price before the estimate can be trusted.
+  Do not present the save-idle switch as fixing the estimate until
+  that cost check lands.
+
+### Tests
+
+- Baseline 362 → **370 passing** (41 files). `npm run build` clean,
+  `tsc --noEmit` clean. (Repo eslint config remains broken pre-existing.)
+- New `lib/sync-merge.test.ts` (4): preserved row marked stale,
+  resolved row fresh, fragment preservation stays non-stale,
+  locked rows stay locked.
+- `lib/upgrade-roi.test.ts` (+3): stale rank-2 row yields no items,
+  fresh rank-3 row suggests 3→4 (never 2→3), fresh rank-2 row still
+  suggests 2→3 for 2 fragments (threshold 50 − 48).
+- `lib/sync-feedback.test.ts` (+1): staleManagerCount counted.

@@ -67,7 +67,7 @@ export function PlanPage({ catalog, progress, mineState, goal, onPickGoal }: Pla
         </div>
         {plan.estimatedSeconds != null && facts.pacePerSecond != null && (
           <p className="muted plan-estimate">
-            At your current pace ({formatCashValue(facts.pacePerSecond)}/s{facts.paceSource === "tables" ? " from the game's tables" : ", the game's own idle number"}), earning the cash for the new shaft{plan.openCost && plan.openCost.perShaft.length > 1 ? "s" : ""} takes {formatDuration(plan.estimatedSeconds)} of idle earning. Playing actively and boosts make it faster.
+            At your current pace ({formatCashValue(facts.pacePerSecond)}/s{facts.paceSource === "tables" ? " from the game's tables" : " from your save's idle"}), earning the cash for the new shaft{plan.openCost && plan.openCost.perShaft.length > 1 ? "s" : ""} takes {formatDuration(plan.estimatedSeconds)} of idle earning. Playing actively and boosts make it faster.
           </p>
         )}
         <p className="plan-pill-row">

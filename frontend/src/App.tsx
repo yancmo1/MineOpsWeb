@@ -17,6 +17,7 @@ import { ManagerDetailModal } from "./components/ManagerDetailModal";
 import { buildEquipmentNameMap } from "./lib/equipment-lookup";
 import { buildEquipmentEffectMap, type EquipmentEffectInfo } from "./lib/equipment-effects";
 import { buildSyncFeedback, type SyncFeedback } from "./lib/sync-feedback";
+import { mergeProgress } from "./lib/sync-merge";
 import { loadMineState, saveMineState, type MineState } from "./lib/mine-state";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { usePrefetch } from "./hooks/usePrefetch";
@@ -319,20 +320,10 @@ export default function App() {
       const result = await fetchKolibri(credentials, catalog);
       // Merge with existing progress: preserve data for unresolved managers
       // so a partial sync doesn't reset all progress to unlocked=false.
+      // Preserved rows are marked stale (see lib/sync-merge.ts) so they can
+      // never drive an upgrade suggestion from pre-promotion data.
       const existingProgress = await loadProgress(catalog);
-      const existingById = new Map(existingProgress.map((p) => [p.managerId, p]));
-      const mergedProgress = result.progress.map((p) => {
-        const existing = existingById.get(p.managerId);
-        // If the new progress has unlocked=false and the manager had existing
-        // progress with unlocked=true, keep the existing data (sync didn't touch it).
-        if (existing && !p.unlocked && existing.unlocked) return existing;
-        // The current save shape omits fragment counts. Never erase a known
-        // local/manual fragment count just because this sync could not read it.
-        if (existing && p.fragmentSource === "unavailable" && existing.fragments > 0) {
-          return { ...p, fragments: existing.fragments, fragmentSource: existing.fragmentSource ?? "manual" };
-        }
-        return p;
-      });
+      const mergedProgress = mergeProgress(existingProgress, result.progress);
       const feedback = buildSyncFeedback(existingProgress, mergedProgress, attemptedAt);
       setSyncFeedback(feedback);
       try { localStorage.setItem("mineops-last-sync-feedback", JSON.stringify(feedback)); } catch { /* feedback is best effort */ }

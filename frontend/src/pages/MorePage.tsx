@@ -374,6 +374,9 @@ export function MorePage({
                   <time dateTime={syncFeedback.syncedAt}>{formatDate(syncFeedback.syncedAt)}</time>
                 </div>
                 <p>{syncFeedback.managersReceived} managers received · {syncFeedback.managersChanged} manager records changed</p>
+                {syncFeedback.staleManagerCount > 0 && (
+                  <p>{syncFeedback.staleManagerCount} managers didn&apos;t come through in this sync — showing last known data, and they won&apos;t drive upgrade suggestions until a sync resolves them.</p>
+                )}
                 <div className="settings-sync-feedback-grid">
                   <span><strong>{syncFeedback.levelsIncreased}</strong> levels increased</span>
                   <span><strong>{syncFeedback.starsIncreased}</strong> star ranks increased</span>

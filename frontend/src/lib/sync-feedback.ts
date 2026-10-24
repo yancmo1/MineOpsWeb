@@ -10,6 +10,8 @@ export type SyncFeedback = {
   fragmentsIncreased: number;
   equipmentChanged: number;
   passiveValuesFound: number;
+  /** Rows preserved from a previous sync because this sync did not resolve them. */
+  staleManagerCount: number;
 };
 
 /** Compare normalized player rows without retaining or exposing the raw save. */
@@ -48,5 +50,6 @@ export function buildSyncFeedback(before: PlayerManager[], after: PlayerManager[
     fragmentsIncreased,
     equipmentChanged,
     passiveValuesFound: after.filter((manager) => manager.passiveValueSource === "kolibri").length,
+    staleManagerCount: after.filter((manager) => manager.stale).length,
   };
 }
