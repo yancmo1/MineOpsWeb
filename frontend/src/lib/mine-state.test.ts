@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bigNumberToValue, extractMineState } from "./mine-state";
+import { activeBuffProduct, bigNumberToValue, extractMineState, saveIdlePerSecond } from "./mine-state";
 
 const root = {
   Data: {
@@ -139,6 +139,30 @@ describe("idle boost", () => {
     const storage = { getItem: (k: string) => (k === "mineops.saveMines.v1" ? stored : null) };
     const loaded = loadMineState(storage as never);
     expect(loaded?.mines[0].idleBoost).toBeCloseTo(25.04, 2);
+  });
+});
+
+describe("save idle (idle base x active buffs)", () => {
+  it("multiplies only State-1 buff factors, across income and ad types", () => {
+    const buffs: Array<[number, number, number]> = [[4, 0, 1], [2, 0, 1], [3.13, 1, 1]];
+    expect(activeBuffProduct(buffs)).toBeCloseTo(25.04, 10);
+  });
+
+  it("ignores expired (State 0) and not-active (State 2) entries, and bad factors", () => {
+    const buffs: Array<[number, number, number]> = [[50, 0, 2], [20, 0, 2], [3.13, 1, 0], [0, 0, 1], [-5, 0, 1], [2, 0, 1]];
+    expect(activeBuffProduct(buffs)).toBe(2);
+  });
+
+  it("is 1x with no buffs recorded", () => {
+    expect(activeBuffProduct([])).toBe(1);
+    expect(activeBuffProduct(undefined)).toBe(1);
+  });
+
+  it("applies the active product to the save's idle base, or null without one", () => {
+    const buffs: Array<[number, number, number]> = [[4, 0, 1], [2, 0, 1], [3.13, 1, 1], [50, 0, 2]];
+    expect(saveIdlePerSecond({ idleCashPerSecond: 1000, buffs })).toBeCloseTo(25040, 10);
+    expect(saveIdlePerSecond({ idleCashPerSecond: null, buffs })).toBeNull();
+    expect(saveIdlePerSecond({ idleCashPerSecond: 500 })).toBe(500);
   });
 });
 

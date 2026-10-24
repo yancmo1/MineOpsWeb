@@ -76,6 +76,36 @@ describe("buildUpgradeRoi", () => {
     expect(buildUpgradeRoi([manager()], [locked, absent])).toHaveLength(0);
   });
 
+  it("never suggests from a stale row preserved by a sync that did not resolve it", () => {
+    // Regression: a manager promoted in-game kept suggesting its old rank
+    // because the sync merge silently preserved the pre-promotion row.
+    const stale = { ...progress(10, 2, 0, 48), stale: true };
+    expect(buildUpgradeRoi([manager()], [stale])).toHaveLength(0);
+  });
+
+  it("suggests the next rank for a freshly synced rank-3 manager, not rank 2→3", () => {
+    const fresh = progress(10, 3, 0, 4);
+    const items = buildUpgradeRoi(
+      [manager({ rankEffects: [{ rank: 3, activeIncrease: 0.21 }, { rank: 4, activeIncrease: 0.33 }] })],
+      [fresh],
+    );
+    const rank = items.find((item) => item.kind === "rank");
+    expect(rank?.from).toBe(3);
+    expect(rank?.to).toBe(4);
+  });
+
+  it("still suggests rank 2→3 for a freshly synced rank-2 manager", () => {
+    const fresh = progress(10, 2, 0, 48);
+    const items = buildUpgradeRoi(
+      [manager({ rankEffects: [{ rank: 3, activeIncrease: 0.33 }] })],
+      [fresh],
+    );
+    const rank = items.find((item) => item.kind === "rank");
+    expect(rank?.from).toBe(2);
+    expect(rank?.to).toBe(3);
+    expect(rank?.cost).toBe(2); // rankThreshold(2)=50 - 48 fragments
+  });
+
   it("nextUsefulInvestment returns the top ranked item", () => {
     const items = buildUpgradeRoi([manager()], [progress(10, 0, 0, 5)]);
     expect(nextUsefulInvestment(items)?.kind).toBe("promotion");

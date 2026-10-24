@@ -21,4 +21,13 @@ describe("buildSyncFeedback", () => {
     const row = manager();
     expect(buildSyncFeedback([row], [row], "now")).toMatchObject({ managersChanged: 0, levelsIncreased: 0, starsIncreased: 0, equipmentChanged: 0 });
   });
+
+  it("counts rows preserved as stale by a sync that did not resolve them", () => {
+    const result = buildSyncFeedback(
+      [manager()],
+      [manager({ stale: true }), manager({ managerId: "sm-10067" })],
+      "now",
+    );
+    expect(result.staleManagerCount).toBe(1);
+  });
 });
