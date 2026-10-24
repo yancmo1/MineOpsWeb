@@ -1,5 +1,5 @@
 /**
- * Capture bridge status — shows ubuntumac ingest status on the More page.
+ * Capture bridge status — shows ubuntumac ingest status on the Settings & data screen (Toolbox).
  *
  * The capture bridge uploads APK extraction packages from ubuntumac to the
  * MineOps PocketBase capture-ingest endpoint (/api/capture/ingest).

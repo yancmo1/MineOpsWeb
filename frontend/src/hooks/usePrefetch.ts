@@ -158,10 +158,10 @@ export function usePrefetch(options: PrefetchOptions = {}) {
    */
   const prefetchLikelyRoutes = useCallback((currentRoute: string) => {
     const routeMap: Record<string, string[]> = {
-      '/': ['/strategy', '/more'],
-      '/managers': ['/strategy', '/more'],
-      '/strategy': ['/more'],
-      '/more': [],
+      '/': ['/toolbox'],
+      '/home': ['/toolbox', '/plan'],
+      '/plan': ['/toolbox'],
+      '/toolbox': [],
     };
     
     const likelyRoutes = routeMap[currentRoute] || [];
@@ -174,17 +174,10 @@ export function usePrefetch(options: PrefetchOptions = {}) {
    */
   const prefetchRouteChunks = useCallback((route: string) => {
     const chunkMap: Record<string, { styles: string[]; scripts: string[] }> = {
-      '/strategy': {
-        styles: ['/assets/strategy-*.css'],
-        scripts: ['/assets/StrategyPage-*.js', '/assets/strategy-*.js'],
-      },
-      '/more': {
-        styles: ['/assets/more-*.css'],
-        scripts: ['/assets/MorePage-*.js', '/assets/more-*.js'],
-      },
-      '/managers': {
+      // The Toolbox chunk composes the heavy Strategy/More pages.
+      '/toolbox': {
         styles: [],
-        scripts: ['/assets/ManagerCard-*.js'],
+        scripts: ['/assets/ToolboxPage-*.js'],
       },
     };
 

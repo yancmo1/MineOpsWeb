@@ -2904,3 +2904,117 @@ progression.test.ts: data integrity, application rules, save parsing);
 currently broken independent of this change). PARITY_MATRIX reviewed —
 no row covers the derived save-level rates; no matrix change. Emulator
 POC on ubuntumac was stopped after the cache pull. Not pushed.
+
+## 2026-10-23 — Front door refactor: Home → goal → My Plan, everything else in the Toolbox
+
+Yancy's call after the simplification reassessment + mockup approval: the
+app stacked too much on the first screen. He does not pick a mine from a
+catalog — the app already knows HIS mines from his synced save. He picks
+what to work on: one of his own mines + a target MINESHAFT number; current
+shaft/levels/prestige are auto-detected from the save. Branch
+`feature/home-goal-plan-refactor` off dev (a37e91e). Not pushed; Yancy
+authorized the parent to merge dev → main after this lands.
+
+### Navigation (lib/navigation.ts)
+
+- Four tabs (Today/Crew/Plays/Data) → three: **Home** (`#home`),
+  **My Plan** (`#plan`), **Toolbox** (`#toolbox`). New `ToolboxView`
+  sub-state: menu / plays / crew / mines / leaders / data.
+- Legacy hashes redirect and deep-link: `#today` → Home; `#managers` →
+  Toolbox/crew; `#strategy` → Toolbox/plays; `#more` → Toolbox/data
+  (`toolboxViewFromHash`). NavigationIcon cases renamed to match.
+
+### What moved where
+
+- `pages/TodayPage.tsx` DELETED. Its pieces:
+  - Sync freshness line → Home (kept copy + guidance, plus Sync now /
+    Settings & data actions).
+  - Mission board + save mines → Toolbox "Your mines in detail"
+    (components unchanged; the manual rate entry lives there now, off
+    Home as specified).
+  - Department leaders + Upgrade focus → `components/LeadersPanel.tsx`
+    (verbatim extraction) → Toolbox "Leaders & upgrade focus".
+- The managers tab (inline in App.tsx) → `components/CrewRoster.tsx`
+  (verbatim extraction; filter/sort state moved with it; tracker export
+  imported directly). App.tsx sheds ~250 lines and the roster state.
+- `pages/StrategyPage.tsx` and `pages/MorePage.tsx` are composed as-is by
+  the new `pages/ToolboxPage.tsx` (flat entry list + back row). One copy
+  fix in StrategyPage: "Open More to refresh…" → "Open Toolbox →
+  Settings & data…". ToolboxPage is the lazy chunk now; usePrefetch
+  route/chunk maps point at `/toolbox`.
+- DataConfidenceBar still shows on My Plan and Toolbox (not Home).
+
+### Home (pages/HomePage.tsx)
+
+Sync line; **top earners**: his save mines ranked by real pace (derived
+rates with progression folded in, falling back to the game's own idle
+number; source labelled per row), top 4, tappable rows set the goal mine.
+**Goal picker**: his mines only, `<optgroup>` nested by continent, each
+option showing current state ("Obsidian — Shaft 30 · P5"); target
+mineshaft stepper defaults to current shafts + 1, clamped by the table's
+tier count when known. No save → "Sync your game to see your mines"
+empty state with sync/import actions; no catalog browser anywhere on
+Home. Goal persists in localStorage (`mineops.goal.v1`, same pattern as
+the mission board's mine profiles).
+
+### The planner (lib/goal-plan.ts — additive composition, no lib math changed)
+
+`buildGoalPlan(goal, mineState, catalog, progress)` composes ONLY
+existing verified computations:
+
+1. **Run step** — `rankPlays`/`bestPlay` (mission-board.ts) fed with the
+   mine's derived leg rates; the play's lineup rides along as crew chips.
+2. **Bottleneck step** — `deriveMineRates` (mine-balancing.ts) +
+   `applyProgressionToRates`/`progressionFactorsForMine`
+   (progression.ts): the slowest leg and the three leg speeds.
+3. **Open-shafts step** — priced from the balancing table itself: sum of
+   per-tier `BaseCostBig` (`shaftOpenCost`), plus barrier rows crossed
+   (cost + break time). Zero-cost/zero-time barrier rows are table
+   padding and filtered out. When the table can't price the range the
+   step stays qualitative and says why.
+4. **Invest step** — `nextUsefulInvestment(buildUpgradeRoi(...))`.
+5. **Prestige step (auto)** — `prestigeGainFactor` now vs next. Framed
+   "Consider prestiging": the factor gain is exact table data, but NO
+   verified model prices the reset tradeoff, so the plan shows the
+   factor and the reset warning and never claims prestiging "pays".
+   Plan header carries the pill "Prestige auto-figured from game data".
+
+Plan header: mine, continent, auto-detected now-state (shaft count, top
+shaft level, Elevator/Warehouse levels, prestige ×factor), shaft-count
+progress bar, and an idle-pace estimate (total open cash ÷ derived
+pace) labelled as table-based — the derived pace still excludes
+artifacts/manager passives (the documented calibration gap), and the
+estimate excludes barrier break time, which the open step reports.
+
+Honest gaps / deliberately not computed: shaft LEVEL-UP costs along the
+way (only the open/base costs are summed; the step says so), prestige
+payback time (no reset model), capacity/trip mechanics (same exclusion
+as progression.ts). Fewer steps rather than invented numbers: with no
+derived rates the run/bottleneck steps simply don't appear.
+
+### Tests
+
+- Baseline 339 → **354 passing, 40 files**. `npm run build` clean,
+  `tsc --noEmit` clean. (Repo eslint config remains broken pre-existing,
+  unchanged by this work.)
+- New `lib/goal-plan.test.ts` (12 tests): goal persistence round-trip,
+  default target, mineFacts against the Obsidian calibration fixture
+  (P5 = ×110, elevator slowest — agrees with mine-balancing.test.ts),
+  game-idle fallback, top-earner ranking, continent grouping,
+  shaftOpenCost incl. barrier padding filter, full plan composition
+  (run/bottleneck/open/prestige steps, estimate > 0, prestige framed as
+  "consider"), target-reached plan, null cases, formatDuration.
+- `lib/navigation.test.ts` rewritten (2 → 5 tests): IA change is the
+  reason — old tab ids/hashes no longer exist; new expectations pin the
+  three tabs plus the legacy redirects. No other test files changed;
+  MorePage/StrategyPage/MissionBoard suites pass untouched.
+
+### Docs
+
+- PARITY_MATRIX: Application launch (three tabs/routes), Today/dashboard
+  (now Home; cards in Toolbox), Managers list (Toolbox → Crew roster),
+  Strategy (Toolbox → Plays), More/settings (Toolbox → Settings & data)
+  rows updated with the legacy-hash redirects.
+- Reassessment/mockup provenance:
+  `~/workspace/goals/mineops-app-improvements/files/reassessment-simplification-2026-10-23.md`,
+  artifact `mineops-home-goal-plan-mockup`.

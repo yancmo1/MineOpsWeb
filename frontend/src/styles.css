@@ -834,3 +834,47 @@ code, .settings-hash, .manager-card-stat-value, .leader-level { font-family: var
 .save-mine-groups { display: grid; gap: 10px; margin-top: 10px; }
 .save-mine-group-head { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; text-align: left; }
 .save-mine-group-total { font-family: var(--font-mono); font-size: .8rem; white-space: nowrap; }
+
+/* Home / My Plan / Toolbox (2026-10-23 front-door refactor) */
+.home-page, .plan-page, .toolbox-page { display: grid; gap: 16px; align-content: start; }
+.home-sync-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.home-empty p { max-width: 62ch; }
+.earner-list { display: grid; gap: 8px; margin-top: 12px; }
+.earner-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.earner-row:hover, .earner-row.active { border-color: var(--teal); background: var(--teal-soft); }
+.earner-main { display: grid; gap: 2px; }
+.earner-main small { color: var(--ink-soft); }
+.earner-pace { display: grid; gap: 2px; text-align: right; white-space: nowrap; }
+.earner-pace strong { font-family: var(--font-mono); font-size: .92rem; }
+.earner-pace small { color: var(--ink-faint); }
+.goal-picker-controls { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
+.goal-field { display: grid; gap: 6px; flex: 1 1 260px; }
+.goal-field > span { font-weight: 700; font-size: .85rem; }
+.goal-field select, .goal-field input { padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font: inherit; }
+.goal-field-target { flex: 0 1 170px; }
+.goal-picker-note { margin-top: 10px; }
+.goal-submit { margin-top: 14px; }
+.plan-title { font-size: 1.55rem; }
+.plan-now { margin-top: 8px; max-width: 68ch; }
+.plan-header .upgrade-focus-progress { margin-top: 14px; }
+.plan-estimate { margin-top: 10px; max-width: 68ch; }
+.plan-pill-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+.plan-pill { padding: 6px 12px; border: 1px solid var(--teal); border-radius: 999px; background: var(--teal-soft); color: var(--teal); font-size: .8rem; font-weight: 700; }
+.plan-steps { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.plan-step-head { display: flex; align-items: center; gap: 12px; }
+.plan-step-number { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%; background: var(--teal); color: #fff; font-family: var(--font-display); font-weight: 800; }
+.plan-step-head h3 { font-size: 1.05rem; }
+.plan-step-text { margin-top: 8px; max-width: 68ch; }
+.plan-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip { padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface-soft); font-size: .78rem; font-weight: 600; }
+.plan-why { margin-top: 10px; }
+.plan-why > summary { cursor: pointer; font-weight: 700; font-size: .85rem; color: var(--teal); }
+.plan-why p { margin-top: 6px; max-width: 68ch; }
+.plan-footnote { max-width: 68ch; }
+.toolbox-list { display: grid; gap: 8px; margin-top: 12px; }
+.toolbox-entry { display: flex; justify-content: space-between; align-items: center; gap: 14px; width: 100%; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.toolbox-entry:hover { border-color: var(--teal); background: var(--teal-soft); }
+.toolbox-entry-main { display: grid; gap: 2px; }
+.toolbox-entry-main small { color: var(--ink-soft); }
+.toolbox-entry-arrow { font-weight: 800; color: var(--teal); }
+.toolbox-back-row { margin: 0; }
