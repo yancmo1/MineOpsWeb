@@ -163,7 +163,7 @@ export function StrategyPage({ progress, inventory }: StrategyPageProps) {
   }
 
   if (!evaluation) {
-    return <section className="card-container"><h2 className="card-title">Manager Lineup</h2><div className="empty-state"><h3>Verified catalog unavailable</h3><p>Strategy only uses an active, verified catalog package. Open More to refresh the catalog or review recovery guidance.</p></div></section>;
+    return <section className="card-container"><h2 className="card-title">Manager Lineup</h2><div className="empty-state"><h3>Verified catalog unavailable</h3><p>Strategy only uses an active, verified catalog package. Open Toolbox → Settings & data to refresh the catalog or review recovery guidance.</p></div></section>;
   }
 
   return (
