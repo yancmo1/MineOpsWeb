@@ -16,7 +16,7 @@ export function NavigationIcon({ tab }: NavigationIconProps) {
   };
 
   switch (tab) {
-    case "overview":
+    case "home":
       return (
         <svg {...iconProps} viewBox="0 0 24 24">
           <rect x="3" y="3" width="7" height="7" />
@@ -25,32 +25,17 @@ export function NavigationIcon({ tab }: NavigationIconProps) {
           <rect x="3" y="14" width="7" height="7" />
         </svg>
       );
-    case "managers":
+    case "plan":
       return (
         <svg {...iconProps} viewBox="0 0 24 24">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          <path d="M9 6h11M9 12h11M9 18h11" />
+          <path d="m3 6 1.2 1.2L6.5 5M3 12l1.2 1.2L6.5 11M3 18l1.2 1.2L6.5 17" />
         </svg>
       );
-    case "strategy":
+    case "toolbox":
       return (
         <svg {...iconProps} viewBox="0 0 24 24">
-          <line x1="8" y1="6" x2="21" y2="6" />
-          <line x1="8" y1="12" x2="21" y2="12" />
-          <line x1="8" y1="18" x2="21" y2="18" />
-          <line x1="3" y1="6" x2="3.01" y2="6" />
-          <line x1="3" y1="12" x2="3.01" y2="12" />
-          <line x1="3" y1="18" x2="3.01" y2="18" />
-        </svg>
-      );
-    case "more":
-      return (
-        <svg {...iconProps} viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="1" />
-          <circle cx="19" cy="12" r="1" />
-          <circle cx="5" cy="12" r="1" />
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
         </svg>
       );
   }

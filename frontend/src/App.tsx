@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef, useCallback, Suspense, lazy } from "react";
-import { getSyncMetadata, loadProgress, loadInventory, rankThreshold, saveProgress, saveInventory, setSyncMetadata, strengthScore, getSettings, saveSettings, saveCredentials, getCredentials, type CatalogManager, type PlayerInventoryEntry, type PlayerManager, type SyncMetadata, type AppSettings, type PersistedCredentials } from "./lib/db";
+import { getSyncMetadata, loadProgress, loadInventory, saveProgress, saveInventory, setSyncMetadata, getSettings, saveSettings, saveCredentials, getCredentials, type CatalogManager, type PlayerInventoryEntry, type PlayerManager, type SyncMetadata, type AppSettings, type PersistedCredentials } from "./lib/db";
 import { fetchKolibri, type KolibriCredentials, type KolibriDiagnostics } from "./lib/kolibri";
-import { type Tab, navigationItems, getTabLabel, hashForTab, tabFromHash } from "./lib/navigation";
+import { type Tab, type ToolboxView, navigationItems, getTabLabel, hashForTab, tabFromHash, toolboxViewFromHash } from "./lib/navigation";
 import { restoreAuth, getAuthStatus, onAuthChange, getClient, getBaseUrl, type AuthStatus } from "./lib/pocketbase";
 import { pushStateToPB, pullNewerFromPB, getLocalRevision, updateSyncMetadata } from "./lib/sync";
 import { saveSnapshot } from "./lib/snapshot";
@@ -9,31 +9,22 @@ import { saveImportRecord } from "./lib/import-history";
 import { fetchCaptureStatus, type CaptureStatus } from "./lib/capture";
 import { catalogClient, type LoadState } from "./lib/catalog-client";
 import { managersFromVerifiedPackage } from "./lib/strategy";
-import { TodayPage } from "./pages/TodayPage";
+import { HomePage } from "./pages/HomePage";
+import { PlanPage } from "./pages/PlanPage";
+import { loadGoal, saveGoal, type PlanGoal } from "./lib/goal-plan";
 import { SnapshotHistory } from "./pages/SnapshotHistory";
-import { ManagerCard } from "./components/ManagerCard";
 import { ManagerDetailModal } from "./components/ManagerDetailModal";
 import { buildEquipmentNameMap } from "./lib/equipment-lookup";
 import { buildEquipmentEffectMap, type EquipmentEffectInfo } from "./lib/equipment-effects";
 import { buildSyncFeedback, type SyncFeedback } from "./lib/sync-feedback";
 import { loadMineState, saveMineState, type MineState } from "./lib/mine-state";
 import { NavigationIcon } from "./components/NavigationIcon";
-import { compareManagers, defaultOwnership, sortOptions, type ManagersOwnership, type ManagersSortOption } from "./lib/managers-view";
 import { usePrefetch } from "./hooks/usePrefetch";
 import { LoadingSkeleton } from "./components/LoadingSkeleton";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { buildTrackerBackup, downloadTrackerBackup } from "./lib/tracker-export";
 
-// Lazy load heavy pages
-const StrategyPage = lazy(() => import("./pages/StrategyPage").then(module => ({ default: module.StrategyPage })));
-const MorePage = lazy(() => import("./pages/MorePage").then(module => ({ default: module.MorePage })));
-
-type Department = "All" | "Mine Shaft" | "Elevator" | "Warehouse";
-type Ownership = ManagersOwnership;
-type SortOption = ManagersSortOption;
-
-const departments: Department[] = ["All", "Mine Shaft", "Elevator", "Warehouse"];
-const rarities: string[] = ["legendary", "epic", "rare", "common"];
+// Lazy load the Toolbox (it composes the heavy Strategy/More pages).
+const ToolboxPage = lazy(() => import("./pages/ToolboxPage").then(module => ({ default: module.ToolboxPage })));
 
 function DataConfidenceBar({ metadata, catalogLoadState }: { metadata: SyncMetadata; catalogLoadState: LoadState }) {
   const player = metadata.status === "current"
@@ -84,14 +75,9 @@ export default function App() {
   const [inventory, setInventory] = useState<PlayerInventoryEntry[]>([]);
   const [metadata, setMetadata] = useState<SyncMetadata>({ status: "never" });
   const [settings, setSettings] = useState<AppSettings>({ autoSync: false, focusTargetLevel: 30 });
-  const [tab, setTab] = useState<Tab>(() => typeof window === "undefined" ? "overview" : tabFromHash(window.location.hash));
-  const [query, setQuery] = useState("");
-  const [department, setDepartment] = useState<Department>("All");
-  const [ownership, setOwnership] = useState<Ownership>(defaultOwnership);
-  const [sort, setSort] = useState<SortOption>("recommended");
-  const [selectedRarities, setSelectedRarities] = useState<Set<string>>(new Set());
-  const [showSortMenu, setShowSortMenu] = useState(false);
-  const sortMenuRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<Tab>(() => typeof window === "undefined" ? "home" : tabFromHash(window.location.hash));
+  const [toolboxView, setToolboxView] = useState<ToolboxView>(() => typeof window === "undefined" ? "menu" : toolboxViewFromHash(window.location.hash) ?? "menu");
+  const [goal, setGoal] = useState<PlanGoal | null>(() => loadGoal());
   const [selected, setSelected] = useState<CatalogManager | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [credentials, setCredentials] = useState<KolibriCredentials>({ kolibriId: import.meta.env.VITE_KOLIBRI_ID ?? "", authToken: import.meta.env.VITE_KOLIBRI_AUTH_TOKEN ?? "", saveGameKey: import.meta.env.VITE_KOLIBRI_SAVE_GAME_KEY ?? "0" });
@@ -131,8 +117,9 @@ export default function App() {
   });
   const hasAutoSynced = useRef(false);
 
-  const navigateToTab = useCallback((next: Tab) => {
+  const navigateToTab = useCallback((next: Tab, view?: ToolboxView) => {
     setTab(next);
+    if (view) setToolboxView(view);
     if (typeof window !== "undefined") {
       const nextHash = hashForTab(next);
       if (window.location.hash !== nextHash) {
@@ -141,10 +128,20 @@ export default function App() {
     }
   }, []);
 
+  const openToolbox = useCallback((view: ToolboxView) => navigateToTab("toolbox", view), [navigateToTab]);
+
+  function handleMakePlan(next: PlanGoal) {
+    setGoal(next);
+    saveGoal(next);
+    navigateToTab("plan");
+  }
+
   useEffect(() => {
     const syncTabFromHash = () => {
       const next = tabFromHash(window.location.hash);
       setTab(next);
+      const view = toolboxViewFromHash(window.location.hash);
+      if (view) setToolboxView(view);
       const canonicalHash = hashForTab(next);
       if (window.location.hash !== canonicalHash) {
         window.history.replaceState({}, "", canonicalHash);
@@ -159,18 +156,6 @@ export default function App() {
       window.removeEventListener("popstate", syncTabFromHash);
     };
   }, []);
-
-  // Close sort menu on click outside
-  useEffect(() => {
-    if (!showSortMenu) return;
-    const handleClick = (e: MouseEvent) => {
-      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
-        setShowSortMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [showSortMenu]);
 
   useEffect(() => {
     // Restore PB auth session
@@ -296,7 +281,7 @@ export default function App() {
   const navRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!navRef.current) return;
-    const cleanup = attachHoverPrefetch(navRef.current, ['/strategy', '/more'], 'document');
+    const cleanup = attachHoverPrefetch(navRef.current, ['/toolbox'], 'document');
     return cleanup;
   }, [attachHoverPrefetch]);
 
@@ -325,56 +310,6 @@ export default function App() {
       });
     };
   }, [prefetchRouteChunks]);
-
-  const byId = useMemo(() => new Map(catalog.map((m) => [m.id, m])), [catalog]);
-
-  const managers = useMemo(() => {
-    let items = progress
-      .map((p) => ({ ...p, catalog: byId.get(p.managerId) }))
-      .filter((p): p is PlayerManager & { catalog: CatalogManager } => Boolean(p.catalog));
-
-    // Ownership filter
-    if (ownership === "unlocked") {
-      items = items.filter((p) => p.unlocked);
-    }
-
-    // Department filter
-    if (department !== "All") {
-      items = items.filter((p) => p.catalog.type === department);
-    }
-
-    // Rarity filter
-    if (selectedRarities.size > 0) {
-      items = items.filter((p) => selectedRarities.has(p.catalog.rarity.toLowerCase()));
-    }
-
-    // Search
-    if (query) {
-      const q = query.toLowerCase();
-      items = items.filter((p) => p.catalog.name.toLowerCase().includes(q));
-    }
-
-    // Sort
-    items.sort((a, b) => compareManagers(a, b, sort, strengthScore, rankThreshold));
-
-    return items;
-  }, [progress, byId, ownership, department, selectedRarities, query, sort]);
-
-  const unlocked = progress.filter((p) => p.unlocked);
-  const strongest = departments.slice(1).map((name) => managers.filter((m) => m.unlocked && m.catalog.type === name)[0]).filter(Boolean);
-  const opportunities = unlocked.map((p) => ({ p, m: byId.get(p.managerId)! })).filter(({ p }) => p.fragments > 0).sort((a, b) => b.p.fragments - a.p.fragments).slice(0, 4);
-
-  function toggleRarity(rarity: string) {
-    setSelectedRarities((prev) => {
-      const next = new Set(prev);
-      if (next.has(rarity)) {
-        next.delete(rarity);
-      } else {
-        next.add(rarity);
-      }
-      return next;
-    });
-  }
 
   async function syncNow() {
     setSyncing(true);
@@ -493,10 +428,6 @@ export default function App() {
     void saveSettings(next);
   }
 
-  function exportTrackerBackup() {
-    downloadTrackerBackup(buildTrackerBackup(catalog, progress));
-  }
-
   async function refreshCaptureStatus() {
     const status = await fetchCaptureStatus();
     setCaptureStatus(status);
@@ -535,166 +466,21 @@ export default function App() {
       {/* Page Content */}
       <div className="app-content">
       <ErrorBoundary>
-      {tab !== "overview" && <DataConfidenceBar metadata={metadata} catalogLoadState={catalogLoadState} />}
-      {tab === "overview" && <TodayPage catalog={catalog} progress={progress} mineState={mineState} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} settings={settings} onSettingsChange={handleSettingsChange} onNavigate={navigateToTab} />}
-      {tab === "managers" && (
-        <section className="managers-page">
-          <div className="page-intro">
-            <div className="page-intro-copy">
-              <span className="section-kicker">Crew board</span>
-              <h2>Your crew, ready first</h2>
-              <p>Find who can work now, who is close to a breakpoint, and who is worth investing in next.</p>
-              <div className="manager-board-meta" aria-label="Roster summary">
-                <span><i aria-hidden="true" />{unlocked.length} owned</span>
-                <span><i aria-hidden="true" />{catalog.length} in catalog</span>
-              </div>
-            </div>
-            <div className="page-intro-stat"><strong>{unlocked.length}</strong><span>owned of {catalog.length}</span></div>
-          </div>
-          {/* Search */}
-          <div className="toolbar">
-            <input
-              type="search"
-              aria-label="Search managers"
-              placeholder="Search managers"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <div className="manager-count-badge">
-              {managers.length}/{catalog.length}
-            </div>
-            <button className="secondary manager-export-button" type="button" onClick={exportTrackerBackup} aria-label="Export lineup for Idle Master's Hub">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
-              </svg>
-              <span>Export lineup</span>
-            </button>
-          </div>
-
-          <div className="filter-panel" aria-label="Roster filters">
-            <div className="filter-group">
-              <span className="filter-group-label">Area</span>
-              <div className="filter-chips">
-                {departments.map((dept) => (
-                  <button
-                    key={dept}
-                    type="button"
-                    className={`filter-chip ${dept !== "All" ? `filter-chip-${dept.toLowerCase().replace(" ", "-")}` : ""} ${department === dept ? "active" : ""}`}
-                    aria-pressed={department === dept}
-                    onClick={() => setDepartment(dept)}
-                  >
-                    {dept}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <span className="filter-group-label">Rarity</span>
-              <div className="filter-chips">
-                {rarities.map((rarity) => {
-                  const isSelected = selectedRarities.has(rarity);
-                  return (
-                    <button
-                      key={rarity}
-                      type="button"
-                      className={`filter-chip filter-chip-${rarity} ${isSelected ? "active" : ""}`}
-                      aria-pressed={isSelected}
-                      onClick={() => toggleRarity(rarity)}
-                    >
-                      {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Ownership + Sort Controls */}
-          <div className="manager-controls-row">
-            <div className="segmented-control">
-              <button
-                className={ownership === "unlocked" ? "active" : ""}
-                onClick={() => setOwnership("unlocked")}
-              >
-                Unlocked
-              </button>
-              <button
-                className={ownership === "all" ? "active" : ""}
-                onClick={() => setOwnership("all")}
-              >
-                All Managers
-              </button>
-            </div>
-
-            {/* Sort Dropdown */}
-            <div className="sort-dropdown" ref={sortMenuRef}>
-              <button
-                className="sort-trigger"
-                onClick={() => setShowSortMenu((v) => !v)}
-                aria-label="Sort managers"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 6h18M6 12h12M10 18h4"/>
-                </svg>
-                <span className="sort-trigger-label">{sortOptions.find((o) => o.value === sort)?.label ?? "Sort"}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 9l6 6 6-6"/>
-                </svg>
-              </button>
-
-              {showSortMenu && (
-                <div className="sort-menu">
-                  {sortOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      className={`sort-option ${sort === option.value ? "active" : ""}`}
-                      onClick={() => {
-                        setSort(option.value);
-                        setShowSortMenu(false);
-                      }}
-                    >
-                      {sort === option.value && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      )}
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Manager Grid */}
-          <section className="grid">
-            {managers.length === 0 ? (
-              <div className="empty-state" style={{ gridColumn: "1 / -1" }}>
-                <h3>{unlocked.length === 0 ? "No roster imported yet" : "No managers found"}</h3>
-                <p>{unlocked.length === 0 ? "Sync your player data to see your owned crew, fragments, and rank-up readiness." : "Try adjusting your filters or search term."}</p>
-                {unlocked.length === 0 && <button type="button" onClick={() => navigateToTab("more")}>Import / sync player data</button>}
-              </div>
-            ) : (
-              managers.map((item) => (
-                <ManagerCard
-                  key={item.managerId}
-                  manager={item}
-                  onClick={() => setSelected(item.catalog)}
-                />
-              ))
-            )}
-          </section>
-        </section>
-      )}
-      {tab === "strategy" && (
+      {tab !== "home" && <DataConfidenceBar metadata={metadata} catalogLoadState={catalogLoadState} />}
+      {tab === "home" && <HomePage mineState={mineState} lastSyncAt={metadata.lastSuccessfulSyncAt} syncError={metadata.error} syncStatus={metadata.status} syncing={syncing} onSyncNow={() => void syncNow()} onOpenData={() => openToolbox("data")} goal={goal} onMakePlan={handleMakePlan} />}
+      {tab === "plan" && <PlanPage catalog={catalog} progress={progress} mineState={mineState} goal={goal} onPickGoal={() => navigateToTab("home")} />}
+      {tab === "toolbox" && (
         <Suspense fallback={<LoadingSkeleton variant="page" />}>
-          <StrategyPage progress={progress} inventory={inventory} />
-        </Suspense>
-      )}
-      {tab === "more" && (
-        <Suspense fallback={<LoadingSkeleton variant="page" />}>
-          <MorePage
+          <ToolboxPage
+            view={toolboxView}
+            onViewChange={setToolboxView}
+            catalog={catalog}
+            progress={progress}
+            inventory={inventory}
+            mineState={mineState}
+            settings={settings}
+            onSettingsChange={handleSettingsChange}
+            onSelectManager={setSelected}
             credentials={credentials}
             onCredentialsChange={handleCredentialsChange}
             syncing={syncing}
@@ -702,9 +488,6 @@ export default function App() {
             diagnostics={diagnostics}
             syncFeedback={syncFeedback}
             metadata={metadata}
-            catalogCount={catalog.length}
-            settings={settings}
-            onSettingsChange={handleSettingsChange}
             authStatus={authStatus}
             onAuthChange={() => setAuthStatus(getAuthStatus())}
             onOpenSnapshotHistory={() => setShowSnapshotHistory(true)}
