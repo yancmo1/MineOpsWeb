@@ -99,6 +99,39 @@ export function computeIdleBoost(
   return (idleSum > 0 ? idleSum : 1) * adProduct;
 }
 
+/**
+ * The game's live idle multiplier, verified against the game's own
+ * displayed idle (2026-10-24): the PRODUCT of the factors of buffs whose
+ * State is 1 (active). State 0 is expired and State 2 is not active —
+ * counting State 2 overshoots the displayed idle by orders of magnitude,
+ * and so does the older add-and-flags stacking in computeIdleBoost (kept
+ * above for the panels that still use it; Home/Plan no longer do).
+ * Permanent Double Cash / Double Idle flags are NOT added on top: the
+ * matching active buff entry already carries them. 1 when nothing active.
+ */
+export function activeBuffProduct(buffs: Array<[number, number, number]> | undefined): number {
+  let product = 1;
+  for (const [factor, , state] of buffs ?? []) {
+    if (state !== 1) continue;
+    if (!(factor > 0)) continue;
+    product *= factor;
+  }
+  return product;
+}
+
+/**
+ * In-game idle cash/sec from the save alone: the save's idle base
+ * (BigIdleCashWithoutBuffsPerSec, buffs excluded) times the active-buff
+ * product above. Null when the save records no idle base for this mine.
+ */
+export function saveIdlePerSecond(
+  mine: Pick<SaveMine, "idleCashPerSecond" | "buffs">,
+): number | null {
+  const base = mine.idleCashPerSecond;
+  if (base == null) return null;
+  return base * activeBuffProduct(mine.buffs);
+}
+
 type Row = Record<string, unknown>;
 
 function asRow(value: unknown): Row | null {

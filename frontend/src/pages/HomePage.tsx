@@ -143,7 +143,7 @@ export function HomePage({
                     <small>{facts.continentName} · Shafts {facts.shaftCount}{facts.prestigeCount > 0 ? ` · P${facts.prestigeCount}` : ""}</small>
                   </span>
                   <span className="earner-pace">
-                    {facts.pacePerSecond != null ? <><strong>{formatCashValue(facts.pacePerSecond)}/s</strong><small>{facts.paceSource === "tables" ? "from the game's tables" : "game idle"}</small></> : <small>pace unknown</small>}
+                    {facts.pacePerSecond != null ? <><strong>{formatCashValue(facts.pacePerSecond)}/s</strong><small>{facts.paceSource === "tables" ? "from the game's tables" : "from your save"}</small></> : <small>pace unknown</small>}
                   </span>
                 </button>
               ))}

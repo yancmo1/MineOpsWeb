@@ -105,15 +105,35 @@ describe("mineFacts + topEarners", () => {
     expect(facts.prestigeCount).toBe(5);
     expect(facts.prestigeFactor).toBe(110); // game's own table, mine-balancing.test.ts
     expect(facts.rates?.slowestLeg).toBe("elevator"); // game agrees: elevator is Obsidian's slow leg
-    expect(facts.paceSource).toBe("tables");
+    expect(facts.paceSource).toBe("save"); // the save's own idle wins over tables
+    expect(facts.pacePerSecond).toBe(7.31e88);
   });
 
-  it("falls back to the game's idle number when levels are unknown", () => {
+  it("falls back to the save's idle number when levels are unknown", () => {
     const idleOnly = makeMine({ mineNumber: 2, idleCashPerSecond: 500 });
     const facts = mineFacts(idleOnly, stateOf([idleOnly]))!;
     expect(facts.rates).toBeNull();
     expect(facts.pacePerSecond).toBe(500);
-    expect(facts.paceSource).toBe("game");
+    expect(facts.paceSource).toBe("save");
+  });
+
+  it("uses the save's idle only as a fallback to tables when no idle is recorded", () => {
+    const noIdle = makeMine({ mineNumber: 1, corridorLevels: [10, 8, 5, 3, 1], elevatorLevel: 10, warehouseLevel: 10, idleCashPerSecond: null });
+    const facts = mineFacts(noIdle, stateOf([noIdle]))!;
+    expect(facts.saveIdlePerSecond).toBeNull();
+    expect(facts.paceSource).toBe("tables");
+    expect(facts.pacePerSecond).toBeGreaterThan(0);
+  });
+
+  it("multiplies the save idle by active buffs only, ignoring inactive ones", () => {
+    const buffed = makeMine({
+      mineNumber: 1,
+      idleCashPerSecond: 1000,
+      buffs: [[4, 0, 1], [2, 0, 1], [3.13, 1, 1], [50, 0, 2], [3.13, 1, 0]],
+    });
+    const facts = mineFacts(buffed, stateOf([buffed]))!;
+    expect(facts.pacePerSecond).toBeCloseTo(25040, 10);
+    expect(facts.paceSource).toBe("save");
   });
 
   it("ranks his mines biggest earner first and honours the limit", () => {
@@ -121,6 +141,14 @@ describe("mineFacts + topEarners", () => {
     const earners = topEarners(stateOf([coal, obsidian, idleOnly]), 2);
     expect(earners.map((entry) => entry.mineNumber)).toEqual([15, 1]);
     expect(topEarners(null)).toEqual([]);
+  });
+
+  it("ranks by save idle, not by table output", () => {
+    // Obsidian's table derivation is huge, but its recorded save idle is
+    // small; the idle-only mine must outrank it.
+    const smallIdle = makeMine({ mineNumber: 15, corridorLevels: obsidian.corridorLevels, elevatorLevel: 1997, warehouseLevel: 2003, prestigeCount: 5, idleCashPerSecond: 100 });
+    const idleOnly = makeMine({ mineNumber: 2, idleCashPerSecond: 500 });
+    expect(topEarners(stateOf([smallIdle, idleOnly]), 2).map((entry) => entry.mineNumber)).toEqual([2, 15]);
   });
 
   it("groups the picker by continent with his mines nested inside", () => {
@@ -177,6 +205,21 @@ describe("buildGoalPlan", () => {
     expect(plan.openCost).toBeNull();
     expect(plan.estimatedSeconds).toBeNull();
     expect(plan.steps.map((step) => step.kind)).toContain("done");
+  });
+
+  it("paces the plan from the save's idle, so Home and Plan agree", () => {
+    const buffed = makeMine({
+      mineNumber: 1,
+      corridorLevels: [10, 8, 5, 3, 1],
+      elevatorLevel: 10,
+      warehouseLevel: 10,
+      idleCashPerSecond: 1000,
+      buffs: [[4, 0, 1], [2, 0, 1], [3.13, 1, 1], [50, 0, 2]],
+    });
+    const plan = buildGoalPlan({ mineNumber: 1, targetShaft: 12 }, stateOf([buffed]), catalog, fullRoster)!;
+    expect(plan.facts.pacePerSecond).toBeCloseTo(25040, 10);
+    expect(plan.facts.paceSource).toBe("save");
+    expect(plan.estimatedSeconds).toBeCloseTo((plan.openCost!.totalBaseCost + plan.openCost!.barrierCostTotal) / 25040, 10);
   });
 
   it("returns null without a save or for a mine he doesn't have", () => {

@@ -67,6 +67,10 @@ export function buildUpgradeRoi(catalog: CatalogManager[], progress: PlayerManag
 
   for (const player of progress) {
     if (!player.unlocked) continue;
+    // A stale row was preserved from an older sync because the latest sync
+    // did not resolve this manager. Its rank may predate an in-game
+    // promotion, so it must never generate an upgrade suggestion.
+    if (player.stale) continue;
     const manager = byId.get(player.managerId);
     if (!manager) continue;
 
